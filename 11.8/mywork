@@ -42,5 +42,34 @@ download all things and begin to read code
 11.8
 学会安装自动化测试集群，并开始一次简单的测试。
 hive项目的版本号？
+<parent>
+    <groupId>org.apache.hive</groupId>
+    <artifactId>hive</artifactId>
+    <version>8.0.1</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+<dependency>
+      <groupId>org.apache.hive</groupId>
+      <artifactId>inceptor-metastore</artifactId>
+      <version>${metastore.version}</version>
+    </dependency>
+Docker安装集群
+
+root/Transwarp!
+tw-node1236 172.16.1.236
+tw-node1237 172.16.1.237
+tw-node1238 172.16.1.238
+
+docker:镜像+容器+仓库 容器虚拟化
+拉取新镜像docker run --name [容器名] -p [主机端]:[映射端口] [仓库名]
+根据官方wiki解压包
+https://www.warpcloud.cn/#/documents-support/docs-detail/document/TDH-OPS/6.2/010InstallManual?docType=products&docName=TDH%E5%AE%89%E8%A3%85%E6%89%8B%E5%86%8C
+
+curl -X GET -u wenxiang.qiu:123456 "http://172.16.1.97:8080/remote.php/webdav/OFFICIAL/MANAGER/manager-6.0.1907a-final/IMAGE/centos-7/MANAGER-Basic-Component-Transwarp-6.0.1907a-final.tar.gz" > /var/lib/docker/manager.tar.gz
+
+curl -X GET -u wenxiang.qiu:123456 "http://172.16.1.97:8080/remote.php/webdav/OFFICIAL/TDH/transwarp-6.2.0-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.0-final.tar.gz" > /var/lib/docker/tdh.tar.gz
+
+下载tdc和manager
+source /etc/profile打开maven
 
 
