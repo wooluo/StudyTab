@@ -1,0 +1,46 @@
+11.4
+在目前Guardian的实现中，SHOW TABLES不需要权限，任何用户可以select出所有数据库的所有表；有客户需要对SHOW TABLES进行权限管控，所以需要设计这个操作的权限。
+1. diff文件查看
+2. git安装
+3. 了解guardian 以及对应权限代码
+
+两个组security和guardian代码整体架构 get
+工作流程 get
+
+http://172.26.5.93:8180/#/services/12/roles guardian图
+diff文件是什么意思 get
+
+11.5
+TDH安全-guardian
+
+kerberos
+1.ticket
+集群中的每一个服务都是一个公园，要进入这些公园（访问服务）你需要各个公园的门票（Service Ticket）。而有了公园联票（Ticket-Granting-Ticket），你就可以不需要单独获取各个公园的门票（Service Ticket），只需要出示联票(Ticket-Granting-Ticket)，便可进入各个公园（访问服务）。
+2.principal
+在Kerberos认证系统中，principal相当于用户名，是Kerberos给予Ticket-Granting-Ticket的对象。
+3.keytab文件
+要通过Kerberos的认证需要提供principal及其对应的密码。密码可以手动输入，也可以存放在一个keytab文件中。“Keytab”是“key table”的简写，它用于存放一个或多个principal的密码。
+have lessons:micro-serve architecture/distributed file system
+
+11.6
+kerberos centrralized managing & login on single point & timeout for serving ->apacheds
+Inceptor基于Hadoop技术平台打造，是高效的批处理分析型数据库，可以有效解决大规模数据处理和分析的多种技术难题。社区版Inceptor完整支持SQL 2003标准，提供标准JDBC/ODBC连接支持，从而方便对接第三方软件。
+LDAP -> lightweight loging on single point protocol, tree architecture
+download sth
+get familiar with the product
+have lessons:micro-serve architecture/distributed file system
+学习git使用，开始读代码
+thrift?
+
+11.7
+在目前Guardian的实现中，SHOW TABLES不需要权限，任何用户可以select出所有数据库的所有表，有客户需要对SHOW TABLES进行权限管控，所以需要设计这个操作的权限。
+->find the operations need priviledges and set the priviledge for the show tables operation.
+download all things and begin to read code
+1.装好maven，jdk，输入法。intelliJ快捷键查找，学习maven的使用
+2.读代码，找路径
+
+11.8
+学会安装自动化测试集群，并开始一次简单的测试。
+hive项目的版本号？
+
+
