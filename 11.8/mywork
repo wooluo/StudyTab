@@ -72,4 +72,9 @@ curl -X GET -u wenxiang.qiu:123456 "http://172.16.1.97:8080/remote.php/webdav/OF
 下载tdc和manager
 source /etc/profile打开maven
 
+第一周总结
+熟悉产品TDH和guardian，安装集群测试，一些基础概念协议和工具的使用，比如git，docker，kerberos，LDAP协议
+针对问题，在之前的工作总结出两种方法。一种是基于guardian插件修改上层代码，设立showtable的开关和权限；另一种是在hive工程的metastore中用metastorehook来控制。这两种都需要改动hive的代码和接口，难度不难但有一定的改动量需要时间去看。第一种方法改动上层接口，偏向于权限控制，第二种在hive里改会更彻底但会造成性能问题。
+针对后一种提出改动方案是夹一层中间缓存，但要控制缓存不一致问题。
+现在提出的具体想法是先按照完成第一种方案，拿到集群上看效果，并测试到成熟的版本
 
