@@ -90,3 +90,83 @@ la -al /root
 2. 代码配置文件没有调用到guardian端代码？
 3. guardian代码修改被避开了，因为测试的权限用户都有
 
+原因：每次push镜像之后要重启inceptor才能生效，查询日志 vim /var/log/inceptor1/hive-server2.log\
+s设置断点
+
+测filtertable是否好用。改hasanytable方法
+
+634-657
+ boolean hasAnyTablePrivilegesOnDB(String username, String dbName) {//do sth
+    try {
+      boolean isDBOwner = SQLAuthorizationUtils.isOwner(username, Collections.EMPTY_LIST,
+              new HivePrivilegeObject(HivePrivilegeObject.HivePrivilegeObjectType.DATABASE, dbName, null));
+      if (isDBOwner) {
+        return true;
+      }
+    } catch (HiveAuthzPluginException ex) {
+      LOG.error("Failed to check if user [{}] is the owner of database [{}].", username, dbName, ex);
+      // go on
+    }
+    List<String> dataSource = InceptorPermUtil.convertDatabase(dbName);
+    List<PermissionVo> permVos = new ArrayList<>();
+    permVos.add(new PermissionVo(component, dataSource, ADMIN_PERM));
+    for (GuardianSQLPrivilegeType privilegeType : GuardianSQLPrivilegeType.ALL_ON_TABLE) {
+      permVos.add(new PermissionVo(component, dataSource, privilegeType.name()));
+    }
+    try {
+      return guardianClient.checkAnyAccess(username, permVos);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to check if user [{}] has any table privileges on database [{}]", username, dbName, e);
+      return true;
+    }
+  }
+
+测试一结果：
+show databases时 赋表权限没有上传的database上
+show tables不可用，全为空
+分析：show databases时原生写的函数只检查赋予db上的权限，并没有审查赋予db中表的权限，权限没有上移->把相应代码修改成guardian拉取全部权限判断是否为空
+show tables没有调用到实体，只调到引用，简单修改一下
+晚上能跑两次？
+
+bash运行：
+开两个终端
+1. ssh root@172.16.1.237
+ll
+2.
+scp '/home/transwarp/Downloads/guardian-plugins/plugins/inceptor-plugin/target/inceptor-plugin-transwarp-6.2.1.jar' root@172.16.1.237:/root
+scp '/home/transwarp/Downloads/work/hive-0.12.0-transwarp/src/ql/target/inceptor-exec-8.0.1.jar' root@172.16.1.237:/root
+1. ll
+docker ps | grep inceptor
+docker images | grep inceptor
+docker ps | grep 968
+docker cp inceptor-exec-8.0.1.jar xxx:/root
+docker cp inceptor-plugin-transwarp-6.2.1.jar xxx:/root
+2. docker run -it 968 bash
+ls
+ls
+cd /usr/lib/inceptor/lib
+ls
+[root@50af60a9df09 lib]# mv inceptor-exec-8.0.0.jar /root
+[root@50af60a9df09 lib]# mv inceptor-plugin-transwarp-6.2.0.jar /root
+[root@50af60a9df09 lib]# ls /root
+anaconda-ks.cfg          inceptor-exec-8.0.1.jar              inceptor-plugin-transwarp-6.2.1.jar
+inceptor-exec-8.0.0.jar  inceptor-plugin-transwarp-6.2.0.jar  R-3.3.1-21.x86_64.rpm
+[root@50af60a9df09 lib]# mv /root/inceptor-plugin-transwarp-6.2.1.jar ./
+[root@50af60a9df09 lib]# mv /root/inceptor-exec-8.0.1.jar ./
+ls
+1.
+docker commit 8dc tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+重启inceptor
+kubectl get po -owide | grep inceptor
+kubectl exec -it inceptor-server-inceptor1-697b7f4665-ctfbq bash
+klist
+kinit
+beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/tw-node1237@TDH"
+
+测试2 show databases没有过滤；show tables admin角色没有显示 test完成
+filter加上了global权限的审核
+
+
+
+
