@@ -1,0 +1,27 @@
+1118
+总结
+修改上次的代码并跑通逻辑
+hive的metastore修改代码为什么会有性能问题
+precommit->wiki搜inceptor precommit
+放空
+
+1119
+熟悉git操作，发送merge request
+git rebase --abort //执行rebase的丢弃工作
+git fetch trunk 8.0 //trunk是分支 8.0是分支号？ 執行 fetch，可以取得遠端數據庫的最新歷史記錄。取得的提交會導入在自動建立的分支中
+git rebase trunk/8.0
+git log
+git push origin -f
+rebase 分支前，先执行 fetch 下载最新的代码，否则可能会存在最终不能 push 的情况。
+尽量少用 --force 或者 -f 参数，进行强制性操作。、
+git branch -D Warp-31985
+git branch -m Warp-31985
+git push origin -f
+git cherry-pick 51089e712f449abdb621b81a0d8b44b16a5fc856
+git commit -am "WARP-31985:Add Show databases/show tables permission check"
+git pull origin master --rebase
+
+spring boot
+解决metastore端的代码，熟悉guardian问题
+知道类名查找类:Ctrl+Shift+Alt+N; 
+

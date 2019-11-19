@@ -136,13 +136,14 @@ ll
 scp '/home/transwarp/Downloads/guardian-plugins/plugins/inceptor-plugin/target/inceptor-plugin-transwarp-6.2.1.jar' root@172.16.1.237:/root
 scp '/home/transwarp/Downloads/work/hive-0.12.0-transwarp/src/ql/target/inceptor-exec-8.0.1.jar' root@172.16.1.237:/root
 1. ll
-docker ps | grep inceptor
+// docker ps | grep inceptor
 docker images | grep inceptor
 docker ps | grep 968
 docker cp inceptor-exec-8.0.1.jar xxx:/root
 docker cp inceptor-plugin-transwarp-6.2.1.jar xxx:/root
 2. docker run -it 968 bash
 ls
+
 ls
 cd /usr/lib/inceptor/lib
 ls
@@ -167,6 +168,13 @@ beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/tw-node1237@TDH"
 测试2 show databases没有过滤；show tables admin角色没有显示 test完成
 filter加上了global权限的审核
 
+admin代码全部能跑通，test的show databases没有显示表，日志显示全部被过滤掉了
 
+
+主要的时间在学习docker和k8s的使用处理上，有一个逐渐熟悉的过程，1 hive端的ddltask里面的两个指令中增加逻辑调用接口，2 之前这个项目的代码也优化了权限过滤的逻辑，结果 show tb和db都可以完成权限过滤，
+存在问题：filter开关文件指向有一个问题，找到识别的路口，封装。
+潜在问题 1.性能上影响 2.权限设置上 根据需求看还需不需要改动一下逻辑
+pre-commiter
+merge request?
 
 
