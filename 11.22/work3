@@ -7,6 +7,7 @@ precommit->wiki搜inceptor precommit
 
 1119
 熟悉git操作，发送merge request
+提交
 git rebase --abort //执行rebase的丢弃工作
 git fetch trunk 8.0 //trunk是分支 8.0是分支号？ 執行 fetch，可以取得遠端數據庫的最新歷史記錄。取得的提交會導入在自動建立的分支中
 git rebase trunk/8.0
@@ -24,4 +25,148 @@ git pull origin master --rebase
 spring boot
 解决metastore端的代码，熟悉guardian问题
 知道类名查找类:Ctrl+Shift+Alt+N; 
+怎么远程调试设置断点
+
+spring Boot
+简化配置，易于打包，第三方集成
+spring加载器loader封装
+spring的eventlistener可以用
+AOP&IOC
+
+1120
+浏览器开发者模式ctrl+shift+I
+git fetch origin WARP-31985
+rename
+git checkout WARP-31985
+
+两个独立分支的代码合并有两个比较常用的命令，分别是 git cherry-pick <commit-id>和git rebase。cherry-pick  主要用于copy某个单独分支的patch，而rebase主要用于一次性合并整个分支。以下主要介绍rebase：
+
+语法：git rebase upstream-branch to-branch  （要变基的分支是后者，如果当前分支为to-branch，可以省略后者分支）
+git checkout -b "分支名" 创建并切换分支
+
+tcc是一个TDC的租户管理中心
+TCC删除产品时需要以tcc用户把该产品中注册到guardian的服务删除, 为了减少网络开销, 需要guardian提供批量删除服务的接口
+
+https://172.16.1.51/tdc/guardian/swagger-ui.html#/      swagger api
+user resources
+https://172.16.1.51/tdc/guardian/#/home?dataSourcePrefix=PATH     guardian
+
+package io.transwarp.guardian.server.boot.controller/resourceServiceController    @DeleteMapping("/services/{serviceType}/{serviceName}") 104line
+
+package io.transwarp.guardian.client/guardianAdmin/removeService()    234
+package io.transwarp.guardian.client/guardianClient
+
+idea快捷键
+ctrl+shift+Alt+N
+ctrl+F
+
+注释
+@PathVariable     --》请求url
+spring mvc中的@PathVariable是用来获得请求url中的动态参数的
+
+@RequestParm    --》请求参数
+
+@Audit注解的类或方法在执行前会先进这个方法，记录调用日志。 
+
+@ApiOperation不是spring自带的注解是swagger里的
+@ApiOperation(value = “接口说明”, httpMethod = “接口请求方式”, response = “接口返回参数类型”, notes = “接口发布说明”；其他参数可参考源码；
+
+@ApiParam(required = “是否必须参数”, name = “参数名称”, value = “参数具体描述”
+Swagger是当前最好用的Restful API文档生成的开源项目，通过swagger-spring项目
+实现了与SpingMVC框架的无缝集成功能，方便生成spring restful风格的接口文档，
+
+@GetMapping、@PostMapping、@PutMapping、@DeleteMapping、@PatchMapping
+ @GetMapping是一个组合注解，是@RequestMapping(method = RequestMethod.GET)的缩写。该注解将HTTP Get 映射到特定的处理方法上。
+
+
+GuardianVars识别不到->和master工程show diff一下并改正
+Guardian & ApacheDS 本地编译及启动方法  http://172.16.1.168:8090/pages/viewpage.action?pageId=22692984
+fork/clone guardian项目，jacocoagent，mysql，protobuf 通过swagger控制api
+
+11.21\
+在日志guardianlog里看结果
+
+1. 测试流程 退出swagger
+2. 无法建立索引连接
+3. 需求；removeall
+如果servicetype和servicename是一对多的关系需要一个对应getservicetype所以servicename的接口-serviceManager
+如果是多选servicename，那么需要传递一个list<ServiceVo>的接口在remove里面改-前端怎么传list
+
+//传list到前端api
+  @DeleteMapping("/services")
+  @ApiOperation(value = "Delete List services", notes = "login is needed")
+  @Auditable(field = AuditField.SERVICE, requestClass = "RemoveServiceRequest", level = AuditLevel.DELETE,
+          operationFormat = "remove services: [%s]")
+  public void removeServices(HttpServletRequest request,
+                             @RequestParam("serviceName") List<String> serviceName) throws GuardianException{
+    Session session = (Session) request.getSession().getAttribute(Constants.FORTRESS_SESSION);
+    resourceServiceManager.removeList(session, null, serviceName);
+  }
+
+  @Override
+  public void removeServices(final List<ServiceVo> ServiceVos) throws GuardianClientException {
+    runWithRelogin(new RestWork<Void>() {
+      @Override
+      public Void run() throws GuardianClientException {
+        for(ServiceVo serviceVo : ServiceVos){
+          restClient.delete(RESOURCE_SERVICES + "/" + encode(serviceVo.getServiceType())
+                  + "/" + encode(serviceVo.getServiceName()));
+        }
+        return null;
+      }
+    });
+  }
+
+guardian/test目录下执行bash startGuardianServer.sh
+日志文件中查看结果
+guardian swagger的使用，先到user处login（admin-123）然后resource-service-register添加ServiceVO，services中查看，deleteapi中测试
+localhost:8380
+
+
+主要分为5个子项目：
+
+    apacheds-backend: apacheds的主程序以及启动初始化的schema
+    apacheds-parent: apacheds的核心实现
+    directory-fortress-core: fortress是基于LDAP的RBAC模型的一种实现
+    guardian: guardian server后端代码
+    lmdbjni: lmdb为apacheds底层使用的数据库
+
+shift+printscreeen截图
+
+1122
+完成测试部分代码，并跑通
+下午开会
+完成重构
+
+本地测试跑不通->项目的配置文件是否配制成正确的访问地址和端口
+线上测试跑不同->在项目中添加角色sobar帮助项目CI审核
+remove测试写法
+先检测是否添加service成功Assert，操作，检测是否操作成功Assert，跑一遍
+还剩的问题dao层的deleteservices无法访问到接口，client层的不会配置文件？无法访问接口
+swagger上插入了test代码，说明test成功只是没有client去访问，每次测试开了一个新的session刷新server数据
+为什么要改dao层？？
+
+
+<delete id="deleteParamsByIds">
+
+        delete from ts_sys_params where id in
+
+        <foreach collection="array" open="(" close=")" item="item" separator="," >
+            #{item}
+        </foreach>
+</delete>
+
+
+    <delete id="deleteServices" parameterType="java.util.List">
+        DELETE FROM gs_service WHERE service_name in
+        <foreach collection="serviceNames" open="(" close=")" item="item" separator="," >
+            #{serviceNames}
+        </foreach>
+    </delete>
+sql在xml里写删除遍历list
+后台控制构造URL的方法，qsstring，？
+学会找返回值
+配置文件
+
+
 
