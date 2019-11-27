@@ -1,0 +1,190 @@
+本周：
+1. WARP-39221：完成项目关于改动的重构部分
+2. WARP-31985: 
+2. guardian端代码的继续熟悉学习
+
+11.25
+添加批量删除注册服务的接口
+
+CI 是持续集成。CD 是持续部署。
+SPNEGO是一种使用GSS-API(通用安全服务应用接口)认证机制的安全协议。 
+
+guardian/guardian-client/src/test/java/io/transwarp/guardian/client/impl/RemoveServiceListTest.java
+不要提交不用的文件
+return后加分号不需要空格
+CollectionUtils.isEmpty(serviceNames)可以替代== null || .size()==0
+不要没用地调多次系统函数
+注意一下非static final变量名，以及方法名都用驼峰命名法
+一般是SQL里面的保留字或者关键字都大写
+一般单个变量名叫serviceName的话，集合形式的就叫serviceNames
+花括号前面要加个空格
+guardian 的项目都是空两个空格的，所有的提交都检查一下
+心跳问题
+    GuardianConfiguration guardianConfiguration = new GuardianConfiguration();
+    guardianConfiguration.setLong(GuardianVars.GUARDIAN_CLIENT_HEARTBEAT_REPORT_INTERVAL.varname,
+        500L);
+
+
+Etcd是CoreOS开源的一个高可用强一致性的分布式存储服务
+Kubernetes使用Etcd作为数据存储后端,把需要记录的pod、rc、service等资源信息存储在Etcd中
+Etcd使用raft算法将一组主机组成集群,raft 集群中的每个节点都可以根据集群运行的情况在三种状态间切换:
+follower、candidate与leader。
+leader 和follower 之间保持心跳,如果follower在一段时间内没有收到来自leader的心跳,就会转为candidate,发出新的选主请求。当一个节点获得了大于一半节点的投票后会转为leader节点
+
+API Server提供了k8s各类资源对象(pod,RC,Service等)的增删改查及watch等HTTP Rest接口,是整个系统
+的数据总线和数据中心。
+在 kubernetes 集群中,API Server 有着非常重要的角色。API Server负责和etcd交互(其他组件不会直接操作
+etcd,只有 API Server 这么做),是整个 kubernetes 集群的数据中心,所有的交互都是以API Server为核心
+的。简单来说,API Server 提供了以下功能:
+
+整个集群管理的API接口:所有对集群进行的查询和管理都要通过API Server来进行
+集群内部各个模块之间通信的枢纽:所有模块之之间并不会之间互相调用,而是通过和 API Server 打交道来完成自己
+那部分的工作
+集群安全控制:API Server 提供的验证和授权保证了整个集群的安全
+
+Controller Manager 是一个集群内部的管理控制中心,有一组控制器构成,这组控制器负责集群内部的 Node、
+Pod、Endpoint、Namespace、ServiceAccount、ResourceQuota 等等资源的管理。
+• 每个Controller通过API Server提供的接口实时监控整个集群的每个资源对象的当前状态,当发生各种故障导致
+系统状态发生变化时,会尝试将系统状态修 复到“期望状态”
+
+负责集群的资源调度,为新建的pod分配机器
+根据特定的调度算法将pod调度到指定的工作节点(Node)上,这一过程也叫绑定(bind)。Scheduler的输
+入为需要调度的Pod 和可以被调度的节点(Node)的信息,输出为调度算法选择的Node,并将该pod bind到该
+Node
+
+调度过程分为两步, predicate以及prioritize
+predicate筛选满足条件的node
+prioritize给剩下node打分,选择分数最高的node,作为bind的node
+
+kube-proxy负责service的实现,即实现了k8s内部从pod到service和外部从node port到service的访问。
+
+集群中的每个 Node 都有 Kubelet 进程,该进程用于处理 Master 节点下发到本节点的任务,管理 Pod 以及
+Pod 中的容器。
+节点管理:kubelet 启动时向 API Server 注册节点信息,并定时向 API Server 汇报节点状况;
+Pod管理:创建/删除 Pod,下载容器镜像,用 Pause 创建容器,运行容器,校验容器是否正确等;
+,
+•
+•
+kubelet
+容器健康检查:通过访问容器的 HTTP 接口(HTTP 状态码作为判断依据)来判断容器是否健康;
+cAdvisor 资源监控:cAdvisor 集成到 kubelet 程序的代码之中,负责查找当前节点的容器,自动采集容器级别的 CPU、内存、文件系统和网络使用的统计信息。
+////
+
+通过将系统内部的对象“分配”到不同的Namespace中,形成逻辑上分组的不同项目、小组或用户组,便于不同
+的分组在共享使用整个集群的资源的同时还能被分别管理。
+与Resource Quota(配额)一起提供多租户管理
+Kubernetes集群在启动后,会创建一个名为“default”的Namespace,如果不特别指明Namespace,则用户创建的Pod、RC、Service都被系统创建到“default”的Namespace中
+kube-system是预留的命名空间,系统服务在kube-system下运行
+可以通过配置RBAC, 每个用户只能使用自己命名空间下的资源
+
+
+用于限制命名空间下资源的使用
+命名空间下如果没有配额, 则视为无限制
+可以限制cpu,memory,存储卷等
+目前主要是限制pod的创建
+
+Resource Quota (配额)
+
+pod无法在带quota的命名空间下创建
+超出配额
+pod中的容器没有资源使用声明
+
+
+K8S中最小的调度单位
+一个pod只会调度到一台机器,不会横跨两台机器
+一个pod调度完成之后,不会移动到其他机器
+容器组中包含一个或多个容器
+•
+•
+Pod (容器组)
+• 共享网络空间
+• infra 容器用于维持容器组IP
+• 共享存储卷
+•
+来源:
+• 用户可以创建pod
+• Job,Rs,Deployment,Statefulset产生
+
+所有k8s元素共有属性
+• label
+key=value,value是简单字符串
+• 用于资源选择以及简单的数据存放
+,
+•
+•
+• • kubectl get resource_type -l key=value
+• kubectl get resource_type -l environment in (production),tier in (frontend)
+• kubectl label resource_type resource_name key=value
+annotation
+• key=value, value可以是复杂的字符串
+• 用于存复杂数据
+• 不支持资源选择
+
+编码
+•
+Secret & ConfigMap
+场景
+,
+•
+• secret 中的数据用base64编码,而configmap无编码
+• secret一般用于存放敏感数据,而configmap一般是配置文件
+•
+使用kubectl 创建 secret
+• kubectl create secret generic secret-hello --from-file=abc=hello.txt
+•
+使用kubectl 创建configmap
+• kubectl create cm cm-hello --from-file=abc=hello.txt
+
+Deployment 包含如下:
+• update strategy (升级策略,rolling update / recreate)
+,
+• Pod template (pod模板,用于创建pod)
+• replicas (将要创建的pod数目)
+• label selector (如何选中pod)
+• Controller-manager会负责保持$replica份满足label selector的pod
+• 多删,少增
+• 当pod template 发生变化,会创建出新的RS
+• 支持rolling update以及roll back
+• 当pod template 发生变化,会创建新的RS
+• 老的RS选中的pod数目减少,新的RS选中的pod数目增多
+
+11.26
+抽象类，list初始化
+
+git rebase -i HEAD~21 合并多个commit到一个（要观察head的位置）
+把文件中的操作换为s，ctrl-X yes然后保存，然后关闭
+    <delete id="deleteServices" parameterType="java.util.List">
+        DELETE FROM gs_service WHERE service_name IN
+        <foreach collection="serviceNames" open="(" close=")" item="item" separator="," >
+            #{item}
+        </foreach>
+    </delete>
+注意item sql写在xml里的方法
+
+Guardian-V2重构
+ctrl点击项目名 快捷查找
+
+  @Override
+  public void removeServices(final List<ServiceVo> ServiceVos) throws GuardianClientException {
+    runWithRelogin(new RestWork<Void>() {
+      @Override
+      public Void run() throws GuardianClientException {
+        final QueryString qs = new QueryString();
+        for (ServiceVo serviceVo : ServiceVos) {
+          qs.add("serviceName", serviceVo.getServiceName());
+        }
+        httpClient.delete(RESOURCE_SERVICES + qs);
+        return null;
+      }
+    });
+  }
+
+git rebase trunk/master
+git rebase -i HEAD~1
+git reflog
+
+1127
+linux tab命令自动补全
+
+
+

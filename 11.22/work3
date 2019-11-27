@@ -169,4 +169,15 @@ sql在xml里写删除遍历list
 配置文件
 
 
+1. WARP-31985：修改在g-plugin，hive后端代码 完成添加guardian端和hive端的show tables和show databses的接口
+跑过了precommit，需求逻辑在我的集群跑过了，1. 里面的guardianvars有字段标红应该是ide的问题，然后我在提交的代码上是直接标称true了，
+2. WARP-39221：完成添加批量删除注册服务的接口
+修改位置guardian后端，完成功能-test目录里的test测试-看日志/代码规范/版本管理/用swagger UI，guardian和apacheds的本地编译
+3.  熟悉git命令和项目测试方法
+
+
+git rebase trunk/master
+git reset HEAD~1
+git reflog
+
 
