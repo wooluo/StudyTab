@@ -105,48 +105,12 @@ Pod (容器组)
 • 用户可以创建pod
 • Job,Rs,Deployment,Statefulset产生
 
-所有k8s元素共有属性
-• label
-key=value,value是简单字符串
-• 用于资源选择以及简单的数据存放
-,
-•
-•
-• • kubectl get resource_type -l key=value
-• kubectl get resource_type -l environment in (production),tier in (frontend)
-• kubectl label resource_type resource_name key=value
-annotation
-• key=value, value可以是复杂的字符串
-• 用于存复杂数据
-• 不支持资源选择
-
-编码
-•
-Secret & ConfigMap
-场景
-,
-•
-• secret 中的数据用base64编码,而configmap无编码
-• secret一般用于存放敏感数据,而configmap一般是配置文件
-•
-使用kubectl 创建 secret
-• kubectl create secret generic secret-hello --from-file=abc=hello.txt
-•
-使用kubectl 创建configmap
-• kubectl create cm cm-hello --from-file=abc=hello.txt
-
-Deployment 包含如下:
-• update strategy (升级策略,rolling update / recreate)
-,
-• Pod template (pod模板,用于创建pod)
-• replicas (将要创建的pod数目)
-• label selector (如何选中pod)
-• Controller-manager会负责保持$replica份满足label selector的pod
-• 多删,少增
-• 当pod template 发生变化,会创建出新的RS
-• 支持rolling update以及roll back
-• 当pod template 发生变化,会创建新的RS
-• 老的RS选中的pod数目减少,新的RS选中的pod数目增多
+Pod生命周期
+Pending (pod中至少还有一个容器还没有启动)
+Running (pod中所有容器都启动了,并且至少一个容器还在运行中)
+Succeed (pod中所有容器都退出了,并且都成功退出)
+Failed (pod中所有容器都退出了,并且至少一个容器失败退出)
+Unknow (无法或者容器状态)
 
 11.26
 抽象类，list初始化
@@ -183,8 +147,136 @@ git rebase trunk/master
 git rebase -i HEAD~1
 git reflog
 
+完成WARP-31228删除服务list的逻辑
+
 1127
 linux tab命令自动补全
+重构项目/目的-1.apacheds-backend里面没有东西->统一融合到guardian后端代码 2.一大堆mf文件->apacheds相关，不用管
+报错 没改的地方-》测试文件用到扥都是同一数据库，所以会互相影响数据，在dao层的操作记得sessioncommit
+guardian跑一次太慢0了8
 
+1.session没有commit
+2.方法错了，不是deleteserviceperms
+3.路径
+
+  @Override
+  public List<UserVo> getGroupOwners(final String groupName, final boolean inheritance) throws GuardianClientException {
+    return runWithRelogin(new RestWork<List<UserVo>>() {
+      @Override
+      public List<UserVo> run() throws GuardianClientException {
+        QueryString qs = new QueryString();
+        qs.add("inheritance", inheritance);
+        return httpClient.get(GROUP_URL + "/" + encode(groupName) + "/owners" + qs.toString(), new TypeReference<List<UserVo>>() {
+        });
+      }
+    });
+  }
+
+
+
+DAO（Data Access Object）顾名思义就是用 OO 的方式去执行数据库的操作，包括函数化的 CRUD，可以自己去写也可以用 ORM 框架。Service 可以处理事务和业务逻辑，比如用户登录的校验等。Controller 其实就与业务无关了，它更多的是将 Service 层的结果加以处理返回给 View，也可能会处理一些简单的参数检验工作。Util 的话就是一些辅助类（或函数），涉及面可能比较广，粒度小，比如生成 MD5 的便利函数等。Model 是最简单的，Java 里对应的就是 Beans，ORM 框架也将根据 Model 中的定义去生成 SQL 语句，在其他语言中也是一些 Plain Old Object，自身可能会有一些数据表达的处理功能，但更多的不应该涉及副作用。
+
+view-controller-service-dao-db
+Controller-->service接口-->serviceImpl-->dao接口-->daoImpl-->mapper-->db
+util,model
+
+在SpringMvc后台进行获取数据，一般是两种。 
+1.request.getParameter(“参数名”) 
+2.用@RequestParam注解获取
+
+@RequestParam 参数标识注解存在三个参数
+1、value值
+对应url提交的?id=xx中的id，参数名
+
+2、defaultValue 该参数的默认值
+当url中id值没有传输时将使用这个参数进行赋值
+
+3、required
+是否必须。默认为 true, 表示请求参数中必须包含对应
+的参数，若不存在，将抛出异常
+
+完成WARP-31228的重构
+
+11.28
+两个blog：
+1. dao-service-controller层 1
+2. git的利用
+3.业务，群，部门，岗位 1
+4. spring常用注解
+组件类注解
+@component->spring bean
+@repository->dao组件
+@service->业务逻辑组件
+@controller->控制器组件
+
+11
+
+
+Web 层:主要是对访问控制进行转发，各类基本参数校验，或者不复用的业务简单处理等。
+git rebase trunk refactor/WARP39221
+trunk是本地的一个分支，按照gitlab开发流程来
+V1和V2的removeService还是像原来一样分开写吧，否则@PathVariable("serviceType") String serviceType  swagger显示是必填的，但是V2又没用到
+代码规范 大括号，for循环，空格
+tdh是产品hub，tdc是管理云
+tcc是tdc的租户管理中心组件
+
+http://172.16.1.168:8090/pages/viewpage.action?pageId=22692984  warp39221开发流程
+
+warp-39528
+创建/删除互信API的target domain admin username & password不再是必须参数
+需要工具：https://172.26.5.98:8380/swagger-ui.html#!/trustRelations/addTrustRelationUsingPOST
+https://172.26.5.98:8380/#/setting/trustRelation
+修改范围：master/guardian-backend/trustrelationcontroller-trustRelationshipVo-DomainVo-guardianServerVo
+
+accesstoken coffeebabe git rebase trunk/master accessToken???
+1.accesstoken是否能替代用户名密码，需要加限制条件吗-查accesstoken的缓存
+2.在数据库中是怎么存储domainVo的-普通存
+3.怎么验证？只改了domainVo的构造函数？
+
+
+启动apacheds的坑：java.lang.NoClassDefFoundError:-> 执行mvn clean install -DskipTests -Pcopy-deps
+lock：重启bash
+
+docker的使用
+
+1129
+CollectionUtils.isEmpty(serviceNames) 
+token-AbstractguardianClient
+
+1. dao-service-controller层 
+db-dao-service-controller-view
+util,entity
+大项目会把项目分解成很多不不同的模块（Module），然后根据用途和角色，我们对这些模块有一个通用的命名规则，这也就是上面这些英文单词的来历。数据从前端
+
+dao= data access object 数据存取对象
+自动产生SQL语句来和数据库打交道，让我们对数据库的操作看起来比较像和一个对象打交道。这个对象通常就是DAO。
+dao对象一般调用mapper来映射sql语句，执行数据库操作，例如
+<delete id="deleteServices" parameterType="java.util.List">
+        DELETE FROM gs_service WHERE service_name in
+        <foreach collection="serviceNames" open="(" close=")" item="item" separator="," >
+            #{serviceNames}
+        </foreach>
+    </delete>
+
+Service，我们有时候会需要一些相对独立，与业务系统没什么关系的功能。但不是所有的功能都可以做成一个服务，服务是一个相对独立的功能模块，完成一些指定的工作，这些工作高度抽象和通用。一个典型的服务像是数据库服务、缓存服务、文件存储服务、身份验证服务、消息队列服务等。
+Util，Util通常来说是我们找不到合适的名字的时候的选择，Util就是工具，在做项目的时候我们总会遇到一些奇奇怪怪的小功能或者重复的代码需要提取。像是URL编码或者解码，或是自创的加密签名算法等等。
+
+entity实体，所有系统中出现需要封装成对象映射于现实世界的物体或事件的，我们都可以用实体类封装，或者划分的更细可以是各个object，view视图，看到的前端界面
+
+分层领域模型规约：
+
+DO（ Data Object）：与数据库表结构一一对应，通过DAO层向上传输数据源对象。
+DTO（ Data Transfer Object）：数据传输对象，Service或Manager向外传输的对象。
+BO（ Business Object）：业务对象。 由Service层输出的封装业务逻辑的对象。
+AO（ Application Object）：应用对象。 在Web层与Service层之间抽象的复用对象模型，极为贴近展示层，复用度不高。
+VO（ View Object）：显示层对象，通常是Web向模板渲染引擎层传输的对象。
+POJO（ Plain Ordinary Java Object）：在本手册中， POJO专指只有setter/getter/toString的简单类，包括DO/DTO/BO/VO等。
+Query：数据查询对象，各层接收上层的查询请求。 注意超过2个参数的查询封装，禁止使用Map类来传输。
+领域模型命名规约：
+
+数据对象：xxxDO，xxx即为数据表名。
+数据传输对象：xxxDTO，xxx为业务领域相关的名称。
+展示对象：xxxVO，xxx一般为网页名称。
+POJO是DO/DTO/BO/VO的统称，禁止命名成xxxPOJO
 
 

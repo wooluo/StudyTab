@@ -140,11 +140,12 @@ shift+printscreeen截图
 
 本地测试跑不通->项目的配置文件是否配制成正确的访问地址和端口
 线上测试跑不同->在项目中添加角色sobar帮助项目CI审核
-remove测试写法
+remove测试写法->用assert判断，加日志，
 先检测是否添加service成功Assert，操作，检测是否操作成功Assert，跑一遍
 还剩的问题dao层的deleteservices无法访问到接口，client层的不会配置文件？无法访问接口
 swagger上插入了test代码，说明test成功只是没有client去访问，每次测试开了一个新的session刷新server数据
 为什么要改dao层？？
+db-dao-sevice-controller-view层
 
 
 <delete id="deleteParamsByIds">
@@ -164,7 +165,7 @@ swagger上插入了test代码，说明test成功只是没有client去访问，�
         </foreach>
     </delete>
 sql在xml里写删除遍历list
-后台控制构造URL的方法，qsstring，？
+后台控制构造URL的方法，qs string，？
 学会找返回值
 配置文件
 
