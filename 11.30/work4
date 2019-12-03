@@ -62,9 +62,7 @@ kube-proxy负责service的实现,即实现了k8s内部从pod到service和外部�
 Pod 中的容器。
 节点管理:kubelet 启动时向 API Server 注册节点信息,并定时向 API Server 汇报节点状况;
 Pod管理:创建/删除 Pod,下载容器镜像,用 Pause 创建容器,运行容器,校验容器是否正确等;
-,
-•
-•
+
 kubelet
 容器健康检查:通过访问容器的 HTTP 接口(HTTP 状态码作为判断依据)来判断容器是否健康;
 cAdvisor 资源监控:cAdvisor 集成到 kubelet 程序的代码之中,负责查找当前节点的容器,自动采集容器级别的 CPU、内存、文件系统和网络使用的统计信息。
@@ -279,4 +277,20 @@ Query：数据查询对象，各层接收上层的查询请求。 注意超过2�
 展示对象：xxxVO，xxx一般为网页名称。
 POJO是DO/DTO/BO/VO的统称，禁止命名成xxxPOJO
 
+
+1. WARP-39221：完成项目关于改动的重构部分
+2. guardian端代码的继续熟悉学习
+完成WARP-31228删除服务list的逻辑
+warp-39528：创建/删除互信API的target domain admin username & password不再是必须参数
+1. 只有token/？
+2. 集群
+
+
+完成：
+1. WARP-39221:  完成删除服务list的逻辑并提交代码
+2. WARP-39221：完成项目关于改动的V2重构部分
+ 1-guardian项目 从controller层 service层 改到dao层
+ 2-git 和代码规范
+进行中：
+WARP-39528：创建/删除互信API的target domain admin username & password不再是必须参数 逻辑编写/测试
 

@@ -1,0 +1,190 @@
+1202
+gitlab的compare是和origin对比
+WARP-31985
+1.跟踪识别不了GuardianVars的内容
+2.arraylist的remove方法可能导致逻辑错乱？
+list的remove(int index)方法部分
+->用list的remove 博文没有改变索引值，导致漏删挨在一起的元素->改变方法是倒序遍历list（动态变化当前下标值也行？）
+->不推荐用foreach方法遍历使用remove方法，原因是foreach根据list对象创建一个Iterator对象，用这个迭代对象去遍历列表，而iterator的next方法和list的remove方法一起用会造成ConcurrentModificationException/边界问题->推荐用Iterator中的remove方法去代替ArrayList中的remove方法
+->自定义类使用 要注意重写equals方法
+
+
+public void remove4(ArrayList<Integer> list) 
+{
+    Integer in = 1;
+    Iterator<Integer> it = list.iterator();
+    while (it.hasNext()) 
+    {
+        Integer s = it.next();
+        if (s.equals(in)) 
+        {
+            it.remove();
+        }
+    }
+}
+
+
+-3369
+    //filter databases in ShowDatabasesDesc
+    if (authorizer.shouldFilterShowTables() && !authorizer.hasAnyGlobalTablePrivileges()) {
+      for (int i = 0; i < databases.size(); i++) {
+        if (!authorizer.hasAnyTablePrivilegesOnDB(databases.get(i))) {
+          LOG.info("DBdeleteName : " + databases.get(i));
+          databases.remove(i--);
+        }
+      }
+    }
+
+拿了39528的集群，开始测试
+62003->自己写的不对，conf的set方法写成get
+
+ "org.apache.directory.api.ldap.model.exception.LdapEntryAlreadyExistsException: ENTRY_ALREADY_EXISTS: failed for MessageType :-> 重启
+
+
+
+1203
+为什么要new一个新的ArrayList并且返回？
+在方法被调用时，实参通过形参把它的内容副本传入方法内部，此时形参接收到的内容是实参值的一个拷贝，因此在方法内对形参的任何操作，都仅仅是对这个副本的操作，不影响原始值的内容。
+无论是基本类型和是引用类型，在实参传入形参时，都是值传递，也就是说传递的都是一个副本，而不是内容本身。
+https://juejin.im/post/5bce68226fb9a05ce46a0476
+
+这里是否考虑到owner的情况？TDH 5.2.4版本之后table创建时不会默认为owner在Guardian中添加权限记录？
+这里仍然需要发送num(databases)次rest请求给Guardian Server，在database数量较多的情况下，效率比较低，是否能改成只发送一个请求给Guardian Server获取到用户有权限的database列表，然后与这里的databases取交集？
+
+3367-3376
+    //filter databases in ShowDatabasesDesc
+    if (authorizer.shouldFilterShowTables() && !authorizer.hasAnyGlobalTablePrivileges()) {
+      Iterator<String> it = databases.iterator();
+      while (it.hasNext()) {
+        String database = it.next();
+        if (!authorizer.hasAnyTablePrivilegesOnDB(database)) {
+          it.remove();
+        }
+      }
+    }
+
+3438-3444
+    //filter tables in ShowTablesDesc
+    if(authorizer.shouldFilterShowTables() && !authorizer.hasAnyGlobalTablePrivileges()){
+      List<String> tmp = authorizer.filterTablesByPrivileges(dbName, tbls);
+      tbls.clear();
+      tbls.addAll(tmp);
+      tmp = null;
+    }
+
+
+
+626-722
+ boolean shouldFilterShowTables() {
+    try {
+      return guardianConf.getBoolean(GuardianVars.GUARDIAN_INCEPTOR_FILTER_SHOWTABLES.varname, GuardianVars.GUARDIAN_INCEPTOR_FILTER_SHOWTABLES.defaultBoolVal);
+    } catch (ExceptionInInitializerError ex){
+      return true;
+    }
+  }
+
+  boolean hasAnyTablePrivilegesOnDB(String username, String dbName) {
+    try {
+      boolean isDBOwner = SQLAuthorizationUtils.isOwner(username, Collections.EMPTY_LIST,
+              new HivePrivilegeObject(HivePrivilegeObject.HivePrivilegeObjectType.DATABASE, dbName, null));
+      if (isDBOwner) {
+        return true;
+      }
+    } catch (HiveAuthzPluginException ex) {
+      LOG.error("Fail to check if user [{}] is the owner of database [{}].", username, dbName, ex);
+    }
+    try {
+      List<PermissionVo> permVos = guardianClient.userPermissions(username, component, InceptorPermUtil.convertDatabase(dbName), true);
+      return permVos != null && !permVos.isEmpty();
+    } catch (GuardianClientException e){
+      LOG.error("Fail to filter tables by privileges. username: [{}], dbName:[{}]", username, dbName, e);
+      return false;
+    }
+  }
+
+  boolean hasAnyGlobalTablePrivileges(String username) {
+    List<String> dataSource = InceptorPermUtil.global();
+    List<PermissionVo> permVos = new ArrayList<>();
+    permVos.add(new PermissionVo(component, dataSource, ADMIN_PERM));
+    for (GuardianSQLPrivilegeType privilegeType : GuardianSQLPrivilegeType.ALL_ON_TABLE) {
+      permVos.add(new PermissionVo(component, dataSource, privilegeType.name()));
+    }
+    try {
+      return guardianClient.checkAnyAccess(username, permVos);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to check if user [{}] has any global table privileges.", username, e);
+      return true;
+    }
+  }
+
+  List<String> filterTablesByPrivileges(String username, String dbName, List<String> tbls) {
+    try {
+      List<PermissionVo> permVos = guardianClient.userPermissions(username, component, InceptorPermUtil.convertDatabase(dbName), true);
+      Set<String> tblsWithPrivsSet = new HashSet<>();
+      if (permVos != null) {
+        for (PermissionVo permVo : permVos) {
+          if (!isValidTablePerm(dbName, permVo)) {
+            continue;
+          }
+          String tableName = permVo.getDataSource().get(2).toLowerCase();
+          tblsWithPrivsSet.add(tableName);
+        }
+      }
+      List<String> tblsWithPrivs = new ArrayList<>(tblsWithPrivsSet);
+      tbls.retainAll(tblsWithPrivs);
+      return new ArrayList<>(tbls);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to filter tables by privileges. username: [{}], dbName:[{}]", username, dbName, e);
+      return tbls;
+    }
+  }
+
+  private static boolean isValidTablePerm(String dbName, PermissionVo permissionVo) {
+    if (permissionVo == null) {
+      return false;
+    }
+    List<String> dataSource = permissionVo.getDataSource();
+    if (dataSource == null || dataSource.size() != 3) {
+      return false;
+    }
+    if (!"TABLE_OR_VIEW".equals(dataSource.get(0))) {
+      return false;
+    }
+    if (!dbName.equalsIgnoreCase(dataSource.get(1))) {
+      return false;
+    }
+    String tableName = dataSource.get(2);
+    if (tableName == null || tableName.isEmpty()) {
+      return false;
+    }
+    String action = permissionVo.getAction();
+    if (action == null || action.isEmpty()) {
+      return false;
+    }
+    action = action.toUpperCase();
+    try {
+      if (!"ADMIN".equals(action) && !GuardianSQLPrivilegeType.ALL_ON_TABLE.contains(GuardianSQLPrivilegeType.valueOf(action))) {
+        return false;
+      }
+    } catch (Exception ex) {
+      return false;
+    }
+    return true;
+  }
+
+
+getDataSource - 找一个有数据传输的组件，然后f12开开发者模式,找数据传输包，datasource
+dbowner-有dbowner的接口，permvo里没有owner的权限
+v2的重构
+
+hive预提交报错，我交了两次和以前一样的版本也报错，报错信息也没有很奇怪
+ctrl+shift+N 搜索文件
+
+gedit shortcuts for searching:
+
+Ctrl + F                    Find a string.
+Ctrl + G                    Find the next instance of the string.
+Ctrl + Shift + G    Find the previous instance of the string.
+Ctrl + K                    Interactive search.
+Ctrl + H                    Search and replace.
+
