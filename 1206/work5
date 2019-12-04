@@ -175,9 +175,9 @@ https://juejin.im/post/5bce68226fb9a05ce46a0476
 
 getDataSource - 找一个有数据传输的组件，然后f12开开发者模式,找数据传输包，datasource
 dbowner-有dbowner的接口，permvo里没有owner的权限
-v2的重构
+v2的重构->没什么可改的啊
 
-hive预提交报错，我交了两次和以前一样的版本也报错，报错信息也没有很奇怪
+hive预提交报错，我交了两次和以前一样的版本也报错，报错信息也没有很奇怪 ->hive那边代码改了，要记得常去rebase trunk那边的项目
 ctrl+shift+N 搜索文件
 
 gedit shortcuts for searching:
@@ -187,4 +187,6 @@ Ctrl + G                    Find the next instance of the string.
 Ctrl + Shift + G    Find the previous instance of the string.
 Ctrl + K                    Interactive search.
 Ctrl + H                    Search and replace.
+
+
 
