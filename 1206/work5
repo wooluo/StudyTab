@@ -187,6 +187,429 @@ Ctrl + G                    Find the next instance of the string.
 Ctrl + Shift + G    Find the previous instance of the string.
 Ctrl + K                    Interactive search.
 Ctrl + H                    Search and replace.
+提交了warp-39528,感觉没什么可改了的
+重新创建git，在图片里有保存
 
+1204 
+解决apacheds中的show tables的迁移
+在ds中过滤保留一个权限信息，然后hive直接调取ds中的信息
+apacheds在哪里处理权限，并涉及到和和用户有权限的db，table信息
+hive怎么调取apacheds的接口
+
+LDAP（轻量级目录访问协议）以目录的形式来管理资源（域用户，用户组，地址簿，邮件用户，打印机等等）。
+apacheds = apache directory server
+
+
+679-692
+      List<PermissionVo> permVos = guardianClient.userPermissions(username, component, InceptorPermUtil.convertDatabase(dbName), true);
+      Set<String> tblsWithPrivsSet = new HashSet<>();
+      if (permVos != null) {
+        for (PermissionVo permVo : permVos) {
+          if (!isValidTablePerm(dbName, permVo)) {
+            continue;
+          }
+          String tableName = permVo.getDataSource().get(2).toLowerCase();
+          tblsWithPrivsSet.add(tableName);
+        }
+      }
+      List<String> tblsWithPrivs = new ArrayList<>(tblsWithPrivsSet);
+      tbls.retainAll(tblsWithPrivs);
+      return tbls;
+
+permcontroller中引用了fortress的接口去审查权限
+集群没开启
+引用jar包要加classpath，project structure-add jar
+hive端代码的rebase pom文件 
+session问题
+改代码-引pom-hive的逻辑metalist
+vi跳到最后一行 shift+g
+
+df-h查看磁盘空间
+cd /var/log 看日志
+ls -al
+rm messages-201911* -rf
+
+hive代码对标8.0
+guardian代码对应master
+跑代码fortress类不能引入项目->自己手写一个fortress类
+ql跑不通，改了pom文件
+打成jar包发送配置发现集群验证码拿不到
+集群中还有未启动的服务
+
+1205
+236磁盘满了
+service transwarp-manager restart 服务重启
+看日志 [root@tw-node1237 agent]# kubectl get po -owide | grep inceptor
+inceptor-metastore-inceptor1-bc6c6cc6b-vtsp9         1/1       Running            0          50m       172.16.1.237   tw-node1237
+inceptor-metastore-inceptor1-bc6c6cc6b-vvjjr         1/1       Running            0          50m       172.16.1.238   tw-node1238
+inceptor-metastore-slipstream1-7f8d6c8cbf-zxlsr      1/1       Running            0          20h       172.16.1.236   tw-node1236
+inceptor-server-inceptor1-697b7f4665-zxxgs           0/1       CrashLoopBackOff   13         49m       172.16.1.237   tw-node1237
+[root@tw-node1237 agent]# kubectl logs inceptor-server-inceptor1-697b7f4665-zxxgs
+
+inceptor启动问题 用pcopydeps下所有的lib。打包解压到镜像
+
+vim shift+g 到末尾 ctrl+z结束
+guARDIAN filterTB不起作用 ->查日志 引入的文件有冲突 
+[root@519cba665439 lib]# ls | grep asn
+api-asn1-api-1.0.0-M20.jar
+api-asn1-api-1.0.0-RC1.jar
+
+要用ldap去查询调用 重写那边的接口用底层去作，在guardian server上绕过plugin去分缓存
+首先就要先去了解guardian用ldap做的事情，然后分析可行性
+permcontroller(userpermission)->permmanager(..)->reviermgr(search)->permp(finduserpermission)->permDao(findinheriteduserpermission)->searchresults->permDao(unloadpopldapentry)/ldapDataProvicer(search)->searchRequest/ladpCoreSessionConnection(search)/ladpnetworkconnection(search)->ldapcoresessionconnection(search)->coresession->defaultsession->
+opertationManager(search)->entryfilteringcursor->referalmanager(getparentreferal)->dnnode(getelement)
+1206
+
+
+   private List<Permission> findInheritedUserPermissions( User user, PermFilterParams filter ) throws FinderException
+    {
+        List<Permission> permList = new ArrayList<>();
+        LdapConnection ld = null;
+        PermObj permObj = new PermObj( filter.getDataSource(), filter.getComponent() );
+        String permObjDn = getDn( permObj, user.getContextId() );
+
+        try
+        {
+            StringBuilder filterbuf = new StringBuilder();
+            filterbuf.append( GlobalIds.FILTER_PREFIX );
+            filterbuf.append( PERM_OP_OBJECT_CLASS_NAME );
+
+            filterbuf.append( ")" );
+            // filter by prefix
+            if (StringUtils.isNotEmpty( filter.getPrefix() ))
+            {
+                String permObjVal = encodeSafeText( filter.getPrefix(), GlobalIds.PERM_LEN );
+                filterbuf.append( "(" );
+                filterbuf.append( GlobalIds.POBJ_NAME );
+                filterbuf.append( "=" );
+                filterbuf.append( permObjVal + "*)" );
+            }
+            // caseIgnoreSubstringsMatchSubtree extensible filter
+            if(StringUtils.isNotEmpty( filter.getSubString() )){
+                String permObjVal = encodeSafeText( filter.getSubString(), GlobalIds.PERM_LEN );
+                filterbuf.append("(");
+                filterbuf.append( GlobalIds.POBJ_NAME );
+                filterbuf.append( ":dn:" + EXT_MATCH_RULE + ":" );
+                filterbuf.append( "=" );
+                filterbuf.append( permObjVal );
+                filterbuf.append( ")" );
+            }
+            // filter by action
+            if ( StringUtils.isNotEmpty( filter.getAction() ) )
+            {
+                String permOpVal = encodeSafeText( filter.getAction(), GlobalIds.PERM_LEN );
+                filterbuf.append( "(" );
+                filterbuf.append( GlobalIds.POP_NAME );
+                filterbuf.append( "=" );
+                filterbuf.append( permOpVal );
+                filterbuf.append( ")" );
+            }
+            filterbuf.append( "(|" );
+            Set<String> roles = RoleUtil.getInheritedRoles( user.getRoles(), user.getContextId() );
+            GroupDAO groupDAO = new GroupDAO();
+            List<Group> groups = groupDAO.find( user );
+            roles.addAll( findRolesByGroup( groups, user.getContextId() ) );
+
+            if ( CollectionUtils.isNotEmpty( roles ) )
+            {
+                for ( String uRole : roles )
+                {
+                    filterbuf.append( "(" );
+                    filterbuf.append( ROLES );
+                    filterbuf.append( "=" );
+                    filterbuf.append( uRole );
+                    filterbuf.append( ")" );
+                }
+            }
+
+            if ( CollectionUtils.isNotEmpty( groups ))
+            {
+                for (Group group : groups )
+                {
+                    filterbuf.append( "(" );
+                    filterbuf.append( GlobalIds.GROUP_NODES );
+                    filterbuf.append( "=" );
+                    filterbuf.append( group.getName() );
+                    filterbuf.append( ")" );
+
+                }
+            }
+
+            filterbuf.append( "(" );
+            filterbuf.append( USERS );
+            filterbuf.append( "=" );
+            filterbuf.append( escapeLDAPSearchFilter( user.getUserId() ) );
+            filterbuf.append( ")))" );
+            ld = getAdminConnection( true );
+
+            String cookieKey = "";
+            if ( StringUtils.isNotEmpty( filter.getPagingCookie() ) ) {
+                cookieKey = filter.getPagingCookie();
+            }
+            List<String> selfCookies = new ArrayList<>();
+
+            SearchCursor searchResults = null;
+            if ( filter.getPageSize() >= 0 ) {
+                // Search paged result
+                String cookie = "";
+                if ( StringUtils.isNotEmpty( cookieKey ) ) {
+                    if ( !userPagingCookieMap.containsKey( cookieKey ) ) {
+                        String error = "Cannot paged search result using cookie=" + filter.getPagingCookie() + " and pageSize="
+                                + filter.getPageSize();
+                        throw new FinderException( GlobalErrIds.PAGED_SEARCH_FAILED, error );
+                    }
+                    cookie = getUserPagingCookie( cookieKey, 0 );
+                    if ( StringUtils.isNotEmpty( cookie ) ) {
+                        searchResults = search( ld, permObjDn, filter.getScope(),
+                            filterbuf.toString(), PERMISSION_OP_ATRS, false, cookie, filter.getPageSize());
+                    }
+                } else {
+                    searchResults = search( ld, permObjDn, filter.getScope(),
+                        filterbuf.toString(), PERMISSION_OP_ATRS, false, cookie, filter.getPageSize());
+                }
+            } else {
+                searchResults = search( ld, permObjDn,
+                    filter.getScope(), filterbuf.toString(), PERMISSION_OP_ATRS, false, 0 );
+            }
+
+            long sequence = 0;
+
+            while ( searchResults != null && searchResults.next() )
+            {
+                Permission perm = unloadPopLdapEntry( searchResults.getEntry(), sequence++, false );
+                Set<String> groupSet = new HashSet<>();
+                for (Group group : groups) {
+                    groupSet.add( group.getName() );
+                }
+                boolean grantable = isGrantable( perm, Collections.singleton(user.getUserId()), roles, groupSet );
+                perm.setGrantable( grantable );
+                permList.add( perm );
+            }
+
+            pagedSearchDone( searchResults, filter );
+            selfCookies.add( filter.getPagingCookie() );
+
+            // Find inherited permissions
+            Set<String> inheritedGroups = GroupUtil.getInheritedGroups( groups, user.getContextId() );
+
+            if ( CollectionUtils.isNotEmpty( inheritedGroups ))
+            {
+                filterbuf = new StringBuilder();
+                filterbuf.append( GlobalIds.FILTER_PREFIX );
+                filterbuf.append( PERM_OP_OBJECT_CLASS_NAME );
+                filterbuf.append( ")" );
+                // filter by prefix
+                if (StringUtils.isNotEmpty( filter.getPrefix() ))
+                {
+                    String permObjVal = encodeSafeText( filter.getPrefix(), GlobalIds.PERM_LEN );
+                    filterbuf.append( "(" );
+                    filterbuf.append( GlobalIds.POBJ_NAME );
+                    filterbuf.append( "=" );
+                    filterbuf.append( permObjVal + "*)" );
+                }
+                // filter by action
+                if ( StringUtils.isNotEmpty( filter.getAction() ) )
+                {
+                    String permOpVal = encodeSafeText( filter.getAction(), GlobalIds.PERM_LEN );
+                    filterbuf.append( "(" );
+                    filterbuf.append( GlobalIds.POP_NAME );
+                    filterbuf.append( "=" );
+                    filterbuf.append( permOpVal );
+                    filterbuf.append( ")" );
+                }
+                filterbuf.append( "(|" );
+
+                for (String group : inheritedGroups )
+                {
+                    filterbuf.append( "(&(" );
+                    filterbuf.append( GlobalIds.GROUP_NODES );
+                    filterbuf.append( "=" );
+                    filterbuf.append( group );
+                    filterbuf.append( ")(" );
+                    filterbuf.append( GlobalIds.HERITABLE_GROUP );
+                    filterbuf.append( "=" );
+                    filterbuf.append( group );
+                    filterbuf.append( "))" );
+                }
+
+                filterbuf.append( "))" );
+
+                searchResults = null;
+
+                if ( filter.getPageSize() >= 0 ) {
+                    // Search paged result
+                    String cookie = "";
+                    if ( StringUtils.isNotEmpty( cookieKey ) )
+                    {
+                        if ( !userPagingCookieMap.containsKey( cookieKey ) ) {
+                            String error = "Cannot paged search result using cookie=" + filter.getPagingCookie() + " and pageSize="
+                                    + filter.getPageSize();
+                            throw new FinderException( GlobalErrIds.PAGED_SEARCH_FAILED, error );
+                        }
+                        cookie = getUserPagingCookie( cookieKey, 1 );
+                        if ( StringUtils.isNotEmpty( cookie ) ) {
+                            searchResults = search( ld, permObjDn, filter.getScope(),
+                                filterbuf.toString(), PERMISSION_OP_ATRS, false, cookie, filter.getPageSize());
+                        }
+                    }
+                    else
+                    {
+                        searchResults = search( ld, permObjDn, filter.getScope(),
+                            filterbuf.toString(), PERMISSION_OP_ATRS, false, cookie, filter.getPageSize() );
+                    }
+                } else {
+                    searchResults = search( ld, permObjDn,
+                        filter.getScope(), filterbuf.toString(), PERMISSION_OP_ATRS, false, 0 );
+                }
+
+                while ( searchResults != null && searchResults.next() )
+                {
+                    Permission perm = unloadPopLdapEntry( searchResults.getEntry(), sequence++, false );
+                    boolean grantable = isGrantable( perm, Collections.singleton(user.getUserId()), Collections.<String>emptySet(), inheritedGroups );
+                    perm.setGrantable( grantable );
+                    permList.add( perm );
+                }
+
+                pagedSearchDone( searchResults, filter );
+                selfCookies.add( filter.getPagingCookie() );
+            } else {
+                selfCookies.add( "" );
+            }
+
+            if ( StringUtils.isEmpty( selfCookies.get( 0 ) ) && StringUtils.isEmpty( selfCookies.get( 1 ) ) ) {
+                if ( StringUtils.isNotEmpty( cookieKey ) ) {
+                    userPagingCookieMap.remove( cookieKey );
+                }
+                filter.setPagingCookie( "" );
+            } else {
+                if ( StringUtils.isNotEmpty( cookieKey ) ) {
+                    userPagingCookieMap.put( cookieKey, selfCookies );
+                } else {
+                    cookieKey = incUserPagingCookie();
+                    userPagingCookieMap.put( cookieKey, selfCookies );
+                }
+                filter.setPagingCookie( cookieKey );
+            }
+        }
+        catch ( LdapException e )
+        {
+            String error = "findPermissions user [" + user.getUserId()
+                + "] caught LdapException in PermDAO.findPermissions=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_USER_SEARCH_FAILED, error, e );
+        }
+        catch ( CursorException e )
+        {
+            String error = "findPermissions user [" + user.getUserId()
+                + "] caught CursorException in PermDAO.findPermissions=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_USER_SEARCH_FAILED, error, e );
+        }
+        finally
+        {
+            closeAdminConnection( ld );
+        }
+
+        return permList;
+    }
+
+git branch -D branchName
+git cherry-pick fd8d18a693cde46a0a72b818e5b95100b335d0cb
+git commit -am
+
+2497-2502 getDn(get the dn for the permobj)
+2504-2584 
+permList
+
+每一个系统、协议都会有属于自己的模型，LDAP也不例外，在了解LDAP的基本模型之前我们需要先了解几个LDAP的目录树概念：
+
+（一）目录树概念
+
+1. 目录树：在一个目录服务系统中，整个目录信息集可以表示为一个目录信息树，树中的每个节点是一个条目。
+
+2. 条目：每个条目就是一条记录，每个条目有自己的唯一可区别的名称（DN）。
+
+3. 对象类：与某个实体类型对应的一组属性，对象类是可以继承的，这样父类的必须属性也会被继承下来。
+
+4. 属性：描述条目的某个方面的信息，一个属性由一个属性类型和一个或多个属性值组成，属性有必须属性和非必须属性。
+
+dc 域名的部分，其格式是将完整的域名分成几部分，如域名为example.com变成dc=example,dc=com（一条记录的所属位置）
+uid 用户ID 
+ou 组织单位，组织单位可以包含其他各种对象（包括其他组织单元）
+cn 公共名称 如“Thomas Johansson”（一条记录的名称）
+dn 一条记录的位置（唯一）uid=songtao.xu,ou=oa组,dc=example,dc=com”
+rdn 相对辨别名，类似于文件系统中的相对路径，它是与目录树结构无关的部分 如“uid=tom”或“cn= Thomas Johansson”
+
+1. encode安全編碼可防止惡意腳本輸入錯誤
+  如果在傳遞到dao層之前未執行數據過濾，則可能發生這種情況。
+
+2. 引package org.apache.directory.fortress.core.impl;
+
+This utility wraps {@link org.apache.directory.fortress.core.impl.HierUtil} methods to provide hierarchical functionality for the {@link org.apache.directory.fortress.core.model.Role} data set.
+ * The {@code cn=Hierarchies, ou=Roles} data is stored within a cache, {@link #roleCache}, contained within this class.  The parent-child edges are contained in LDAP,
+ * in {@code ftParents} attribute.  The ldap data is retrieved {@link org.apache.directory.fortress.core.impl.RoleP#getAllDescendants(String)} and loaded into {@code org.jgrapht.graph.SimpleDirectedGraph}.
+ * The graph...
+
+
+該實用程序包裝{@link org.apache.directory.fortress.core.impl.HierUtil}方法，以為{@link org.apache.directory.fortress.core.model.Role}數據集提供分層功能。
+ * {@code cn = Hierarchies，ou = Roles}數據存儲在此類中包含的緩存{@link #roleCache}中。父子邊緣包含在LDAP中，
+ *在{@code ftParents}屬性中。檢索ldap數據{@link org.apache.directory.fortress.core.impl.RoleP＃getAllDescendants（String）}，然後將其加載到{@code org.jgrapht.graph.SimpleDirectedGraph}中。
+
+     * For instance, if cn=example, dc=acme, dc=org is the Dn to check,
+     * and if dc=acme, dc=org is a referral, this this method will return true.
+
+
+permcontroller(userpermission)->permmanager(..)->reviermgr(search)->permp(finduserpermission)->permDao(findinheriteduserpermission)->searchresults->permDao(unloadpopldapentry)/ldapDataProvicer(search)->searchRequest/ladpCoreSessionConnection(search)/ladpnetworkconnection(search)->ldapcoresessionconnection(search)->coresession->defaultsession->
+defaultopertationManager(search)->entryfilteringcursor->referalmanager(getparentreferal)->dnnode(getelement)
+
+
+ldap:
+传入的perm数据会在服务器端提取信息并通过这些信息（datasource和component）得到一个自己具有唯一可区别的名称Dn(getDn)，对应于ladp目录树的一个节点，保存在permObjDn中。
+根据perm数据的prefix，substring，action形成一个过滤器字符串存在filterbuf中，scope和cookie单独作为过滤条件传到search部分
+于此同时拉取存在缓存中的该用户对应的role和group权限，以及父子关系图，一并合并到filterbuf中
+将所有的过滤信息构建一个searchcursor，每次查找找到符合条件的最上面一层（getParentReferral（dn))，形成一个查找域的查询链,在这个查找域里面把符合条件的当前节点解析到perm中，然后pop出去，进行下一轮查找，最后形成一个permlist
+有继承的情况会包装成一个组，然后照上面的逻辑再进行一次perm的查询过滤。
+
+data model
+DIT是ldap的树，每个树上的节点叫entry，entry有名字，区别于同层节点的名字叫RDN，从特定节点到树的根的直接下级的节点的路径序列为DN
+ The concatenation of the relative distinguished names of the sequence of entries from a particular
+ entry to an immediate subordinate of the root of the tree forms that entry's Distinguished Name (DN), which is unique in the tree. 
+
+服务器会用缓存或者存储节点的信息查询或比较语句，如果改动的话返回referal？
+Some servers may hold cache or shadow copies of entries, which can be used to answer search and comparison queries, but will return referrals or contact other servers if modification operations are requested.
+
+节点属性
+The following four attributes MUST be present in all subschema
+   entries:
+
+   - cn: this attribute MUST be used to form the RDN of the subschema
+     entry.
+
+   - objectClass: the attribute MUST have at least the values "top" and
+     "subschema".
+
+   - objectClasses: each value of this attribute specifies an object
+     class known to the server.
+
+   - attributeTypes: each value of this attribute specifies an attribute
+     type known to the server.
+referal
+the referral field is present in an
+   LDAPResult if the LDAPResult.resultCode field value is referral, and
+   absent with all other result codes.
+它包含对可以通过LDAP或服务器访问的另一台服务器（或一组服务器）其他协议。
+http://www.hjp.at/doc/rfc/rfc2251.html
+DN: ftOpNm=DELETE,ftObjNm=test,ftObjNm=TABLE_OR_VIEW,ou=inceptor1,ou=Permissions,ou=RBAC,dc=tdh
+component：hive.metastore.service.id -> component eg. inceptor1->ou
+datasource->list<String>->maps to 'ftObjNm' attribute in 'ftObject' object class.->ftobjnm
+ftpermName
+
+/**
+     * Return the contextId for this record.  The contextId is used for multi-tenancy to isolate data sets within a particular sub-tree within DIT
+     *
+     * @return value maps to sub-tree in DIT, for example ou=contextId, dc=jts, dc = com.
+     */
+    public String getContextId()
+    {
+        return contextId;
+    }
 
 
