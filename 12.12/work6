@@ -1,0 +1,197 @@
+1209
+1. WARP-31985: 修改相关问题的改动，重新配置集群测试，并提交代码
+2. WARP-39528: 增加跨域互信的token认证方式，提交到guardian-3.1，重构相应部分的代码
+3. review Apache ds中关于ldap过滤保留权限信息的部分
+
+ldap:
+传入的perm数据会在服务器端提取信息并通过这些信息（datasource和component）得到一个自己具有唯一可区别的名称Dn(getDn)，对应于ladp目录树的一个节点，保存在permObjDn中。
+根据perm数据的prefix，substring，action形成一个过滤器字符串存在filterbuf中，scope和cookie单独作为过滤条件传到search部分
+于此同时拉取存在缓存中的该用户对应的role和group权限，以及父子关系图，一并合并到filterbuf中
+将所有的过滤信息构建一个searchcursor，每次查找找到符合条件的最上面一层（getParentReferral（dn))，形成一个查找域的查询链,在这个查找域里面把符合条件的当前节点解析到perm中，然后pop出去，进行下一轮查找，最后形成一个permlist
+有继承的情况会包装成一个组，然后照上面的逻辑再进行一次perm的查询过滤。
+ftOpNm=select,ftObjNm=testtb,ftObjNm=test,ftObjNm=TABLE_OR_VIEW,ou=inceptor1,ou=permissions,ou=RBAC,dc=tdh
+
+permcontroller(userpermission)->permmanager(..)->reviermgr(search)->permp(finduserpermission)->permDao(findinheriteduserpermission)->searchresults->permDao(unloadpopldapentry)/ldapDataProvicer(search)->searchRequest/ladpCoreSessionConnection(search)/ladpnetworkconnection(search)->ldapcoresessionconnection(search)->coresession->defaultsession->
+defaultopertationManager(search)->defaultoperationManager-->defaultoperationmanager(search)->inceptor(search)->next->baseIntercptor(next/search)->apacheds项目Btree/lmdbPartition(search)->defaulltSearchEngine(computeresult)
+cursorBuilder(Build)
+
+->entryfilteringcursor->referalmanager(getparentreferal)->dnnode(getelement)
+>buildReferralExceptionForSearch->interceptor search->AciAuthorizationInterceptor
+
+跟踪filter的一些字段
+1. GlobalIds.FILTER_PREFIX 
+    /**
+     * This string literal contains a common start for most ldap search filters that fortress uses.
+     */
+    public static final String FILTER_PREFIX = "(&(" + SchemaConstants.OBJECT_CLASS_AT + "=";
+2. PERM_OP_OBJECT_CLASS_NAME
+ private static final String PERM_OP_OBJECT_CLASS_NAME = "ftOperation";
+3.  POBJ_NAME    
+    /**
+     * Attribute name for storing Fortress permission object names.
+     */
+    public static final String POBJ_NAME = "ftObjNm";
+
+guaridan-plugin -> guardian(perm controller) -> apacheds(ldap)
+                  ->     ->     ->    ->   ->
+ 归为两个问题，
+1. 如果是想改进ldap的存储结构来实现树形目录只查到某一层的效果 是不可取的，因为某一库上的权限肯定要查到表层，表上的权限ds端的ldap本身已经优化很好了，很少优化的空间 ->
+DIT->(RBAC->inceptor1)->(Table_or_view->test->testtb)->admin/select
+能不能我们查表,甚至查库的时候，不继续向下查询，直接在下一节点查到ftusers并返回->这个user层会不会很多/会记录很多重复数据
+
+
+2. 如果是想绕开guardian后端，用plugin直接和apacheds交互来实现减少消耗，已经实践过了
+sub1.要引入很多包 sub2.会破坏项目组织结构 controller-manager层
+
+1210 
+改动：apacheds端拉取权限文件变小
+打开隐藏文件 ctrl+h
+git无法使用 permission denied
+which git 查找git路径 配置git路径
+git branch -v 
+git remote -v 配置远程仓库信息
+
+ while ( searchResults.next() )
+            {
+                res.addAll(getObjNameList(searchResults.getEntry().getDn()));
+            }
+
+a项目和b项目同用一个git，a项目改动让b也反应
+mvn install -DskipTests
+先拉缓存
+
+guardianserver的jar包要用guardian的镜像
+guardian-boot-server要改很多
+服务起不来 看日志 /var/logs
+
+原因：
+2019-12-10 16:27:15,365 ERROR exec.DDLTask: (DDLTask.java:execute(786)) [HiveServer2-Handler-Pool: Thread-218(SessionHandle=cafffb05-e72f-4569-8fd7-a0b12f708be5)] - java.lang.NoSuchMethodError: io.transwarp.guardian.client.GuardianClient.userDatabasePerms(Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ZLjava/lang/String;)Ljava/util/List;
+
+find / -name 'guardian-client*' 查找文件
+
+1211
+1. 方法没找到，是针对程序而言的，不用被自己误导（要以JVM的思维去考虑），我们明明已经写了方法，检查过也都没问题，但是就是报NoSuchMethodError 。这里需要强调一下，方法是写在类里面的，方法找不到，可能是类的原因。
+找到Integer.class所在的jar包方法
+
+出现(Ljava/lang/String;Ljava/lang/String;)Ljava/util/List;
+
+     表明是数组处理出了问题；
+
+2、由于Webservice不能传递List，所以接收Java端列表数据集合时，要注意在java端
+
+     转化为数组形式传递之；
+
+3、这个问题出现主要是java里面的List的泛型出现问题；
+
+     关于List<T>,可以参照网上的资料；
+
+4、本人检查自己代码，发现java服务端获取数组list之后，确实转化为Array[]了，但是
+
+     仍然出现了上面的问题，调试了半天发现自己使用List时没有指定类型，只是如：
+
+         List  ls = pdao.searchCategory(category);
+
+     尝试加上类型：
+
+         List<Product>  ls = pdao.searchCategory(category);
+
+     将其他类似的地方全部加上强类型；这样.net端调用就不会出现这个问题；
+
+The method works if you provide an array. The output of
+
+String[] helloWorld = {"Hello", "World"};
+System.out.println(helloWorld);
+System.out.println(Arrays.toString(helloWorld));
+is
+
+[Ljava.lang.String;@45a877
+[Hello, World]
+jar -cf hello.jar
+
+當 WCF 的服務器端函數 (Operation) 的返回類型爲 List<string> 時，實際返回的類型爲 string[] 數組，因此客戶端若仍用 List<string> 的變量去接收和賦值時，在編譯時期，即會發生下圖 1 的轉型錯誤：
+
+find / -name 'guardian-client*' 查找文件
+
+find . -name "*.jar"| awk '{print "jar -tf "$1}'| sh -x | grep -i "/GuardianClient.class"
+
++ jar -tf ./inceptor/lib/hbase-shaded-server-1.3.1-transwarp-6.2.0.jar
+io/transwarp/guardian/client/GuardianClient.class
+
+inux删除目录很简单，很多人还是习惯用rmdir，不过一旦目录非空，就陷入深深的苦恼之中，现在使用rm -rf命令即可。
+
+直接rm就可以了，不过要加两个参数-rf 即：rm -rf 目录名字
+
+-r 就是向下递归，不管有多少级目录，一并删除
+
+-f 就是直接强行删除，不作任何提示的意思
+
+1.guardian登不上->修改guardian-boot会导致前端页面没了
+2.404报错->路径错乱
+
+拦截器是基于java反射机制的，而过滤器是基于函数回调。 拦截器不依赖于Servlet容器，而过滤器依赖于servlet容器。 拦截器只能对action请求起作用，而过滤器可以对几乎所以的请求起作用。 拦截器可以访问action上下文，值栈里的对象，而过滤器不能。
+
+拉镜像，删除镜像，看日志
+config.ldif
+
+guardianclient
+1237/etc/guardian/conf 日志
+
+1212
+用ACL控制授权
+
+我们在LDAP中创建目录树后,最感兴趣的就是如何控制用户在目录树中的权限(读写)。谁在什么条件下有记录权限，我们有权限看到哪些信息。ACL（Access Control List）访问控制列表就是解决用户权限问题的。
+我们要把ACL写在哪里？
+ACL写在OpenLDAP的服务端全局配置文件slapd.conf中
+
+os当我们读取一个文件时，实际上是在目录中找到了这个文件的inode编号，然后根据inode的指针，把数据块组合起来，放入内存供进一步的处理。当我们写入一个文件时，是分配一个空白inode给该文件，将其inode编号记入该文件所属的目录，然后选取空白的数据块，让inode的指针指像这些数据块，并放入内存中的数据。
+
+vi
+你在命令模式下敲斜杆( / )这时在状态栏（也就是屏幕左下脚）就出现了 “/” 然后输入你要查找的关键字敲回车就可以了。 
+如果你要继续查找此关键字，敲字符 n 就可以继续查找了。
+
+对象类（ObjectClass）、属性类型（AttributeType）、语法（Syntax）分别约定了条目、属性、值，他们之间的关系如下图所示。所以这些构成了模式(Schema)，模式中的每一个元素都有唯一的OID编号，如2.5.4.41.条目数据在导入时通常需要接受模式检查，它确保了目录中所有的条目数据结构都是一致的。
+
+
+在上图所示的树形结构中，树的根结点是一个组织的域名（dlw.com），其下分为3个部分，分别是managers、people和group，可将这3个组看作组织中的3个部门：如managers用来管理所有管理人员，people用来管理登录系统的用户，group用来管理系统中的用户组。当然，在该图中还可继续增加其他分支。
+对于图中所示的树形结构，使用关系数据库来保存数据的话，需要设置多个表，一层一层分别保存，当需要查找某个信息时，再逐层进行查询，最终得到结果。
+若使用目录来保存该图中的数据，则更直观。图中每个结点用一个条目来保存，不同类型的结点需要保存的数据可能不同，在LDAP中通过一个称为objectClass的类型来控制不同结点需要的数据（称为属性）。
+
+对于目录中的数据怎样进行引用呢？前面提到过，每一个条目都有一个dn，因为dn是唯一的，因此就可找到需要结点的数据。dn的构造方式如下：
+首先得到条目自己的名称（rdn，称为相对dn），然后开始向上逐级查找父结点，一直到根项为止。例如，对于图1-1中最右下方的结点，其dn为：
+dn: cn=ldap, ou=group, o=dlw.com
+通过这样的方式，即可唯一标识每一个结点。在现实生活中，有很多这种树形结构的数据，如计算机文件系统的目录结构、Internet中的域名等。这些类型的数据，只要不需要频繁的更新，都适合用目录来保存。
+
+优化器根据数据库索引中的扫描计数，应用启发式方法来确定最佳搜索过滤器执行路径。它通过在节点中设置“计数”键来注释表达式子树的节点。其目标是用计数来注释节点，以指示要迭代的节点
+ 最小化搜索中的数字周期。 SearchEngine依靠这些计数标记来确定适当的路径。
+
+MySQL数据库的查询优化器使用了基于代价的查询执行计划估算，所以依赖于被查对象的各种数据，而数据是动态变化的，如表的元组数。如果实时获取这些数据，系统计算的开销会比较大。为了避免这样的问题，定期或者根据需要统计这些数据，则比较切合实际。优化器在物理优化阶段，需要对单表读取开销，两表连接开销，多表连接顺序开销等进行比较，比较基于的就是一些基础数据的值，这些数据通常不会被实时更新，所以优化器有时做出的计划未必是最合适的。
+
+
+    public EntryFilteringCursor search( SearchOperationContext searchContext ) throws LdapException
+    {
+        return null;
+    }
+
+
+
+=* is an old way to write right outer joins. For example:
+
+select  *
+from    A
+right outer join
+        B
+on      A.bid = B.id
+
+Is written in the old style like:
+
+select  *
+from    A
+,       B
+where   A.bid =* B.id
+
+1213
+
+
+
+
+

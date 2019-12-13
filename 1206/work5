@@ -258,6 +258,7 @@ api-asn1-api-1.0.0-RC1.jar
 首先就要先去了解guardian用ldap做的事情，然后分析可行性
 permcontroller(userpermission)->permmanager(..)->reviermgr(search)->permp(finduserpermission)->permDao(findinheriteduserpermission)->searchresults->permDao(unloadpopldapentry)/ldapDataProvicer(search)->searchRequest/ladpCoreSessionConnection(search)/ladpnetworkconnection(search)->ldapcoresessionconnection(search)->coresession->defaultsession->
 opertationManager(search)->entryfilteringcursor->referalmanager(getparentreferal)->dnnode(getelement)
+
 1206
 
 
@@ -511,7 +512,7 @@ opertationManager(search)->entryfilteringcursor->referalmanager(getparentreferal
         return permList;
     }
 
-git branch -D branchName
+git branch -D branchName git删除分支
 git cherry-pick fd8d18a693cde46a0a72b818e5b95100b335d0cb
 git commit -am
 
@@ -570,6 +571,8 @@ ldap:
 
 data model
 DIT是ldap的树，每个树上的节点叫entry，entry有名字，区别于同层节点的名字叫RDN，从特定节点到树的根的直接下级的节点的路径序列为DN
+ An example of a Distinguished Name is CN=Steve Kille, O=Isode Limited, C=GB
+
  The concatenation of the relative distinguished names of the sequence of entries from a particular
  entry to an immediate subordinate of the root of the tree forms that entry's Distinguished Name (DN), which is unique in the tree. 
 
@@ -613,3 +616,4 @@ ftpermName
     }
 
 
+git rm -r –cached filePath unversioned file?
