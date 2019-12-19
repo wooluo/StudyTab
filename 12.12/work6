@@ -161,11 +161,11 @@ vi
 dn: cn=ldap, ou=group, o=dlw.com
 通过这样的方式，即可唯一标识每一个结点。在现实生活中，有很多这种树形结构的数据，如计算机文件系统的目录结构、Internet中的域名等。这些类型的数据，只要不需要频繁的更新，都适合用目录来保存。
 
-优化器根据数据库索引中的扫描计数，应用启发式方法来确定最佳搜索过滤器执行路径。它通过在节点中设置“计数”键来注释表达式子树的节点。其目标是用计数来注释节点，以指示要迭代的节点
- 最小化搜索中的数字周期。 SearchEngine依靠这些计数标记来确定适当的路径。
+优化器根据数据库索引中的扫描计数，来确定最佳搜索过滤器执行路径。它通过在节点中设置count键值来注释表达式子树的节点。其目标是用计数来注释节点，以指示要迭代的节点最小化搜索中的数字周期。 SearchEngine依靠这些计数标记来确定适当的路径。
 
 MySQL数据库的查询优化器使用了基于代价的查询执行计划估算，所以依赖于被查对象的各种数据，而数据是动态变化的，如表的元组数。如果实时获取这些数据，系统计算的开销会比较大。为了避免这样的问题，定期或者根据需要统计这些数据，则比较切合实际。优化器在物理优化阶段，需要对单表读取开销，两表连接开销，多表连接顺序开销等进行比较，比较基于的就是一些基础数据的值，这些数据通常不会被实时更新，所以优化器有时做出的计划未必是最合适的。
 
+/var/logs
 
     public EntryFilteringCursor search( SearchOperationContext searchContext ) throws LdapException
     {
@@ -190,8 +190,35 @@ from    A
 where   A.bid =* B.id
 
 1213
+重构项目改动部分/把ldap部分写成wiki
+删除镜像docker image rmi ID
+Error response from daemon: conflict: unable to delete 3c9ab0cb34db (must be forced) - image is referenced in multiple repositories
+
+强制删除-f
+image has dependent child images
+https://www.cnblogs.com/111testing/p/11208086.html
 
 
+重构getAuthorizedResources
+getAuthorizedDatasources
+
+SQL 表别名
+在 SQL 语句中，可以为表名称及字段（列）名称指定别名（Alias），别名是 SQL 标准语法，几乎所有的数据库系统都支持。通过关键字 AS 来指定。
+表别名语法：
+
+SELECT column FROM table AS table_alias
 
 
+ We want the Evaluator with the smallest scan count first
+         * since this node has the highest probability of failing, or
+         * rather the least probability of succeeding.  That way we
+         * can short the sub-expression evaluation process.
 
+https://tools.ietf.org/html/rfc4512#section-4.1
+
+
+LMDB的全称是LightningMemory-Mapped Database，闪电般的内存映射数据库。它文件结构简单，一个文件夹，里面一个数据文件，一个锁文件。数据随意复制，随意传输。它的访问简单，不需要运行单独的数据库管理进程，只要在访问数据的代码里引用LMDB库，访问时给文件路径即可。、
+
+对象类（ObjectClass）是属性的集合，LDAP预想了很多人员组织机构中常见的对象，并将其封装成对象类。
+
+对象类（ObjectClass）、属性类型（AttributeType）、语法（Syntax）分别约定了条目、属性、值。这些构成了模式(Schema)，模式中的每一个元素都有唯一的OID编号
