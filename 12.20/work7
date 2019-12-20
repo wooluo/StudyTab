@@ -285,7 +285,98 @@ ldap相对于rdb的好处
   }
 
 1218
+resourcestorage查询子节点路径查询
+清本地缓存 或在mvn install原项目
+df-h查看磁盘空间
+cd /var/log 看日志
+ls -al
+rm messages-201911* -rf
+清目录 重启  service transwarp-manager restart 服务重启
+search的34954重构
+主机名添加到/etc/hosts中
+
+1219
+search重构datasource资源
+[{"component":"search1","dataSource":["GLOBAL"/"CLUSTER"]}]
+"permissionVo":{"component":"search1","dataSource":["GLOBAL"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}},{"name":"elasticsearch","principalType":"USER","permissionVo":{"component":"search1","dataSource":["GLOBAL"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}},{"name":"public","principalType":"ROLE","permissionVo":{"component":"search1","dataSource":["GLOBAL"],"action":"ACCESS","heritable":false,"grantable":false,"administrative":false}}]
+
+sionVo":{"component":"search1","dataSource":["CLUSTER"],"action":"CREATE_INDEX","heritable":false,"grantable":false,"administrative":false}}]
 
 
+"permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"WRITE","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"EXECUTE","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"READ","heritable":false,"grantable":false,"
+
+resourceManager是做什么的 怎么获取datasource的信息并组装 resourceentry search相关
+
+@Scope，也称作用域，在 Spring IoC 容器是指其创建的 Bean 对象相对于其他 Bean 对象的请求可见范围。在 Spring IoC 容器中具有以下几种作用域：基本作用域（singleton、prototype），Web 作用域（reqeust、session、globalsession），自定义作用域。
 
 
+{
+  "name": "admin",
+  "permissionVo": {
+    "action": "WRITE",
+    "administrative": false,
+    "component": "search1",
+    "dataSource": [
+      "INDEX","test1"
+    ],
+    "grantable": false,
+    "heritable": false
+  },
+  "principalType": "USER"
+}
+
+Bean instantiation via constructor failed
+Spring在实例化这个类的时候，先执行静态方法，此时某个类还未实例化(检查是否已加注解)，故而报了这个空指针错误。
+
+
+{
+  "serviceName": "search1",
+  "serviceStatus": "ONLINE",
+  "serviceType": "ELASTICSEARCH"
+}
+
+sed by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'searchResourceMgr' defined in URL [jar:file:/home/transwarp/Downloads/work/guardian-backend/guardian/examples/target/lib/resource-manager-guardian-3.2.0.jar!/io/transwarp/guardian/resource/search/SearchResourceMgr.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
+resource/register
+{
+  "clusterName": "string",
+  "configs": {},
+  "description": "string",
+  "lastHeartbeatTimestamp": 0,
+  "offlineTimestamp": 0,
+  "serviceHosts": [
+    "string"
+  ],
+  "serviceName": "search1",
+  "serviceStatus": "ONLINE",
+  "serviceType": "ELASTICSEARCH",
+  "timestamp": 0
+}
+
+resource/lookup
+{
+  "resourceName": "index",
+  "resources": {},
+  "serviceName": "search1",
+  "serviceType": "ELASTICSEARCH",
+  "userInput": "*"
+}
+
+1220
+NPE 异常
+
+NPE是指编程语言中的空指针异常
+NullPointerException
+编程语言中的空指针异常。
+当应用程序试图在需要对象的地方使用 null 时，抛出该异常。这种情况包括：
+
+    调用 null 对象的实例方法。
+    访问或修改 null 对象的字段。
+    将 null 作为一个数组，获得其长度。
+    将 null 作为一个数组，访问或修改其时间片。
+    将 null 作为 Throwable 值抛出。
+
+1. 由于 HashMap 的干扰，很多人认为 ConcurrentHashMap 是可以置入 null 值，而事实上，存储null 值时会抛出 NPE 异常。
+
+2. 注意 Math.random() 这个方法返回是 double 类型，注意取值的范围 0≤x<1（能够取到零值，注意除零异常），如果想获取整数类型的随机数，不要将 x 放大 10 的若干倍然后取整，直接使用 Random 对象的 nextInt 或者 nextLong 方法。
+
+3. try 块中的 return 语句执行成功后，并不马上返回，而是继续执行 finally 块中的语句，如果此处存在 return 语句，则在此直接返回，无情丢弃掉 try 块中的返回点。 
