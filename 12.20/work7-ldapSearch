@@ -1,0 +1,400 @@
+1216
+工作周报 - 李镇邦 20191209 ~ 20191213
+
+完成：
+1. WARP-31985: 减小查询权限时apacheds端拉取权限文件，增加传输效率
+
+进行中：
+1. 迁移WARP-31985接口到重构版本
+2. ldap与lmdb的底层搜索逻辑代码
+
+本周：
+1. 修改ldap与lmdb的底层搜索逻辑代码，增加查询效率
+
+mmap和零拷贝
+
+关于guardian的权限访问路径
+
+一，
+
+                        ldap   
+fortress(通过ldap RBAC)--------apacheds--lmdb
+客户端调用guardian-plugin的接口访问guardian的permmanager接口接入fortress。
+
+fortress
+LDAP提供基于角色的访问控制，委派管理和密码策略服务。
+
+lmdb
+基于文件映射IO（mmap）
+基于B+树的key-value接口
+基于MVCC（Multi Version Concurrent Control）的事务处理
+类bdb（berkeley db）的api
+
+apacheds
+Java编写的可嵌入目录服务器
+
+二，
+permDAO(findInheritedUserPermissions)
+传入参数：user, filter
+将filter中的datasource和component信息提取得到我们在ldap上我们要搜索范围的dn
+filter的其他过滤信息添加到filterbuf中，searchresult通过searchCursor保存
+搜索接口为search, 返回后节点返回到unloadpopldapEntry，放到permlist中 然后返回
+
+LdapDataProvider(search)
+传入的参数都放在searchRequest中配置ldap报文 //能不能减少属性字段 传输到后端的apacheds？
+可以配置不同的sort方法（sortkey）
+
+ldapConnection(Search),ldapCoreSessionConnection(Search)
+传入参数searchrequest
+原子序列号自增
+进入session的search，
+返回EntryToResponseCursor //可以像searchHandler一样 在这设置size和时间限制
+
+coreSession/DefaultCoreSession(search)
+传入参数searchrequest
+补充：ldap目录结构
+1. 条目（Entry） 条目（Entry）就是目录管理的对象，他是LDAP中最基本的节点，算是数据库中的记录。
+2. 属性（Attribute）每个条目都可以有很多属性（Attribute），比如常见的人都有姓名、地址、电话等属性。每个属性都有名称及对应的值，属性值可以有单个、多个。比如ftusers
+3. 属性类型 每个属性都有唯一的属性类型（AttributeType），属性类型约定属性值的数据格式和语法类型（Syntax）。类型也规定了属性查询时的匹配规则、排序顺序、大小写敏感等。比如syntax，matching rules
+4. 对象类 对象类（ObjectClass）是属性的集合，LDAP预想了很多人员组织机构中常见的对象，并将其封装成对象类。比如，top
+5. 模式 对象类（ObjectClass）、属性类型（AttributeType）、语法（Syntax）分别约定了条目、属性、值，每个entry都有must和may属性，每个属性具有不同的值并附带自己的属性类型。条目中可能包含一些属性是在对象类1中，有些是对象类2中。这些全部构成了模式(Schema)，模式中的每一个元素都有唯一的OID编号，如2.5.4.41.条目数据在导入时通常需要接受模式检查，它确保了目录中所有的条目数据结构都是一致的。
+cursor移动走的是哪个路径？
+返回cursor
+
+operationManager/defaultOperationManager(search)
+输入context，获取dn，获取ds中预定义的interceptor拦截器
+进入search,把请求推给拦截器链，保护server的多线程安全
+返回cursor
+
+interceptor(search)
+补充：apacheds的interceptor
+每个Interceptor的调用会依据它的声明顺序依次执行，而且最先执行的都是Interceptor中的preHandle方法，所以可以在这个方法中进行一些前置初始化操作或者是对当前请求的一个预处理，也可以在这个方法中进行一些判断来决定请求是否要继续进行下去。该方法的返回值是布尔值Boolean 类型的，当它返回为false时，表示请求结束，后续的Interceptor和Controller都不会再执行；当返回值为true时就会继续调用下一个Interceptor 的preHandle 方法，如果已经是最后一个Interceptor 的时候就会是调用当前请求的Controller 方法。
+apacheds总共有14个intercaptor，search一共7个，每个Interceptor的调用会依据它的声明顺序依次执行
+Let's consider the search operation. It will be processed successively by the following Interceptors, as it can be deduced by the two previous tables :
+
+    NormalizationInterceptor
+    AuthenticationInterceptor
+    AciAuthorizationInterceptor
+    DefaultAuthorizationInterceptor
+    SchemaInterceptor
+    OperationalAttributeInterceptor
+    SubentryInterceptor
+
+We can do the same exercise for each operation.
+
+baseinterceptor(search)
+此处有争议
+进入nexus的search
+返回cursor
+
+lmdbPartition(search)
+传入searchcontext，建立读事务，
+通过searchEngine的computeResult得到计算结果，包装成filteringCursor返回
+
+
+defaultSearchEngine(ComputeResult)
+传入schemaManager, searchContext
+从seachContext中得到搜索范围，baseDn和filter
+从basedn得到uuid
+准备返回的数据结构searchResult和顺序集
+空节点返回
+得到aliase的base
+
+replaceExtensibleNode
+
+
+object level的搜索：
+db.fetch/optimizer/设置evaluator装入searchResult并返回
+
+其他搜索：
+得到一个scopenode，用这个节点设置optimizer(设置表达式优化）和evaluator（选择mathing rule匹配的过滤器），
+判断原有的candidateset
+
+进入optimizesorting
+dn长度是可知的，用dn长度排序得到的节点
+dn是由rdns组成的，rdn是一个list的数据结构，可以直接返回size
+设定所有子节点中含有这一属性索引的节点，并且按照dn长度排序
+有一个todo，不需要知道dn来知道dnsize
+
+返回void到compute result//已经排序
+或全表搜索，遍历cursor时用evaluator判断matchingrule删选
+返回searchresult
+
+路径
+1. defaultSearchEngine(annotate)-defaultoptimiser(getfullscan)->store(getIndex)->lmdbPartition(getIndex)->lmdbPartiotion(doinit)//优化查询语句
+
+2. defaultOptimiser(getScan)->index(forwardValueCursor)->lmdbIndex->lmdbTaable->lmdbValueCursor->Cursor->store(seek)->mdb_cursor_get  //遍历并返回
+
+
+3. defaultSearchEngine(cursorBuilder.build)->index(forwardCursor)->lmdbTable(cursor)->lmdbCursor(getlmdbcursor)->database(opencursor)//通过cursor排序并优化
+
+defaultSearchEnngine(evaluator.build)->
+
+4. equalityCursor(previors/next)->extensibleEvaluator(evaluate)->extensibleEvaluator(dn)//每次移动时都会执行判断evaluator
+
+5. optimizeSorting->
+
+
+optimizer->优化搜索语句
+evaluator->根据matchingrule的过滤器
+cursor确定满足条件的节点
+optimizeSorting根据sortkey制定的结果排序（index，dnsize）
+
+
+
+
+
+
+
+
+
+=====
+
+
+
+
+
+
+
+传入的perm数据会在服务器端提取信息并通过这些信息（datasource和component）得到一个自己具有唯一可区别的名称Dn(getDn)，对应于ladp目录树的一个节点，保存在permObjDn中。
+根据perm数据的prefix，substring，action形成一个过滤器字符串存在filterbuf中，scope和cookie单独作为过滤条件传到search部分
+于此同时拉取存在缓存中的该用户对应的role和group权限，以及父子关系图，一并合并到filterbuf中
+将所有的过滤信息构建一个searchcursor，每次查找找到符合条件的最上面一层（getParentReferral（dn))，形成一个查找域的查询链,在这个查找域里面把符合条件的当前节点解析到perm中，然后pop出去，进行下一轮查找，最后形成一个permlist
+有继承的情况会包装成一个组，然后照上面的逻辑再进行一次perm的查询过滤。
+
+
+SpringMVC中的Interceptor同Filter一样都是链式调用。每个Interceptor的调用会依据它的声明顺序依次执行，而且最先执行的都是Interceptor中的preHandle方法，所以可以在这个方法中进行一些前置初始化操作或者是对当前请求的一个预处理，也可以在这个方法中进行一些判断来决定请求是否要继续进行下去。该方法的返回值是布尔值Boolean 类型的，当它返回为false时，表示请求结束，后续的Interceptor和Controller都不会再执行；当返回值为true时就会继续调用下一个Interceptor 的preHandle 方法，如果已经是最后一个Interceptor 的时候就会是调用当前请求的Controller 方法。
+
+
+代码
+permcontroller(userpermission)->permmanager(..)->reviermgr(search)->permp(finduserpermission)->permDao(findinheriteduserpermission)->searchresults->permDao(unloadpopldapentry)/ldapDataProvicer(search)->searchRequest/ladpCoreSessionConnection(search)/ladpnetworkconnection(search)->ldapcoresessionconnection(search)->coresession->defaultsession->
+defaultopertationManager(search)->defaultoperationManager-->defaultoperationmanager(search)->inceptor(search)->next->baseIntercptor(next/search)->apacheds项目Btree/lmdbPartition(search)->defaulltSearchEngine(computeresult)
+cursorBuilder(Build)
+
+
+1. defaultSearchEngine(annotate)-defaultoptimiser(getfullscan)->store(getIndex)->lmdbPartition(getIndex)->lmdbPartiotion(doinit)//优化查询语句
+
+2. defaultOptimiser(getScan)->index(forwardValueCursor)->lmdbIndex->lmdbTaable->lmdbValueCursor->Cursor->store(seek)->mdb_cursor_get  //遍历并返回
+
+
+3. defaultSearchEngine(cursorBuilder.build)->index(forwardCursor)->lmdbTable(cursor)->lmdbCursor(getlmdbcursor)->database(opencursor)//通过cursor排序并优化
+
+defaultSearchEnngine(evaluator.build)->
+
+4. equalityCursor(previors/next)->extensibleEvaluator(evaluate)->extensibleEvaluator(dn)//每次移动时都会执行判断evaluator
+
+5. optimizeSorting->
+
+
+Let's consider the search operation. It will be processed successively by the following Interceptors, as it can be deduced by the two previous tables :
+
+    NormalizationInterceptor
+    AuthenticationInterceptor
+    AciAuthorizationInterceptor
+    DefaultAuthorizationInterceptor
+    SchemaInterceptor
+    OperationalAttributeInterceptor
+    SubentryInterceptor
+
+indice索引
+資料指標(Data Cursor) 或稱游標，是在資料庫引擎 (Database Engine)中，讓開發人員或資料庫管理員可以遍歷、瀏覽檢索結果的資料列(稱為資料查詢結果集, Result set)，是主要用於在結果集中移動到某一資料列(row)的控制結構。游標可以被看作是指向一組列中，代表某一列的指針。游標一次只能引用一列，但可以根據需要移動到結果集的其他列。 僅前移型指標 (Forward-Only Cursor) 是一旦將指標往前移時，其走過的指標之前的結果集就會被捨棄，因此應用程式不能再往後移動指標，但也因此讓伺服器只需要記住指標在結果集中目前的位置即可，這讓它消耗的資源只有指標而已
+
+cursor-transaction-mvcc\
+
+dn是由rdns组成的，rdn是一个list的数据结构，可以直接返回size
+
+客户端调用guardian-plugin的接口访问guardian的permmanager接口接入fortress
+fortress:过LDAP提供基于角色的访问控制，委派管理和密码策略服务。
+
+
+1217
+因为lmdb的attribute的index是使用attribute的值进行排序的，因此可以借助这个排序来优化serverside的排序速度，如果ordering match允许的话则使用index加速排序过程
+资料：1. https://ldapwiki.com/wiki/UUID
+2.https://directory.apache.org/apacheds/basic-ug/2.2.1-simple-search.html
+3. http://www.lmdb.tech/doc/group__mdb.html
+
+
+       // Annotate the node with the optimizer and return search enumeration.
+        optimizer.annotate( root );
+        Evaluator<? extends ExprNode> evaluator = evaluatorBuilder.build( root );
+
+        Set<String> uuidSet = new HashSet<String>();
+        searchResult.setAliasDerefMode( aliasDerefMode );
+        searchResult.setCandidateSet( uuidSet );
+
+        long nbResults = cursorBuilder.build( root, searchResult );
+
+        LOG.debug( "Nb results : {} for filter : {}", nbResults, root );
+
+        if ( nbResults < Long.MAX_VALUE )
+        {
+            // handle sort request earlier
+            optimizeSorting( schemaManager, searchContext, searchResult, resultSet );
+
+            for ( String uuid : uuidSet )
+            {
+                IndexEntry<String, String> indexEntry = new IndexEntry<String, String>();
+                indexEntry.setId( uuid );
+                resultSet.add( indexEntry );
+            }
+        }
+lmdb使用mmap, 同时在创建env对象时，数据库已经被整个映射进整个进程空间，因此系统在映射时，会给数据库文件保留全部地址空间，从而在根据上述算法获取真实数据库，系统触发缺页错误，进而从数据文件中获取整个页面内容。
+游标对象是进行所有数据库操作的对象，读写都是基于游标进行。进行读写操作时，首先需要根据条件确定页面位置，从而获得一个游标，应用程序根据游标对象操作数据库。
+
+lmdb代码主要分为page管理和cursor操作两块实现b-tree结构.
+mdb_page_search_root: 从B-Tree根节点检索，根据key的值，从根节点开始遍历子树获取每一层对应的page，在page之内检索key，再根据B-Tree查找方法确定下一层子节点的page，层层遍历，从而最终确定key的位置或者判断 B-Tree中没有对应的key。同时将页面存放到cursor页堆栈中。这样cursor将可以重用对应的页面，为后续进行更新等操作提供便利。
+
+
+1.getDescendantResources查询效率提升，现在是迭代
+2.晚上修改wiki
+
+resourceStorage/getDescendantResources -> resourceDaoImpl/getDescendantResources -> ResourceManager/getDescendantResources -> ResourceController/getDescendantResources
+
+疑问1为什么要重构->apacheds主从切换问题,master节点挂了 不能做到容灾（zk和paxos协议都试过，估计是ldap学习难度比较大，referal没有合适的文档解析）
+3. 为什么void会有返回值->reslut在函数里有变动
+2迭代改成队列 先进先出？
+
+CRC校验实用程序库 在数据存储和数据通讯领域，为了保证数据的正确，就不得不采用检错的手段。在诸多检错手段中，CRC是最著名的一种。CRC的全称是循环冗余校验。
+
+ldap相对于rdb的好处
+1. 通过按目录（层次结构）分组易于管理（由于树结构，可以将管理委派给每个分支）
+2. 搜索性能良好，因为只需要搜索目标用户信息所在的目录（由于它是树结构，因此只搜索该分支而不搜索所有分支）。
+3. 因为主要处理基于文本的信息，所以处理负荷很小。
+4. 属性定义为搜索协议，也可以自己将属性添加为LDAP模式，作为自定义
+
+
+  public static void getDescendantResources(ResourceServiceMapper resourceServiceMapper, ResourceMapper resourceMapper,
+                                            ResourceVo resourceVo, List<ResourceVo> existedResources) {
+    List<ResourceNode> childNodes = getChildNodes(resourceServiceMapper, resourceMapper, resourceVo);
+    if (childNodes == null) {
+      return;
+    }
+    for (ResourceNode node : childNodes) {
+      ResourceVo newResource = DataSourceUtil.isSearchByPrefix(resourceVo) ?
+          resourceVo.service().addNode(node.getType(), node.getValue()).build() :
+          resourceVo.asParent().addNode(node.getType(), node.getValue()).build();
+      Resource resource = ResourceStorage.getResource(resourceServiceMapper, resourceMapper, newResource);
+      // resource ending with this node may not exist
+      if (resource != null) {
+        newResource.setId(resource.getId());
+        newResource.setExternalId(resource.getExternalId());
+        existedResources.add(newResource);
+      }
+      getDescendantResources(resourceServiceMapper, resourceMapper, newResource, existedResources);
+    }
+  }
+
+1218
+resourcestorage查询子节点路径查询
+清本地缓存 或在mvn install原项目
+df-h查看磁盘空间
+cd /var/log 看日志
+ls -al
+rm messages-201911* -rf
+清目录 重启  service transwarp-manager restart 服务重启
+search的WARP-34954重构
+主机名添加到/etc/hosts中
+
+1219
+search重构datasource资源
+[{"component":"search1","dataSource":["GLOBAL"/"CLUSTER"]}]
+"permissionVo":{"component":"search1","dataSource":["GLOBAL"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}},{"name":"elasticsearch","principalType":"USER","permissionVo":{"component":"search1","dataSource":["GLOBAL"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}},{"name":"public","principalType":"ROLE","permissionVo":{"component":"search1","dataSource":["GLOBAL"],"action":"ACCESS","heritable":false,"grantable":false,"administrative":false}}]
+
+sionVo":{"component":"search1","dataSource":["CLUSTER"],"action":"CREATE_INDEX","heritable":false,"grantable":false,"administrative":false}}]
+
+
+"permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"WRITE","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"EXECUTE","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"READ","heritable":false,"grantable":false,"
+
+resourceManager是做什么的 怎么获取datasource的信息并组装 resourceentry search相关
+
+@Scope，也称作用域，在 Spring IoC 容器是指其创建的 Bean 对象相对于其他 Bean 对象的请求可见范围。在 Spring IoC 容器中具有以下几种作用域：基本作用域（singleton、prototype），Web 作用域（reqeust、session、globalsession），自定义作用域。
+
+
+{
+  "name": "admin",
+  "permissionVo": {
+    "action": "WRITE",
+    "administrative": false,
+    "component": "search1",
+    "dataSource": [
+      "INDEX","test1"
+    ],
+    "grantable": false,
+    "heritable": false
+  },
+  "principalType": "USER"
+}
+
+Bean instantiation via constructor failed
+Spring在实例化这个类的时候，先执行静态方法，此时某个类还未实例化(检查是否已加注解)，故而报了这个空指针错误。
+
+
+{
+  "serviceName": "search1",
+  "serviceStatus": "ONLINE",
+  "serviceType": "ELASTICSEARCH"
+}
+
+used by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'searchResourceMgr' defined in URL [jar:file:/home/transwarp/Downloads/work/guardian-backend/guardian/examples/target/lib/resource-manager-guardian-3.2.0.jar!/io/transwarp/guardian/resource/search/SearchResourceMgr.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
+solve:-Pcopy-deps
+resource/register
+{
+  "clusterName": "string",
+  "configs": {},
+  "description": "string",
+  "lastHeartbeatTimestamp": 0,
+  "offlineTimestamp": 0,
+  "serviceHosts": [
+    "string"
+  ],
+  "serviceName": "search1",
+  "serviceStatus": "ONLINE",
+  "serviceType": "ELASTICSEARCH",
+  "timestamp": 0
+}
+
+resource/lookup
+{
+  "resourceName": "index",
+  "resources": {},
+  "serviceName": "search1",
+  "serviceType": "ELASTICSEARCH",
+  "userInput": "*"
+}
+
+1220
+NPE 异常
+
+NPE是指编程语言中的空指针异常
+NullPointerException
+编程语言中的空指针异常。
+当应用程序试图在需要对象的地方使用 null 时，抛出该异常。这种情况包括：
+
+    调用 null 对象的实例方法。
+    访问或修改 null 对象的字段。
+    将 null 作为一个数组，获得其长度。
+    将 null 作为一个数组，访问或修改其时间片。
+    将 null 作为 Throwable 值抛出。
+
+1. 由于 HashMap 的干扰，很多人认为 ConcurrentHashMap 是可以置入 null 值，而事实上，存储null 值时会抛出 NPE 异常。
+
+2. 注意 Math.random() 这个方法返回是 double 类型，注意取值的范围 0≤x<1（能够取到零值，注意除零异常），如果想获取整数类型的随机数，不要将 x 放大 10 的若干倍然后取整，直接使用 Random 对象的 nextInt 或者 nextLong 方法。
+
+3. try 块中的 return 语句执行成功后，并不马上返回，而是继续执行 finally 块中的语句，如果此处存在 return 语句，则在此直接返回，无情丢弃掉 try 块中的返回点。 
+
+caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'searchResourceMgr' defined in URL [jar:file:/home/transwarp/Downloads/work/guardian-backend/guardian/examples/target/lib/resource-manager-guardian-3.2.0.jar!/io/transwarp/guardian/resource/search/SearchResourceMgr.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
+没有-Pcopy-deps导致example的启动路径没有执行
+
+Returns a set of child node names for the given DataSource. The user should have  permission on each subtree node of the current node.
+
+userDatasourcePerms
+
+
+\   * Returns a set of child node names for the given DataSource.
+   * The user should have permission on each subtree node of the current node.
+
+throw new FinderException( GlobalErrIds.PERM_USER_SEARCH_FAILED, error, e );
+
+
+userAuthorizedDataNodes
+searchDataNodes

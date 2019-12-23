@@ -292,7 +292,7 @@ cd /var/log 看日志
 ls -al
 rm messages-201911* -rf
 清目录 重启  service transwarp-manager restart 服务重启
-search的34954重构
+search的WARP-34954重构
 主机名添加到/etc/hosts中
 
 1219
@@ -335,7 +335,8 @@ Spring在实例化这个类的时候，先执行静态方法，此时某个类�
   "serviceType": "ELASTICSEARCH"
 }
 
-sed by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'searchResourceMgr' defined in URL [jar:file:/home/transwarp/Downloads/work/guardian-backend/guardian/examples/target/lib/resource-manager-guardian-3.2.0.jar!/io/transwarp/guardian/resource/search/SearchResourceMgr.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
+used by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'searchResourceMgr' defined in URL [jar:file:/home/transwarp/Downloads/work/guardian-backend/guardian/examples/target/lib/resource-manager-guardian-3.2.0.jar!/io/transwarp/guardian/resource/search/SearchResourceMgr.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
+solve:-Pcopy-deps
 resource/register
 {
   "clusterName": "string",
@@ -380,3 +381,20 @@ NullPointerException
 2. 注意 Math.random() 这个方法返回是 double 类型，注意取值的范围 0≤x<1（能够取到零值，注意除零异常），如果想获取整数类型的随机数，不要将 x 放大 10 的若干倍然后取整，直接使用 Random 对象的 nextInt 或者 nextLong 方法。
 
 3. try 块中的 return 语句执行成功后，并不马上返回，而是继续执行 finally 块中的语句，如果此处存在 return 语句，则在此直接返回，无情丢弃掉 try 块中的返回点。 
+
+caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'searchResourceMgr' defined in URL [jar:file:/home/transwarp/Downloads/work/guardian-backend/guardian/examples/target/lib/resource-manager-guardian-3.2.0.jar!/io/transwarp/guardian/resource/search/SearchResourceMgr.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
+没有-Pcopy-deps导致example的启动路径没有执行
+
+Returns a set of child node names for the given DataSource. The user should have  permission on each subtree node of the current node.
+
+userDatasourcePerms
+
+
+\   * Returns a set of child node names for the given DataSource.
+   * The user should have permission on each subtree node of the current node.
+
+throw new FinderException( GlobalErrIds.PERM_USER_SEARCH_FAILED, error, e );
+
+
+userAuthorizedDataNodes
+searchDataNodes
