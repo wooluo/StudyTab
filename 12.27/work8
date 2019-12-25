@@ -17,6 +17,7 @@ Builder模式使用了链式调用。可读性更佳。
 Builder的内部类构造方法中只接收必传的参数，并且该必传的参数适用了final修饰符
 Builder模式拥有其所有的优点，而没有上述方法中的缺点。客户端的代码更容易写，并且更重要的是，可读性非常好。唯一可能存在的问题就是会产生多余的Builder对象，消耗内存。然而大多数情况下我们的Builder内部类使用的是静态修饰的(static)，所以这个问题也没多大关系。
 由于Builder是非线程安全的，所以如果要在Builder内部类中检查一个参数的合法性，必需要在对象创建完成之后再检查。
+建造者模式(Builder Pattern)：将一个复杂对象的构建与它的表示分离，使得同样的构建过程可以创建不同的表示。
 public User build() {
   User user = new user(this);
   if (user.getAge() > 120) {
@@ -36,6 +37,7 @@ Annotation-specified bean name 'resourceServiceController' for bean class [io.tr
 mvn install -DskipTests -Pcopy-deps
 
 
+
 du -h --max-depth=1 定位最大文件
 cd /var/log 看日志
 ls -al
@@ -49,4 +51,308 @@ inceptor-server-inceptor1-697b7f4665-zpwzs           0/1       Error            
 setterm -inversescreen on 终端变白
 ps 命令虽然在收集运行在系统上的进程信息时非常有用,但也有不足之处:它只能显示某个特定时间点的信息。如果想观察那些频繁换进换出的内存的进程趋势,用 ps 命令就不方便了。
 而 top 命令刚好适用这种情况。 top 命令跟 ps 命令相似,能够显示进程信息,但它是实时显示的。
+
+1224
+grep
+
+[root@tw-node1237 ~]# history
+    1  systemctl status kubelet
+    2  systemctl stop kubelet
+    3  systemctl status kubelet
+    4  systemctl start kubelet
+    5  systemctl status kubelet
+    6  systemctl status kubelet -l
+    7  docker version
+    8  docker ps
+    9  sysctmctl status docker
+   10  systemctl status docker
+   11  systemctl restart docker
+   12  systemctl status docker.service
+   13  systemctl status docker.service -l
+   14  ps -efww | grep docker
+   15  systemctl status docker.service -l
+   16  journalctl -xe
+   17  df -h
+   18  vi /etc/fstab 
+   19  exit
+   20   mount /dev/vda /var/lib/docker
+   21  df -h
+   22  systemctl restart docker.service -l
+   23  systemctl status docker.service
+   24  kubectl get nodes
+   25  kubectl get po
+   26  kubectl get po -owide
+   27  kubectl logs guardian-apacheds-guardian-847cf7dbbd-42pfh
+   28  kubectl get po -owide
+   33  blkid /dev/vda
+   34  UUID="c2a7c600-3e48-44e5-b3bd-cbac431c3b4e" /var/lib/docker xfs defaults 0 0
+   35  vi /etc/fstab
+   36  cat /etc/fstab
+   37  docker images
+   38  docker ps
+   39  docker ps |grep inceptor
+   40  docker version
+   41  docker run -it 844 bash
+   42  docker run --help
+   43  kubectl get po |grep inceptor
+   44  docker images | grep inceptor
+   45  docker run it 52f bash
+   46  docker run it 968 bash
+   47  docker restart
+   48  docker run it 52f bash
+   49  docker run -it 52f bash
+   50  kubectl get po -o wide | grep inceptor
+   51  kubectl exec -it inceptor-server-inceptor1-7cdffb54d7-xht9l bash'
+   52  kubectl exec -it inceptor-server-inceptor1-7cdffb54d7-xht9l bash
+   53  kinit admin
+   54  exit
+   55  quit
+   56  logout
+   57  :q
+   58  kubectl exec -it inceptor-server-inceptor1-7cdffb54d7-xht9l bash
+   59  cat /etc/fstab/
+   60  cat /etc/fstab
+   61  logout
+   62  kubectl get po | grep inceptor
+   63  kubectl get po -owide | grep inceptor
+   64  kubectl logs -f inceptor-server-inceptor1-697b7f4665-6vc5x
+   65  kubectl get po -owide | grep inceptor
+   66  kubectl get deploy
+   67  kubectl delete deploy inceptor-server-slipstream1
+   68  kubectl get deploy
+   69  kubectl get po -owide | grep inceptor
+   70  kubectl get po -owide |
+   71  kubectl get po -owide
+   72  docker ps
+   73  kubectl get po -owide | grep inceptor
+   74  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+   75  jmap
+   76  jmap -heap
+   77  beeline beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/tw-node1237@TDH"
+   78  kinit
+   79  kinit admin
+   80  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+   81  ls
+   82  scp '/home/transwarp/Downloads/guardian-plugins/plugins/inceptor-plugin/target/inceptor-plugin-transwarp-6.2.1.jar' root@172.16.1.237:/root
+   83  ls
+   84  ls -a
+   85  rm inceptor-plugin-transwarp-6.2.1.jar
+   86  ls
+   87  docker ps
+   88  docker ps | grep inceptor
+   89  docker ps | grep 968
+   90  docker ps | grep bash
+   91  docker cp inceptor-plugin-transwarp-6.2.1.jar 844:/root
+   92  docker images | grep inceptor
+   93  docker commit 844 tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+   94  docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+   95  kubectl get po | grep inceptor
+   96  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+   97  docker ps
+   98  kubectl get po | grep inceptor
+   99  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x  bash
+  100  kubectl get po | grep inceptor
+  101  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x  bash
+  102  kubectl get po | grep inceptor
+  103  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x  bash
+  104  ls
+  105  rm inceptor-exec-8.0.1.jar
+  106  ls
+  107  mv inceptor-exec-8.0.1.jar /var
+  108  ls
+  109  docker ps | grep inceptor
+  110  kubectl get po -owide | grep inceptor
+  111  docker images |  grep inceptor
+  112  pwd
+  113  ls /root
+  114  ls -al /root
+  115  docker images |  grep inceptor
+  116  docker run -it 968 bash
+  117  ls
+  118  docker ps | grep inceptor
+  119  docker ps
+  120  docker ps | grep 968
+  121  docker cp inceptor-exec-8.0.1.jar 157:/root
+  122  docker cp inceptor-plugin-transwarp-6.2.1.jar 157:/root
+  123  docker commit 157 tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  124  docker images | grep inceptor
+  125  docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  126  kubectl get po | grep inceptor
+  127  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+  128  kubectl get po -owide | inceptor
+  129  kubectl get po -owide | grep inceptor
+  130  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+  131  ls
+  132  rm -r inceptor-exec-8.0.1.jar
+  133  ls
+  134  rm -r inceptor-plugin-transwarp-6.2.1.jar
+  135  ls
+  136  scp '/home/transwarp/Downloads/work/hive-0.12.0-transwarp/src/ql/target/inceptor-exec-8.0.1.jar' root@172.16.1.237:/root
+  137  ls
+  138  docker ps | grep inceptor
+  139  docker ps
+  140  docker ps | grep 968
+  141  docker cp
+  142  docker cp inceptor-exec-8.0.1.jar 157:/root
+  143  docker cp inceptor-plugin-transwarp-6.2.1.jar 157:/root
+  144  docker commit 157 tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  145  docker images | grep inceptor
+  146  docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  147  kubectl get po | grep inceptor
+  148  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+  149  kubectl get po | grep inceptor
+  150  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+  151  select * from default;
+  152  show tables in default;
+  153  ls
+  154  rm -r inceptor-exec-8.0.1.jar
+  155  rm -r inceptor-plugin-transwarp-6.2.1.jar
+  156  ls
+  157  kubectl get po | grep inceptor
+  158  docker ps | grep inceptor
+  159  docker ps 
+  160  docker ps | grep 968
+  161  docker cp inceptor-exec-8.0.1.jar 157:/root
+  162  docker cp inceptor-plugin-transwarp-6.2.1.jar 157:/root
+  163  docker commit 157 tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  164  docker images | grep inceptor
+  165  docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  166  kubectl get po -owide | grep inceptor
+  167  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+  168  ls
+  169  rm -r inceptor-plugin-transwarp-6.2.1.jar
+  170  rm -r inceptor-exec-8.0.1.jar
+  171  ls
+  172  logout
+  173  ls
+  174  docker ps | grep inceptor
+  175  docker ps 
+  176  docker ps | grep 968
+  177  docker cp inceptor-exec-8.0.1.jar 157:/root
+  178  docker cp inceptor-plugin-transwarp-6.2.1.jar 157:/root
+  179  ls
+  180  docker commit 157 tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  181  docker images | grep inceptor
+  182  docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  183  kubectl get po -owide | grep inceptor
+  184  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+  185  ls
+  186  rm -r inceptor-plugin-transwarp-6.2.1.jar
+  187  rm -r inceptor-exec-8.0.1.jar
+  188  ls
+  189  ls -al /root
+  190  ls
+  191  docker ps | grep inceptor
+  192  docker ps 
+  193  docker ps | grep 968
+  194  docker cp inceptor-exec-8.0.1.jar 157:/root
+  195  docker cp inceptor-plugin-transwarp-6.2.1.jar 157:/root
+  196  docker commit 157 tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  197  docker images | grep inceptor
+  198  docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+  199  kubectl get po -owide | grep inceptor
+  200  kubectl exec -it inceptor-server-inceptor1-697b7f4665-6vc5x bash
+
+
+  docker run -it 163 bash
+  509  docker images | grep workflow
+  510  docker images
+  511  docker pull tw-node1236:5000/transwarp/workflow:transwarp-6.2.0-final
+  512  docker pull tw-node1236:5000/transwarp/workflow:studio-1.1.0
+  513  docker pull 172.16.1.99/gold/workflow:studio-1.1.0-final-2019-08-13-12-30-31-620b62fde11f90e9638091d4c26cc0287e04ae85
+  514  docker images | grep workflow
+  515  docker images | grep studio
+  516  docker imags
+  517  docker images
+  518  docker run -ti 6b3c8d4b0a07baec433c26f697257b389a2acc5789e1fa866b02075edcb44f35 bash
+  519  docker run -it 172.16.1.99/gold/workflow:studio-1.1.0-final-2019-08-13-12-30-31-620b62fde11f90e9638091d4c26cc0287e04ae85 bash
+  520  exit
+  521  ls
+  522  vim /etc/guardian/conf/guardian-site.xml 
+  523  vi /etc/guardian/conf/guardian-site.xml 
+  524  exit
+  525  df -h
+  526  cd /var/log
+  527  ls -al
+  528  rm messages-201911* -rf
+  529  ls -al
+  530  df -h
+  531  kubectl get po -owide
+  532  vi /var/log/hdfs1/hadoop-hdfs-namenode-tw-node1237.log
+  533  kubectl get po -owide
+  534  vi /var/log/inceptor1/hive-server2.log 
+  537  vi /var/log/hdfs1
+  538  kubectl get po -owide | grep inceptor
+命令列界面 CLI
+curl -L -H "PRIVATE-TOKEN: swch1r1jLV-fsMe7ZMJn" "http://172.16.1.41:10080/api/v4/projects/402/jobs/artifacts/guardian-3.1/download?job=postcommit" -o artifact.zip
+    unzip artifact.zip
+    mkdir -p guardian-server-boot/src/main/resources/static
+    cp -r public/* guardian-server-boot/src/main/resources/static/
+
+rm artifact.zip -rf
+rm public -rf
+rm guardian-server-boot/src/main/resources/static -rf
+拉取前端页面
+
+bash shell用一个叫作环境变量(environment variable)的特性来存储有关shell会话和工作环境的信息(这也是它们被称作环境变量的原因)。这项特性允许你在内存中存储数据,以便程序或shell中运行的脚本能够轻松访问到它们。这也是存储持久数据的一种简便方法。
+
+命令 env 、 printenv 和 set 之间的差异很细微。 set 命令会显示出全局变量、局部变量以及用户定义变量。它还会按照字母顺序对结果进行排序。 env 和 printenv 命令同 set 命令的区别在于前两个命令不会对变量排序,也不会输出局部变量和用户定义变量。在种情况下, env 和 printenv 的输出是重复的。不过 env 命令有一个 printenv 没有的功能,这使得它要更有用一些
+
+YAML 是专门用来写配置文件的语言，非常简洁和强大，远比 JSON 格式方便。
+
+echo = 可以通过等号给环境变量赋值,值可以是数值或字符串。注意不要加空格 否则会被识别成单独命令
+创建全局环境变量的方法是先创建一个局部环境变量,然后再把它导出到全局环境中。这个过程通过 export 命令来完成,变量名前面不需要加 $ 。
+可以用 unset 命令完成删除操作。在 unset 命令中引用环境变量时,记住不要使用 $
+
+https://172.26.2.6:8380/
+admin/123
+QA集群
+
+list范型赋值用的是适配器模式
+Hadoop分布式文件系统（HDFS）允许管理员为所使用的名称数量和单个目录使用的空间量设置配额。name quota和space quota独立运作，但这两种配额的管理和实施是相当类似的。
+
+
+[root@tw-node1237 ~]# ls
+anaconda-ks.cfg                         guardian-client-guardian-3.1.3.jar  guardian-core-guardian-3.1.3.jar         inceptor-exec-8.0.1.jar              lib.tar.gz
+fortress-core-1.0.0-guardian-3.1.3.jar  guardian-common-guardian-3.1.3.jar  guardian-server-boot-guardian-3.1.3.jar  inceptor-plugin-transwarp-6.2.1.jar  tos.tar.gz
+
+换包
+
+find / -name 'guardian-client*' 查找文件
+
+find . -name "*.jar"| awk '{print "jar -tf "$1}'| sh -x | grep -i "/GuardianClient.class"
+hbase-shaded-server-1.3.1-transwarp-6.2.0.jar
+
+https://172.16.1.237:8380/swagger-ui.html#!/perms/findUserDatasourceUsingGET
+
+1225
+存在permobj的objName顺序是Table_or_)view->DB->tb
+存在permobjdn的string字段中getdn顺序是 tb->db->Table_or_view
+
+2019-12-25 10:04:06,614 ERROR inceptor.GuardianAuthorizer: (GuardianAuthorizer.java:hasAnyTablePrivilegesOnDB(648)) [HiveServer2-Handler-Pool: Thread-237(SessionHandle=d6315725-863a-4db1-b498-4c5b53868b20)] - Fail to filter tables by privileges. username: [test], dbName:[default]
+
+java.lang.IndexOutOfBoundsException: Index: 2, Size: 2
+        at java.util.ArrayList.rangeCheck(ArrayList.java:653)
+        at java.util.ArrayList.get(ArrayList.java:429)
+        at org.apache.directory.fortress.core.impl.PermDAO.getNextLevelObjName(PermDAO.java:3308)
+        at org.apache.directory.fortress.core.impl.PermDAO.findUserAuthorizedDataNodes(PermDAO.java:2483)
+        at org.apache.directory.fortress.core.impl.PermP.searchDataNodes(PermP.java:220)
+        at org.apache.directory.fortress.core.impl.ReviewMgrImpl.userAuthorizedDataNodes(ReviewMgrImpl.java:497)
+        at io.transwarp.guardian.core.manager.PermManager.userAuthorizedDataNodes(PermManager.java:183)
+        at
+
+docker image rmi id -f
+
+权限控制表 (ACL: Access Control List)
+用来描述权限规则或用户和权限之间关系的数据表。
+DAC 自主访问控制
+系统会识别用户，然后根据被操作对象的ACL或者权限控制矩阵来控制用户权限
+如windows的权限
+MAC 强制访问控制
+MAC是为了弥补DAC权限控制过于分散的问题而诞生的。在MAC的设计中，每一个对象都都有一些权限标识，每个用户同样也会有一些权限标识，而用户能否对该对象进行操作取决于双方的权限标识的关系，这个限制判断通常是由系统硬性限制的。比如在影视作品中我们经常能看到特工在查询机密文件时，屏幕提示需要“无法访问，需要一级安全许可”，这个例子中，文件上就有“一级安全许可”的权限标识，而用户并不具有。
+RBAC 基于角色的访问控制
+RBAC在用户和权限之间引入了“角色（Role）”的概念（暂时忽略Session这个概念）
+简单来说RBAC就是：用户关联角色，角色关联权限。另外，RBAC是可以模拟出DAC和MAC的效果的。
+ABAC 基于属性的权限验证
+不同于常见的将用户通过某种方式关联到权限的方式，ABAC则是通过动态计算一个或一组属性来是否满足某种条件来进行授权判断（可以编写简单的逻辑）。属性通常来说分为四类：用户属性（如用户年龄），环境属性（如当前时间），操作属性（如读取）和对象属性（如一篇文章，又称资源属性），所以理论上能够实现非常灵活的权限控制，几乎能满足所有类型的需求。
 

@@ -157,8 +157,12 @@ inceptor-exec-8.0.0.jar  inceptor-plugin-transwarp-6.2.0.jar  R-3.3.1-21.x86_64.
 ls
 1.
 docker commit 8dc tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
-[root@tw-node1237 ~]# docker commit 52f tw-node1236:5000/transwarp/guardian:guardian-3.1.0-final 
+
 docker push tw-node1236:5000/transwarp/inceptor:transwarp-6.2.0-final
+
+
+
+[root@tw-node1237 ~]# docker commit 52f tw-node1236:5000/transwarp/guardian:guardian-3.1.0-final 
 重启inceptor
 kubectl get po -owide | grep inceptor
 kubectl exec -it inceptor-server-inceptor1-697b7f4665-ctfbq bash
@@ -178,7 +182,9 @@ admin代码全部能跑通，test的show databases没有显示表，日志显示
 pre-commiter
 merge request?
 
+修改xml文件 在etc里
 
+https://172.16.1.237:8380/swagger-ui.html#!/login/loginUsingPOST
 
 
 

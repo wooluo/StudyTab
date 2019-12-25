@@ -385,6 +385,7 @@ NullPointerException
 caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'searchResourceMgr' defined in URL [jar:file:/home/transwarp/Downloads/work/guardian-backend/guardian/examples/target/lib/resource-manager-guardian-3.2.0.jar!/io/transwarp/guardian/resource/search/SearchResourceMgr.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
 没有-Pcopy-deps导致example的启动路径没有执行
 
+
 Returns a set of child node names for the given DataSource. The user should have  permission on each subtree node of the current node.
 
 userDatasourcePerms
@@ -398,3 +399,5 @@ throw new FinderException( GlobalErrIds.PERM_USER_SEARCH_FAILED, error, e );
 
 userAuthorizedDataNodes
 searchDataNodes
+
+
