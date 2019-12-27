@@ -356,3 +356,143 @@ RBAC在用户和权限之间引入了“角色（Role）”的概念（暂时忽
 ABAC 基于属性的权限验证
 不同于常见的将用户通过某种方式关联到权限的方式，ABAC则是通过动态计算一个或一组属性来是否满足某种条件来进行授权判断（可以编写简单的逻辑）。属性通常来说分为四类：用户属性（如用户年龄），环境属性（如当前时间），操作属性（如读取）和对象属性（如一篇文章，又称资源属性），所以理论上能够实现非常灵活的权限控制，几乎能满足所有类型的需求。
 
+1226
+https://magnetw.app/
+
+如上文所述，ThreadLocal 适用于如下两种场景
+http://www.jasongj.com/java/threadlocal/
+每个线程需要有自己单独的实例
+实例需要在多个方法中共享，但不希望被多线程共享
+
+    SourceIp：访问服务的用户的源地址ip
+    UserName：访问服务的用户的用户名
+    GroupName： 访问服务的用户所属的组
+    RoleName： 访问服务的用户所属的角色
+    CurrentTime： 访问服务的时间
+    Resource： 访问服务的资源名字，例如对于inceptor表，表示方法为default.alice_tbl；对于hdfs目录则为 /user/alice等
+
+局限：目前支持ABAC的插件只有Incpetor的插件，其他服务的插件正在开发中
+
+找出v1中使用abac的部分并对应找出相对v2的部分
+已知abac目前只对inceptor有用 对应resource的部分
+表 gs_abac_policies gs_policy_statement gs_resource_services
+
+http://172.16.1.41:10080/guardian/guardian/blob/master/docs/ABAC.md
+
+ABAC模型由如下几个部分组成：
+
+PEP(Policy Enforcement Point): 负责使用ABAC策略保护用户数据以及应用。PEP处理访问请求，获得环境上下文，并将这些信息发送给PDP。
+PEP的功能是由Guardian Plugin实现的。
+PDP(Policy Decision Point): 是ABAC的处理单元，根据所有的策略和PEP发送的请求来决定是Allow还是Deny，PDP使用PIP获得策略和
+属性等信息。PDP单元应该是一个可以复用的模块，可以放置到Guardian Server中通过API判断权限；并且需要可以单独提取出来，放到Guardian Plugin
+中，在宿主服务中直接判断权限，并借以PIP创建的缓存以及PDP自身的缓存，最大限度的提升权限判断的性能。
+PIP(Policy Information Point): 搭建PDP到外部数据源（LDAP数据目录或者关系型数据库）的桥梁。
+PAP(Policy Administration Point): 策略管理终端，Guardian Server扮演了PAP的角色。
+
+PEP->PDP->PIP->PAP
+ guardianAbacEnabled = this.guardianConf.getBoolean(GuardianVars.GUARDIAN_ABAC_AUTHORIZATION_ENABLED.varname,
+            GuardianVars.GUARDIAN_ABAC_AUTHORIZATION_ENABLED.defaultBoolVal);
+
+    if (guardianAbacEnabled) {
+      try {
+        policyEngine = PolicyEngineFactory.getInstance(this.guardianConf);
+        policyEngine.start();
+      } catch (GuardianClientException e) {
+        LOG.error("Fail to initialize Guardian policy engine when initializing Guardian AccessController", e);
+        // TODO: deal with ErrorMsg
+        throw new HiveAuthzPluginException(e,
+                "Fail to initialize Guardian policy engine when initializing Guardian AccessController", ErrorMsg.GENERIC_ERROR);
+      }
+
+v1
+PEP: checkPermission->checkPolicy->
+PDP: policyEngine.checkPolicy->PolicyUtil.checkStatement->PolicyUtil.checkPolicy
+getRelatedStatement Exprs
+PolicyUtil.checkStatements(expr.evaluate(cloneContext))->PolicyUtil.evaluate->StatementExpression.evaluate->exp/operator
+->guardianClient.getstatements->PolicyController.getStatements->PolicyManager.->policyDao.getStatements->PolicyDaoImpl.getStatements->mapper.getStatements
+gs_policy_statement -> statement_id policy_id json
+一个策略可以是允许(ALLOW)类型或者拒绝(DENY)类型的策略，允许类型的策略表示，当上下文中的标签满足满足条件的时候允许用户访问资源，而拒绝策略则相反，当上下文中的标签满足条件的时候，则拒绝访问资源。注意，DENY的优先级高于ALLOW，也就是如果一组策略都满足，那么存在任意一个DENY策略，访问都会被拒绝。点击右上角的“拒绝策略”按钮进行切换。默认情况下是ALLOW类型策略，点击之后左上角会出现一个红色的拒绝图标，表示改策略为一个DENY类型策略。再次点击则切换回ALLOW策略。
+
+PIP: PolicyController->PolicyManager->policyDao->PolicyDaoImpl->PolicyMapper
+PAP: 终端
+
+v2
+PolicyEngine.checkPolicy->getRelatedStatementExprs/PolicyUtils.checkStatements->
+StateExpressions.evaluate->Expression.evalate/opertor
+
+gs_statement_resources
+gs_resources
+gs_abac_policies
+gs_policy_statement
+
+etc/conf/guardian加数据库密码
+
+
+controller.userpermission->findPrincPermissions->permManager.getPrincPerms->permDao.searchPrincPermsOnService->permDaoImpl.searchPrincPermsOnService->permMapper.selectServiceUserPerms->
+1. abac guadian版本适配问题 
+2. v2权限需要加action过滤 1
+3. abac的resource资源变动是否影响
+选择所有与此次权限判断的用户、资源、上下文相关的policy, 对策略权限进行判断。ResourceExpr继承于StringExpr，contail模式
+获取到json模式转成resourcevo做匹配
+每次启动根据请求把对应policy的statement拉下来，并形成关系树。查找和resource相关的
+Node used to record a resource node and related policies
+
+192.168.76.128：22
+
+minidwep
+
+1227
+
+findPrincPermissions(SessionVo sessionVo, PrincipalVo principalVo,
+                                                  String component, List<String> dataSource,
+                                                  String substring, String action, boolean subtree, Boolean inheritance)
+selectServiceUserPerms0
+selectServiceUserPermsByRole0
+selectServiceRolePerms0
+selectServiceGroupPerms0
+selectServicePermsByGroups0
+selectServicePermsByGroupsRoles0
+
+
+selectUserResourcePerms0
+selectRoleResourcePermsByUser0
+selectRoleResourcePerms0
+selectGroupResourcePerms0
+selectGroupsResourcePerms
+selectRolesResourcePerms0
+
+selectUserPerms
+selectRolePermsByUser
+selectGroupsPerms
+selectRolesPerms
+
+        <if test="searchValue != null">
+            AND MATCH(R.path) AGAINST (#{searchValue})
+        </if>
+
+selectGroupAuthorizedResources
+selectRoleAuthorizedResources
+selectRoleAuthorizedResourcesByUser
+selectUserAuthorizedResources
+selectGroupsAuthorizedResources
+selectRolesAuthorizedResources
+
+getAuthorizedResources
+
+开启abac时
+用户执行操作 先检查是否存在关联操作关系的策略，
+server会抽取所有与此次权限判断的用户、资源、上下文相关的policy，判断在抽取到策略中是否存在显式的Deny。具体会把所有的statement拉下来，形成一颗关系树。根据操作涉及的resource提取相关的策略exp进行判断是否存在deny。这个策略中存在显式deny的话，拒绝；存在deny_depends并且不存在allow的时候拒绝。存在allow的时候允许；存在not_apply的时候not_apply,默认结果为deny。
+用户先拿到操作的resource和action，然后checkpolicy，传的参数是user，resource，action和关于ip和时间的context
+server端开启一端缓存，并拉下对应操作组件的所有policy的node，形成一颗关系树
+Node used to record a resource node and related policies
+找到和要操作的resource相对应的statementExprs
+具体做法：1.先找到特定资源的statement，并拉和它有关系的子节点
+2.找global statement
+3.找孤儿statement
+返回之后判断是否通过evaluate
+由于每次开启abac都会拉statement判断，不涉及其他字段对应v1和v2的改动
+getRelatedStatementExprs
+
+1.fetch statement时会不会有冲突->来源未知 swagger传serviceid 应该不包括字段冲突的情况
+2.和resource验证时会不会有冲突
+
