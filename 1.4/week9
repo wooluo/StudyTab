@@ -1,0 +1,156 @@
+1230
+
+完成：
+1. 完成show权限的镜像打包和测试，修改client和hive工程相应部分并提交
+
+db有权限->tb一定有权限?
+tbowner一定要循环获取？
+
+2. 检查ABAC策略对v2版本资源适配的迁移状况
+
+开启abac时
+用户执行操作 先检查是否存在关联操作关系的策略，
+server会抽取所有与此次权限判断的用户、资源、上下文相关的policy，判断在抽取到策略中是否存在显式的Deny。具体会把所有的statement拉下来，形成一颗关系树。根据操作涉及的resource提取相关的策略exp进行判断是否存在deny。这个策略中存在显式deny的话，拒绝；存在deny_depends并且不存在allow的时候拒绝。存在allow的时候允许；存在not_apply的时候not_apply,默认结果为deny。
+用户先拿到操作的resource和action，然后checkpolicy，传的参数是user，resource，action和关于ip和时间的context
+server端开启一端缓存，并拉下对应操作组件的所有policy的node，形成一颗关系树
+Node used to record a resource node and related policies
+找到和要操作的resource相对应的statementExprs
+具体做法：1.先找到特定资源的statement，并拉和它有关系的子节点
+2.找global statement
+3.找孤儿statement
+返回之后判断是否通过evaluate
+由于每次开启abac都会拉statement判断，不涉及其他字段对应v1和v2的改动
+resourceId
+
+3. 添加关于v2版本show权限需要加action条件过滤的接口改动部分
+
+进行中：
+1. search组件在v2版本的迁移测试
+
+本周：
+1. 维护已提交代码并对v2重构做相应改动工作
+
+705-626
+ List<String> filterDatabaseByPrivileges(String username, List<String> dbs) {
+    try {
+      if (!guardianConf.getBoolean(GuardianVars.GUARDIAN_INCEPTOR_FILTER_SHOWTABLES.varname, GuardianVars.GUARDIAN_INCEPTOR_FILTER_SHOWTABLES.defaultBoolVal)) {
+        return dbs;
+      }
+
+
+      List<String> dbPerms = guardianClient.userAuthorizedDataNodes(username, component, Arrays.asList("TABLE_OR_VIEW"), null, null);
+      Set<String> dbsWithPrivsSet = new HashSet<>();
+      if (dbPerms != null) {
+        for (String db : dbPerms) {
+          dbsWithPrivsSet.add(db.toLowerCase());
+        }
+      }
+      for (String db : dbs) {
+        try {
+          boolean isDBOwner = SQLAuthorizationUtils.isOwner(username, Collections.EMPTY_LIST,
+              new HivePrivilegeObject(HivePrivilegeObject.HivePrivilegeObjectType.DATABASE, db, null));
+          if (isDBOwner) {
+            dbsWithPrivsSet.add(db.toLowerCase());
+          }
+        } catch (HiveAuthzPluginException ex) {
+          LOG.error("Fail to check if user [{}] is the owner of database [{}].", username, db, ex);
+        }
+      }
+      List<String> dbsWithPrivs = new ArrayList<>(dbsWithPrivsSet);
+      dbs.retainAll(dbsWithPrivs);
+      return dbs;
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to filter DBs by privileges. username: [{}]", username, e);
+      return dbs;
+    }
+  }
+
+  boolean hasAnyGlobalTablePrivileges(String username) {
+    List<String> dataSource = InceptorPermUtil.global();
+    List<PermissionVo> permVos = new ArrayList<>();
+    permVos.add(new PermissionVo(component, dataSource, ADMIN_PERM));
+    for (GuardianSQLPrivilegeType privilegeType : GuardianSQLPrivilegeType.ALL_ON_TABLE) {
+      permVos.add(new PermissionVo(component, dataSource, privilegeType.name()));
+    }
+    try {
+      return guardianClient.checkAnyAccess(username, permVos);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to check if user [{}] has any global table privileges.", username, e);
+      return true;
+    }
+  }
+
+  List<String> filterTablesByPrivileges(String username, String dbName, List<String> tbls) {
+    try {
+      boolean isDBOwner = SQLAuthorizationUtils.isOwner(username, Collections.EMPTY_LIST,
+          new HivePrivilegeObject(HivePrivilegeObject.HivePrivilegeObjectType.DATABASE, dbName, null));
+      if (isDBOwner) {
+        return tbls;
+      }
+    } catch (HiveAuthzPluginException ex) {
+      LOG.error("Fail to check if user [{}] is the owner of database [{}].", username, dbName, ex);
+    }
+    try {
+      List<String> dbPerms = guardianClient.userAuthorizedDataNodes(username, component, Arrays.asList("TABLE_OR_VIEW"), null, null);
+      if (dbPerms.contains(dbName)) {
+        return tbls;
+      }
+      List<String> tbPerms = guardianClient.userAuthorizedDataNodes(username, component, InceptorPermUtil.convertDatabase(dbName), null, null);
+      Set<String> tblsWithPrivsSet = new HashSet<>();
+      if (tbPerms != null) {
+        for (String tb : tbPerms) {
+          tblsWithPrivsSet.add(tb.toLowerCase());
+        }
+      }
+      List<String> tblsWithPrivs = new ArrayList<>(tblsWithPrivsSet);
+      tbls.retainAll(tblsWithPrivs);
+      return tbls;
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to filter tables by privileges. username: [{}], dbName:[{}]", username, dbName, e);
+      return tbls;
+    }
+  }
+
+EnumSet<GuardianSQLPrivilegeType>->自己写的
+mvn缓存不起作用
+io.transwarp.guardian.plugins.inceptor.GuardianHiveAuthorizer
+
+hive那边版本号是变掉了吗？你有没有rebase过啥的
+idea local history
+
+  <parent>
+    <groupId>org.apache.hive</groupId>
+    <artifactId>hive</artifactId>
+    <version>8.0.2</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+ <hive.version>8.0.2</hive.version>
+6.2.2
+
+blic static void main(String[] args) {
+    List<String> list1 = new ArrayList<String>();
+    list1.add("A");
+    list1.add("B");
+    list1.add("C");
+
+    List<String> list2 = new ArrayList<String>();
+    list2.add("C");
+    list2.add("B");
+    list2.add("D");
+    // 并集
+    list1.addAll(list2);
+    // 去重复并集
+    list2.removeAll(list1);
+    list1.addAll(list2);
+    // 交集
+    list1.retainAll(list2);
+    // 差集
+    list1.removeAll(list2);
+}
+
+1231
+du -h --max-depth=1
+CollectionsUtil.isEmpty()
+service transwarp-manager restart 服务重启
+search搜索资源通过ketmapper
+

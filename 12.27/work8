@@ -425,7 +425,7 @@ gs_resources
 gs_abac_policies
 gs_policy_statement
 
-etc/conf/guardian加数据库密码
+etc/conf/guardian/guardian-site加数据库密码
 
 
 controller.userpermission->findPrincPermissions->permManager.getPrincPerms->permDao.searchPrincPermsOnService->permDaoImpl.searchPrincPermsOnService->permMapper.selectServiceUserPerms->
@@ -495,4 +495,25 @@ getRelatedStatementExprs
 
 1.fetch statement时会不会有冲突->来源未知 swagger传serviceid 应该不包括字段冲突的情况
 2.和resource验证时会不会有冲突
+
+文件系统->为硬盘中存储的0和1的应用和使用文件搭建起了桥梁
+ext文件系统->扩展文件系统，使用虚拟目录操作硬件设备，在物理设备上按定长的块存储数据
+linux通过唯一的数值(称作索引节点号)来引用索引节点表中的每个索引节点,这个值是创建文件时由文件系统分配的。文件系统通过索引节点号而不是文件全名及路径来标识文件。
+ext2文件系统->1.创建时间值等辅助系统追踪文件访问情况/允许最大文件增加到2tb/按组分配磁盘块来减轻内存碎片化
+日志文件系统->先将文件更改写入临时文件，当数据写到存储设备和索引节点表后，再删除对应的日志条目
+ext3文件系统->索引节点表+日志文件
+ext4文件系统->压缩加密+区段（区段在存储设备上按块分配空间,但在索引节点表中只保存起始块的位置）+块预分配
+Reiser->只支持日志回写模式，把索引节点表写到日志文件
+JFS->JFS文件系统采用的是有序日志方法,即只在日志中保存索引节点表数据,直到真正的文件
+数据被写进存储设备时才删除它。
+,日志式的另一种选择是一种叫作写时复制 (copy-on-write,COW)的技术。
+COW利用快照兼顾了安全性和性能。如果要修改数据,会使用克隆或可写快照。修改过的数据
+并不会直接覆盖当前数据,而是被放入文件系统中的另一个位置上。即便是数据修改已经完成,
+之前的旧数据也不会被重写。
+COW文件系统已日渐流行,接下来会简要概览其中最流行的两种(Btrf和ZFS)。
+
+检查table的owner不会很奇怪嘛 一个用户有创建表的权限 没有表内权限我觉得是设计错误不是逻辑错误直接sayno就好，改后会加一个tbls结果差集的循环时间，而且这么细化以后每个object都要查一下owner？
+showdatabase看不到的库不能操作
+
+
 
