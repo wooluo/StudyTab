@@ -154,3 +154,410 @@ CollectionsUtil.isEmpty()
 service transwarp-manager restart 服务重启
 search搜索资源通过ketmapper
 
+[sudo] password for transwarp: 
+E: Could not get lock /var/lib/dpkg/lock - open (11: Resource temporarily unavailable)
+E: Unable to lock the administration directory (/var/lib/dpkg/), is another process using it?
+
+在终端中敲入以下两句
+
+sudo rm /var/cache/apt/archives/lock
+
+sudo rm /var/lib/dpkg/lock
+
+如何编写脚本：
+touch hello.sh
+chmod +x hello.sh
+vim hello.sh
+./hello.sh
+vim 文件------>进入文件----->命令模式------>按i进入编辑模式----->编辑文件 ------->按Esc进入底行模式----->输入:wq/q! （输入wq代表写入内容并退出，即保存；输入q!代表强制退出不保存。）)
+在idea如何快速重载一个方法
+ctrl+O找到方法双击
+
+throw new LdapOperationException(ResultCodeEnum.UNWILLING_TO_PERFORM, "Write on slave node is forbidden!");
+
+Cannot instantiate interface org.springframework.context.ApplicationListener : io.transwarp.guardian.server.boot.applistener.AppPreparedEventListener
+mvn clean
+ldapadd 
+
+ldap指令
+1）增加增：ldapadd
+选项：
+-x   进行简单认证
+-D   用来绑定服务器的DN
+-h   目录服务的地址
+-w   绑定DN的密码
+-f   使用ldif文件进行条目添加的文件
+ 
+例子：
+将 test.ldif 中的数据导入 ldap
+[root@openldap ~]# ldapadd -x -D "cn=root,dc=kevin,dc=com" -w secret -f /root/test.ldif
+ 
+2）删除：ldapdelete
+例子
+[root@openldap ~]# ldapdelete -x -D "cn=userACI,ou=People,${guardian_ds_domain}" -w secret "ou=People,${guardian_ds_domain}"
+[root@openldap ~]# ldapdelete -x -D 'cn=root,dc=it,dc=com' -w secert 'uid=zyx,dc=it,dc=com'
+ 
+3）修改：ldapmodify
+选项
+-a 添加新的条目.缺省的是修改存在的条目.
+-C 自动追踪引用.
+-c 出错后继续执行程序并不中止.缺省情况下出错的立即停止.
+-D binddn 指定搜索的用户名(一般为一dn 值).
+-e 设置客户端证书文件,例: -e cert/client.crt
+-E 设置客户端证书私钥文件,例: -E cert/client.key
+-f file 从文件内读取条目的修改信息而不是从标准输入读取.
+-H ldapuri 指定连接到服务器uri。常见格式为ldap://hostname:port
+-h ldaphost 指定要连接的主机的名称/ip 地址.它和-p 一起使用.
+-p ldapport 指定要连接目录服务器的端口号.它和-h 一起使用.
+-M[M] 打开manage DSA IT 控制. -MM 把该控制设置为重要的.
+-n 用于调试到服务器的通讯.但并不实际执行搜索.服务器关闭时,返回错误；服务器打开时,常和-v 参数一起测试到服务器是否是一条通路.
+-v 运行在详细模块.在标准输出中打出一些比较详细的信息.比如:连接到服务器的ip 地址和端口号等.
+-V 启用证书认证功能,目录服务器使用客户端证书进行身份验证,必须与-ZZ 强制启用TLS 方式配合使用,并且匿名绑定到目录服务器.
+-W 指定了该参数,系统将弹出一提示入用户的密码.它和-w 参数相对使用.
+-w bindpasswd 直接指定用户的密码. 它和-W 参数相对使用.
+-x 使用简单认证.
+-Z[Z] 使用StartTLS 扩展操作.如果使用-ZZ,命令强制使用StartTLS 握手成功.
+ 
+例子
+[root@openldap ~]# ldapmodify -x -D "cn=root,dc=it,dc=com" -W -f modify.ldif
+
+transwarp@transwarp-Latitude-5480:~/Downloads/work/guardian-backend/guardian$ slappasswd
+New password: 
+Re-enter new password: 
+{SSHA}0zQyKzgkwvpSt03maoymG1v1ey3/D7uD
+
+dn: olcDatabase={0}config,cn=config
+changetype: modify
+add: olcRootPW
+olcRootPW: {SSHA}0zQyKzgkwvpSt03maoymG1v1ey3/D7uD 
+EOF
+
+1: dn:dc=dlw,dc=com
+2: objectclass:top
+3: objectclass:dcobject
+4: objectclass:organization
+5: dc:dlw
+6: o:dlw,Inc.
+7:
+8: dn:ou=managers, dc=dlw, dc=com
+9: ou:managers
+10: objectclass:organizationalUnit
+11:
+12: dn:cn=dlw,ou=managers,dc=dlw,dc=com
+13: cn:dlw
+14: sn:wangshibo
+15: objectclass:person
+16:
+17: dn:cn=test,ou=managers,dc=dlw,dc=com
+18: cn:test
+19: sn:Test User
+20: objectclass:person
+
+ldapadd -x -D "ou=People1,${guardian_ds_domain}" -w secret -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/config.ldif
+
+2019-12-31 16:58:09,612 INFO org.apache.directory.api.ldap.model.entry.AbstractValue: ERR_04447_CANNOT_NORMALIZE_VALUE Cannot normalize the wrapped value ERR_04226 I do not know how to handle NameAndOptionalUID normalization with objects of class: nsAIMid
+2019-12-31 16:58:09,731 INFO org.apache.directory.server.core.api.CacheService: fetching the cache named system-entryDn
+
+2019-12-31 17:03:19,242 WARN io.transwarp.guardian.apacheds.synchronization.ApacheDsSyncManager: Delete users under ou=People,dc=tdh encountered exception
+org.apache.directory.api.ldap.model.exception.LdapOperationException: Delete operation on Apacheds is forbidden!
+
+2019-12-31 17:03:19,309 ERROR io.transwarp.guardian.apacheds.synchronization.ApacheDsSyncManager: Failed to add group hbase.
+org.apache.directory.api.ldap.model.exception.LdapOperationException: Add operation on Apacheds is forbidden!
+
+ou=People1,${guardian_ds_domain}
+
+ldapadd -x -D "uid=admin,ou=system" -w Transwarp! -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/config.ldif
+ 
+ldapadd -x -D "cn=userAC,ou=People,dc=tdh}" -w Warp1234 -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/initPartition.ldif
+
+
+/home/transwarp/Downloads/work/guardian-backend/guardian/chrootpw.ldif
+
+ldapdelete -H ldap://localhost:10389 -D "cn=userACI,ou=People,dc=tdh" -w Warp1234 < /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/initPartition.ldif
+
+
+cn=userACI,ou=People,dc=tdh
+
+ldapadd -x -D "cn=test,ou=Config,dc=tdh"  -W -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/initPartition.ldif
+
+ldappasswd -x -D "cn=test,ou=Config,dc=tdh" -W "cn=test,ou=Config,dc=tdh" -S
+
+ldapsearch -x -b "cn=test,ou=Config,dc=tdh"
+
+ldapdelete -D "cn=root,ou=People,dc=tdh" -W -x "cn=userACI,ou=People,dc=tdh"Transwarp!
+
+这句话
+ldapadd -x -D "uid=admin,ou=system" -w Transwarp! -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/initPartition.ldif
+
+1.测试的密码是Transwarp!
+改动前测一下和现在的一不一样
+transwarp@transwarp-Latitude-5480:~/Downloads/work/guardian-backend/guardian$ ldapadd -x -D "uid=admin,ou=system" -w Transwarp! -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/config.ldif
+ldap_bind: Invalid credentials (49)
+transwarp@transwarp-Latitude-5480:~/Downloads/work/guardian-backend/guardian$ ldapadd -x -D "uid=admin,ou=system" -w Transwarp! -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/config.ldif
+ldap_bind: Invalid credentials (49)
+
+2. 238行   operationContext CoreSession getSession();
+bind-abstract-operation
+能不能把adminsession提出来 看是不是内部的操作 然后在add操作时过滤掉
+
+
+1.2
+
+ 1730  ldapsearch -H ldap://localhost:10389 -D "uid=admin,ou=system" -W -b "ou=people,dc=tdh"
+
+ldapsearch --help
+
+Search options:
+  -a deref   one of never (default), always, search, or find
+  -A         retrieve attribute names only (no values)
+  -b basedn  base dn for search
+  -c         continuous operation mode (do not stop on errors)
+  -E [!]<ext>[=<extparam>] search extensions (! indicates criticality)
+             [!]domainScope              (domain scope)
+             !dontUseCopy                (Don't Use Copy)
+             [!]mv=<filter>              (RFC 3876 matched values filter)
+             [!]pr=<size>[/prompt|noprompt] (RFC 2696 paged results/prompt)
+             [!]sss=[-]<attr[:OID]>[/[-]<attr[:OID]>...]
+                                         (RFC 2891 server side sorting)
+             [!]subentries[=true|false]  (RFC 3672 subentries)
+             [!]sync=ro[/<cookie>]       (RFC 4533 LDAP Sync refreshOnly)
+                     rp[/<cookie>][/<slimit>] (refreshAndPersist)
+             [!]vlv=<before>/<after>(/<offset>/<count>|:<value>)
+                                         (ldapv3-vlv-09 virtual list views)
+             [!]deref=derefAttr:attr[,...][;derefAttr:attr[,...][;...]]
+             [!]<oid>[=:<b64value>] (generic control; no response handling)
+  -f file    read operations from `file'
+  -F prefix  URL prefix for files (default: file:///tmp/)
+  -l limit   time limit (in seconds, or "none" or "max") for search
+  -L         print responses in LDIFv1 format
+  -LL        print responses in LDIF format without comments
+  -LLL       print responses in LDIF format without comments
+             and version
+  -M         enable Manage DSA IT control (-MM to make critical)
+  -P version protocol version (default: 3)
+  -s scope   one of base, one, sub or children (search scope)
+  -S attr    sort the results by attribute `attr'
+  -t         write binary values to files in temporary directory
+  -tt        write all values to files in temporary directory
+  -T path    write files to directory specified by path (default: /tmp)
+  -u         include User Friendly entry names in the output
+  -z limit   size limit (in entries, or "none" or "max") for search
+Common options:
+  -d level   set LDAP debugging level to `level'
+  -D binddn  bind DN
+  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)
+             [!]assert=<filter>     (RFC 4528; a RFC 4515 Filter string)
+             [!]authzid=<authzid>   (RFC 4370; "dn:<dn>" or "u:<user>")
+             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]
+                     one of "chainingPreferred", "chainingRequired",
+                     "referralsPreferred", "referralsRequired"
+             [!]manageDSAit         (RFC 3296)
+             [!]noop
+             ppolicy
+             [!]postread[=<attrs>]  (RFC 4527; comma-separated attr list)
+             [!]preread[=<attrs>]   (RFC 4527; comma-separated attr list)
+             [!]relax
+             [!]sessiontracking
+             abandon, cancel, ignore (SIGINT sends abandon/cancel,
+             or ignores response; if critical, doesn't wait for SIGINT.
+             not really controls)
+  -h host    LDAP server
+  -H URI     LDAP Uniform Resource Identifier(s)
+  -I         use SASL Interactive mode
+  -n         show what would be done but don't actually do it
+  -N         do not use reverse DNS to canonicalize SASL host name
+  -O props   SASL security properties
+  -o <opt>[=<optparam>] general options
+             nettimeout=<timeout> (in seconds, or "none" or "max")
+             ldif-wrap=<width> (in columns, or "no" for no wrapping)
+  -p port    port on LDAP server
+  -Q         use SASL Quiet mode
+  -R realm   SASL realm
+  -U authcid SASL authentication identity
+  -v         run in verbose mode (diagnostics to standard output)
+  -V         print version info (-VV only)
+  -w passwd  bind password (for simple authentication)
+  -W         prompt for bind password
+  -x         Simple authentication
+  -X authzid SASL authorization identity ("dn:<dn>" or "u:<user>")
+  -y file    Read password from file
+  -Y mech    SASL mechanism
+  -Z         Start TLS request (-ZZ to require successful response)
+
+ldapsearch -H ldap://localhost:10389 -D "uid=admin,ou=system" -W -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/initPartition.ldif
+
+
+transwarp@transwarp-Latitude-5480:~$ ldapadd -help
+ldap_sasl_interactive_bind_s: Can't contact LDAP server (-1)
+ldap_bind: Invalid credentials (49)
+
+Exception in thread "main" org.apache.directory.api.ldap.model.exception.LdapOperationException: Modify operation on Apacheds is forbidden!
+        at io.transwarp.guardian.apacheds.synchronization.GuardianAuthenticationInterceptor.modify(GuardianAuthenticationInterceptor.java:178)
+        at org.apache.directory.server.core.api.interceptor.BaseInterceptor.next(BaseInterceptor.java:506)
+        at org.apache.directory.server.core.normalization.NormalizationInterceptor.modify(NormalizationInterceptor.java:216)
+
+git rm --cached <FILE>：已 add（tracked） 未 commit 的文件，使其回到未 add 状态（untracked）。
+git rm -f <FILE>： 从本地删除已 add 的文件。
+git checkout -- <FILE> ：有修改的文件回到 tracked 状态，对已 tracked 的文件撤销修改。
+git reset HEAD <FILE>：撤销 commit，回到 modified 状态。
+git reset --soft HEAD^：撤销 commit，回到 tracked 状态。
+git clean：删除所有 untracked 文件。
+好基友：git reset --hard && git clean -f 使本地完全回退到上次 commit
+kubectl cp kadmin.guardian guardian-server-guardian-549ff9455b-qf8kq:/root
+ifconfig查ip->用wifi的那个
+chmod 777 file ->所有用户可读可写可执行  chmod 754 创建者/群组/其他用户
+[root@tw-node1237 ~]# ./kadmin.guardian -H 172.16.202.145 -w Transwarp! -r TDH -q "addprinc -pw 123456 simple/tw-node593"
+refactor
+
+
+transwarp@transwarp-Latitude-5480:~/Downloads$ echo http_proxy
+http_proxy
+transwarp@transwarp-Latitude-5480:~/Downloads$ echo $http_proxy
+http://172.16.0.249:3128/
+
+进入数据库 mysql -uroot -proot
+
+ldapsearch ldapadd
+ldapsearch -H ldap://localhost:10389 -D "uid=admin,ou=system" -W -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/initPartition.ldif
+ldapadd -x -D "uid=admin,ou=system" -w Transwarp! -f /home/transwarp/Downloads/work/guardian-backend/guardian/apacheds-backend/src/main/resources/ldif/config.ldif
+
+切换tag
+git remote update --prune 
+git checkout -b guardian-3.1.2-final trunk/guardian-3.1.2-final
+
+
+
+邮件
+hive.version 8.0.1 tag:transwarp-6.2.1-final
+guardian.version: guardian-3.1.2  tag:guardian-3.1.2-final
+tdh.version: transwarp-6.2.1
+
+替换jar包 
+inceptor镜像里/usr/lib/inceptor/lib 
+guardian-client-guardian-xxx.jar -> guardian-client-guardian-3.1.2.jar
+guardian-common-guardian-xxx.jar -> guardian-common-guardian-3.1.2.jar
+inceptor-exec-xxx.jar -> inceptor-exec-8.0.1.jar
+inceptor-plugin-transwarp-xxx.jar -> inceptor-plugin-transwarp-6.2.1.jar
+
+仍然
+inceptor镜像
+find / -name 'guardian-client*' 查找文件
+cd
+find . -name "*.jar"| awk '{print "jar -tf "$1}'| sh -x | grep -i "/GuardianClient.class"
+
+删掉
+/usr/lib/hbase/lib/guardian-client-guardian-3.1.0.jar
+/usr/lib/hadoop-yarn/lib/guardian-client-guardian-3.1.0.jar
+/usr/lib/hadoop-mapreduce/guardian-client-guardian-3.1.0.jar
+/usr/lib/hadoop/lib/guardian-client-guardian-3.1.0.jar
+/usr/lib/hadoop-hdfs/lib/guardian-client-guardian-3.1.0.jar
+替换
++ jar -tf ./inceptor/lib/hbase-shaded-server-1.3.1-transwarp-6.2.0.jar
+
+
+        <tdh.version>transwarp-6.1.0</tdh.version>
+        <hadoop.version>2.7.2-${tdh.version}</hadoop.version>
+        <hive.version>8.0.1</hive.version>
+
+guardian server镜像中
+/usr/lib/guardian/lib
+fortress-core-1.0.0-guardian-3.1.3.jar -> fortress-core-1.0.0-guardian-3.1.3.jar
+guardian-client-guardian-3.1.3.jar -> guardian-client-guardian-3.1.3.jar
+guardian-common-guardian-3.1.3.jar -> guardian-common-guardian-3.1.3.jar
+guardian-core-guardian-3.1.3.jar -> guardian-core-guardian-3.1.3.jar
+/usr/lib/guardian
+guardian-server-boot-guardian-3.1.3.jar -> guardian-server-boot-guardian-3.1.3.jar
+
+拉取前端页面
+rm artifact.zip -rf
+rm public -rf
+rm guardian-server-boot/src/main/resources/static -rf
+
+curl -L -H "PRIVATE-TOKEN: swch1r1jLV-fsMe7ZMJn" "http://172.16.1.41:10080/api/v4/projects/402/jobs/artifacts/guardian-3.1/download?job=postcommit" -o artifact.zip
+    unzip artifact.zip
+    mkdir -p guardian-server-boot/src/main/resources/static
+    cp -r public/* guardian-server-boot/src/main/resources/static/
+
+
+
+
+
+fortress-core是fortress项目的
+guardian-client guardian-common, guardian-core guardian-server-boot是guardianserver项目的
+inceptor-exec 是hive项目的
+inceptor-plugin-transwarp 是plugin项目的
+
+1.3
+
+[root@tw-node1236 ~]# kubectl get po -owide | grep inceptor
+the server doesn't have a resource type "po" -》磁盘满了
+
+df -sh
+du -sh *
+查找最大文件
+ docker system prune清除镜像缓存
+lsof？
+
+du
+
+显示每个文件和目录的磁盘使用空间
+
+命令参数
+
+-c或--total  除了显示个别目录或文件的大小外，同时也显示所有目录或文件的总和。
+
+-s或--summarize  仅显示总计，只列出最后加总的值。
+
+-h或--human-readable  以K，M，G为单位，提高信息的可读性。
+
+ 
+df
+
+显示指定磁盘文件的可用空间
+
+-a 全部文件系统列表
+
+-h 方便阅读方式显示
+
+-i 显示inode信息
+
+-T 文件系统类型
+
+find . -name 'hbase-*'
+当前目录下查找
+
+shaded直接删掉也不会有影响？
+
+172.26.2.6 root/123456
+node206上面没有guardian，所以没有镜像，去node530上面
+cat /etc/hosts
+
+docker commit be6 node206:5000/transwarp/guardian:guardian-3.1.2-final
+docker commit e24 node206:5000/transwarp/inceptor:transwarp-6.2.1-final
+
+addfront是脚本
+./addfront
+git rm --cached delfront 
+set changelist active
+
+脚本运行和代码运行区别
+
+federartion初始化没好
+
+beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/suse01@TDH"
+
+
+id int primary key auto_increment,  
+	name varchar(50) unique,          
+	gender char(1),	                      
+	birthday date,		              
+	score double	
+
+tar：tar是*nix下的打包工具，生成的包通常也用tar作为扩展名，其实tar只是负责打包，不一定有压缩，事实上可以压缩，也可以不压缩，通常你看到xxxx.tar.gz，就表示这个tar包是压缩的，并且使用的压缩算法是GNU ZIP，而xxxx.tar.bz2就表示这个包使用了bzip2算法进行压缩，当然这样的命名只是一种惯例，并非强制。简单地说，tar就仅是打包。
+
+jar：即Java Archive，Java的包，Java编译好之后生成class文件，但如果直接发布这些class文件的话会很不方便，所以就把许多的class文件打包成一个jar，jar中除了class文件还可以包括一些资源和配置文件，通常一个jar包就是一个java程序或者一个java库。
+
+
+ war：Web application Archive，与jar基本相同，但它通常表示这是一个Java的Web应用程序的包，tomcat这种Servlet容器会认出war包并自动部署	               
+
+

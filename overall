@@ -1823,7 +1823,10 @@ search重构datasource资源
 sionVo":{"component":"search1","dataSource":["CLUSTER"],"action":"CREATE_INDEX","heritable":false,"grantable":false,"administrative":false}}]
 
 
-"permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"WRITE","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"EXECUTE","heritable":false,"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"READ","heritable":false,"grantable":false,"
+"permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"ADMIN","heritable":false,"grantable":false,
+"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"WRITE","heritable":false,"grantable":false,
+"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"EXECUTE","heritable":false,
+"grantable":false,"administrative":false}},{"name":"slipstream","principalType":"USER","permissionVo":{"component":"hdfs1","dataSource":["PATH","/","slipstreamstudio1","algorithm_jar"],"action":"READ","heritable":false,"grantable":false,"
 
 resourceManager是做什么的 怎么获取datasource的信息并组装 resourceentry search相关
 
