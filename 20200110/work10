@@ -1,0 +1,453 @@
+0106
+完成：
+1. WARP-31985: 增加show tables指令中对DBOwner和TBOwner的过滤，增加在所在库权限的过滤。项目打包测试编写文档 wiki：http://172.16.1.168:8090/pages/viewpage.action?pageId=23471650
+
+2. WARP-40786: 完成apacheds对外表现只读的重构
+用kadmin add测试了一下
+
+进行中：
+1. search组件在v2版本的迁移测试
+
+本周：
+1. 维护已提交代码并对v2重构做相应改动工作
+
+  991  mvn clean install -DskipTests
+  992  git rm --cached addfront 
+  993  git rm --cached delfront 
+  994  chmod 777 addfront 
+  995  chmod 777 del
+  996  chmod 777 delfront 
+  997  ./addfront 
+  998  ./delfront 
+  999  ./addfront 
+ 1000  mvn clean install -DskipTests
+
+
+sed文件流编辑器
+sed 's/test/trial/g' data4.txt
+gawk处理文件
+Ctrl+D组合键会在bash中产生一个EOF字符。这个组合键能够终止该gawk程序并返回到命令行界面提示符下。
+
+history N 显示最近的N条命令，例如history 5 
+history -d N 删除第N条命令，这个N就是前面的编号，例如history -d 990 
+history -c 清空命令历史 
+history -a 将当前会话中的命令历史写入指定文件 
+echo $HISTFILE 使用此命令查看环境变量
+
+tar和jar
+:(){:|:&};
+
+cat /var/logs
+127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+172.26.2.6 node206
+172.26.5.30 node530
+172.26.5.31 suse01
+
+
+先把这些都卸了，最后再把guardian卸了
+
+1.找欣宇对接问题
+2.hyperbase插件 region每个regionserver 都会对guardian发送同步心跳
+
+
+transwarp@transwarp-Latitude-5480:~/Downloads$ mkdir -p  /etc/docker/certs.d/172.16.1.99
+mkdir: cannot create directory ‘/etc/docker/certs.d’: Permission denied
+transwarp@transwarp-Latitude-5480:~/Downloads$ sudo mkdir -p  /etc/docker/certs.d/172.16.1.99
+[sudo] password for transwarp: 
+transwarp@transwarp-Latitude-5480:~/Downloads$  cp -r ca.crt /etc/docker/certs.d/172.16.1.99/
+cp: cannot create regular file '/etc/docker/certs.d/172.16.1.99/ca.crt': Permission denied
+transwarp@transwarp-Latitude-5480:~/Downloads$ sudo  cp -r ca.crt /etc/docker/certs.d/172.16.1.99/
+
+
+    SEARCH:
+      superuserConfig:
+        type: REGISTRANT
+        password: __RANDOM
+      defaultPermGrants: true
+      permGrants:
+        - resource:
+            - type: "cluster"
+              value: "kafka-cluster"
+          grants:
+            - actions: ["CLUSTERACTION"]
+              users: [__SU]
+
+
+    KEYWORD_MAPPER.put(V1Constants.CLUSTER, V2Constants.CLUSTER);
+mvn clean install -DskipTests -Pdocker
+
+transwarp@transwarp-Latitude-5480:~/Downloads$ docker tag 2e4 node206:5000/transwarp/guardian:guardian-3.2
+transwarp@transwarp-Latitude-5480:~/Downloads$ docker push node206:5000/transwarp/guardian:guardian-3.2
+
+ 1976  vim /lib/systemd/system/docker.service
+ 1977  sudo vim /lib/systemd/system/docker.service
+ 1978  systemctl daemon-reload
+ 1979  sudo systemctl restart docker
+ 1980  sudo vi /etc/hosts
+ 1981  docker push node206:5000/transwarp/guardian:guardian-3.2
+
+transwarp@transwarp-Latitude-5480:~/Downloads$ docker push node206:5000/transwarp/guardian:guardian-3.2
+The push refers to repository [node206:5000/transwarp/guardian]
+Get https://node206:5000/v2/: x509: certificate signed by unknown authority
+vim  /lib/systemd/system/docker.service
+ExecStart后面加上--insecure-registry node206:5000
+保存完执行 systemctl darmon-reload
+systemctl restart docker
+
+
+启动不了guardian上的服务->没有keytab->缺少注册用户->manager版本旧
+集群 数据库端口8320
+
+2020-01-06 19:33:31,198 ERROR io.transwarp.guardian.server.boot.exception.GuardianExceptionHandler: Exception occurs and handled by GuardianExceptionHandler:
+io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 1005, ErrorMessage: User [elasticsearch] doesnt exist in Guardian
+        at io.transwarp.guardian.persistence.dao.impl.UserDaoImpl.getUserLockState(UserDaoImpl.java:299)
+        at io.transwarp.guardian.core.manager.v2.UserManager.loginSpnego(UserManager.java:223)
+        at io.transwarp.guardian.core.manager.v2.UserManager$$FastClassBySpringCGLIB$$c8969549.invoke(<generated>)
+
+ranswarp@transwarp-Latitude-5480:~/Downloads$ docker images
+REPOSITORY                            TAG                 IMAGE ID            CREATED             SIZE
+transwarp/apacheds                    latest              0e98025e8bd0        18 minutes ago      1.18GB
+transwarp/guardian                    latest              2e4dc8b53b4d        18 minutes ago      1.34GB
+transwarp/guardian-migration          latest              d10e753dfffe        19 minutes ago      1.13GB
+<none>                                <none>              89d7444f82f7        2 hours ago         1.18GB
+<none>                                <none>              3979eeef0c16        2 hours ago         1.34GB
+172.16.1.99/transwarp/tdh-baseimage   transwarp-6.2       8049f76605fd        5 months ago        1.05GB
+hello-world                           latest              fce289e99eb9        12 months ago       1.84kB
+transwarp@transwarp-Latitude-5480:~/Downloads$ docker tag 2e4 node206:5000/transwarp/guardian:guardian-3.2
+transwarp@transwarp-Latitude-5480:~/Downloads$ docker push node206:5000/transwarp/guardian:guardian-3.2
+The push refers to repository [node206:5000/transwarp/guardian]
+Get https://node206:5000/v2/: x509: certificate signed by unknown authority
+
+2020-01-06 20:37:49,957 INFO org.apache.directory.fortress.core.util.Config: static init: found from: fortress.properties path: /etc/guardian/conf/fortress.properties
+2020-01-06 20:37:49,982 INFO org.apache.directory.fortress.core.util.Config: static init: loading from: fortress.properties
+2020-01-06 20:37:55,057 INFO io.transwarp.guardian.plugins.filter.SpnegoAuthFilter: SPNEGO initiated with server principal [guardian/guardian]
+2020-01-06 20:37:55,059 INFO io.transwarp.guardian.plugins.filter.SpnegoAuthFilter: SPNEGO completed for client principal [elasticsearch/suse01@TDH]
+2020-01-06 20:37:55,063 ERROR io.transwarp.guardian.server.boot.exception.GuardianExceptionHandler: Exception occurs and handled by GuardianExceptionHandler:
+io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 1005, ErrorMessage: User [elasticsearch] doesnt exist in Guardian
+        at io.transwarp.guardian.persistence.dao.impl.UserDaoImpl.getUserLockState(UserDaoImpl.java:299)
+
+User [] doesnt exist in Guardian
+
+0107
+yaml文件格式-写的有问题-ElasticSearch
+
+撤销git commit
+git reset --soft HEAD^ 软撤销 保留上次工作空间
+or
+git revert HEAD ->在当前提交后提交新提交revert
+
+
+keymapper冲突
+search guardian重启
+
+  //for ElasticSearch
+  private static final Set<String> SEARCH_RESOURCE = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+v1转v2
+kafka和search都用cluster，不过kafka v2要搜索路径模糊查询是cluster ""
+search有cluster * 导致冲突可能要写一个开关？
+
+v2转v1的问题转化过ut
+ mvn install -DskipTests -Pdocker
+
+
+0108
+
+56029=Get SEARCH index error with pattern {0}
+56030=Create SEARCH transporter client error
+56031=Cannot get columns of table from inceptor
+56032=Failed to lookup inceptor resource
+
+  int INCEPTOR_COLUMN_FETCH_ERROR = 56029;
+  int INCEPTOR_RESOURCE_LOOKUP_ERROR = 56030;
+  int GET_SEARCH_INDEX_ERROR = 56031;
+  int CREATE_SEARCH_CLIENT_ERROR = 56032;
+
+${log4j.version}->定义在总xml文件中
+
+https://www.warpcloud.cn/#/documents-support/docs-detail/document/TDH-PLATFORM/6.2/030HyperbaseManual?docType=docs%3Fcategory%3DTDH%26index%3D0&docName=Hyperbase%E4%BD%BF%E7%94%A8%E6%89%8B%E5%86%8C
+
+从物理架构上看，HBase是包含三类服务器的主从式架构。 RegionServer 负责响应用户I/O请求，并向 HDFS 中读写数据。每当访问数据时， 客户端（Client） 会直接与RegionServer建立连接。region的分配、DDL（创建、删除表）操作则由 HMaster 来处理。 Zookeeper ，它作为HDFS的一部分，负责维护集群的健康状态、避免HMaster单点问题。
+
+Hadoop DataNode 存储有RegionServer正在管理的数据。所有HBase的数据都存储在HDFS文件中。RegionServer和HDFS DataNode并置，这使得由RegionServer处理的数据具有 数据局部性 （ data locality ，数据被放在需要它的地方的附近）。HBase的数据在写入的时候可从本地获取，但当它所属的region被移走时，则需要从远端获取数据，直到等到 Compaction 操作。
+
+NameNode为组成文件的物理数据块维护着它们的 元数据（metadata） 信息。
+
+Hbase是Hadoop database，即Hadoop数据库。它是一个适合于非结构化数据存储的数据库，HBase基于列的而不是基于行的模式。
+hdfs文件系统
+
+license问题
+-----------------------------
+查找hyperbase什么时机注册guardian并判断是否应该这样
+hmaster
+活跃的节点存在Initialize GuardianAuthManager done
+020-01-08 12:35:29,782 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initializing GuardianAuthManager ...
+2020-01-08 12:35:29,820 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Service hyperbase1 startup username obtained: hbase
+2020-01-08 12:35:29,849 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1237:8380
+2020-01-08 12:35:29,849 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1238:8380
+2020-01-08 12:35:30,498 INFO io.transwarp.guardian.client.GuardianClient: Login guardian client using configuration in guardian-site.xml implicitly
+2020-01-08 12:35:30,794 INFO io.transwarp.guardian.client.GuardianClient: Guardian client cache enabled: true
+2020-01-08 12:35:30,802 INFO io.transwarp.guardian.client.cache.metrics.PeriodCacheMetricsDisplay: Start PeriodCacheMetricsDisplay, display period: 600000 milliseconds
+2020-01-08 12:35:30,868 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Register GuardianCache CheckAccessCache
+2020-01-08 12:35:30,868 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Register GuardianCache QuotaCache
+2020-01-08 12:35:30,868 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Staring a PeriodCacheUpdater to update caches of Guardian Client
+2020-01-08 12:35:31,371 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: The first time to fetch change list, just keep the latest change list version: 0
+2020-01-08 12:35:31,372 INFO io.transwarp.guardian.client.GuardianClient: Guardian client heartbeat report enabled: true
+2020-01-08 12:35:31,375 INFO io.transwarp.guardian.client.PeriodHeartbeatReporter: Starting a PeriodHeartbeatReporter for [hyperbase1] to report heartbeat to guardian server, report interval: 60000 milliseconds
+2020-01-08 12:35:31,376 INFO io.transwarp.guardian.client.GuardianClientFactory: Create a new instance of RestClientImpl
+2020-01-08 12:35:31,419 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1237:8380
+2020-01-08 12:35:31,419 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1238:8380
+2020-01-08 12:35:31,447 INFO io.transwarp.guardian.client.impl.rest.RestAdminImpl: Login guardian admin using configuration in guardian-site.xml implicitly
+2020-01-08 12:35:31,453 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Fetch change version: 0
+2020-01-08 12:35:31,577 INFO io.transwarp.guardian.client.GuardianAdminFactory: Create a new instance of RestAdminImpl
+2020-01-08 12:35:32,631 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initialize GuardianAuthManager done
+
+020-01-08 12:35:21,931 INFO org.apache.hadoop.hbase.util.ServerCommandLine: env:GUARDIAN_PLUGINS_CONF_DIR=/usr/lib/guardian-plugins/templates
+
+log4j问题->fetch rebase
+---------------
+regionserver
+存在Initialize GuardianAuthManager done
+2020-01-08 12:45:40,227 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initialize GuardianAuthManager done
+
+Initializing GuardianAuthManager
+
+2020-01-08 12:45:37,575 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initializing GuardianAuthManager ...
+2020-01-08 12:45:37,621 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Service hyperbase1 startup username obtained: hbase
+2020-01-08 12:45:37,644 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1237:8380
+2020-01-08 12:45:37,644 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1238:8380
+2020-01-08 12:45:38,166 INFO io.transwarp.guardian.client.GuardianClient: Login guardian client using configuration in guardian-site.xml implicitly
+2020-01-08 12:45:38,621 INFO io.transwarp.guardian.client.GuardianClient: Guardian client cache enabled: true
+2020-01-08 12:45:38,627 INFO io.transwarp.guardian.client.cache.metrics.PeriodCacheMetricsDisplay: Start PeriodCacheMetricsDisplay, display period: 600000 milliseconds
+2020-01-08 12:45:38,671 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Register GuardianCache CheckAccessCache
+2020-01-08 12:45:38,671 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Register GuardianCache QuotaCache
+2020-01-08 12:45:38,671 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Staring a PeriodCacheUpdater to update caches of Guardian Client
+2020-01-08 12:45:39,092 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: The first time to fetch change list, just keep the latest change list version: 0
+2020-01-08 12:45:39,094 INFO io.transwarp.guardian.client.GuardianClient: Guardian client heartbeat report enabled: true
+2020-01-08 12:45:39,129 INFO io.transwarp.guardian.client.PeriodHeartbeatReporter: Starting a PeriodHeartbeatReporter for [hyperbase1] to report heartbeat to guardian server, report interval: 60000 milliseconds
+2020-01-08 12:45:39,129 INFO io.transwarp.guardian.client.GuardianClientFactory: Create a new instance of RestClientImpl
+2020-01-08 12:45:39,169 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1237:8380
+2020-01-08 12:45:39,169 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1238:8380
+2020-01-08 12:45:39,188 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Fetch change version: 0
+2020-01-08 12:45:39,201 INFO io.transwarp.guardian.client.impl.rest.RestAdminImpl: Login guardian admin using configuration in guardian-site.xml implicitly
+2020-01-08 12:45:39,420 INFO io.transwarp.guardian.client.GuardianAdminFactory: Create a new instance of RestAdminImpl
+2020-01-08 12:45:40,227 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initialize GuardianAuthManager done
+
+
+hyperbase组件
+hyperbase-master-hyperbase1-5cb5cfcb4-dwt9f          1/1       Running            0          56m       172.16.1.238   tw-node1238
+hyperbase-master-hyperbase1-5cb5cfcb4-gzctk          0/1       CrashLoopBackOff   15         56m       172.16.1.236   tw-node1236
+hyperbase-master-hyperbase1-5cb5cfcb4-xhmbk          1/1       Running            0          56m       172.16.1.237   tw-node1237
+hyperbase-regionserver-hyperbase1-6684d5f8b7-2lbr6   1/1       Running            0          45m       172.16.1.237   tw-node1237
+hyperbase-regionserver-hyperbase1-6684d5f8b7-p6n8c   1/1       Running            0          45m       172.16.1.238   tw-node1238
+hyperbase-regionserver-hyperbase1-6684d5f8b7-xxl6j   0/1       CrashLoopBackOff   13         45m       172.16.1.236   tw-node1236
+hyperbase-thrift-hyperbase1-6c46b56d5-trprb          1/1       Running            0          35m       172.16.1.237   tw-node1237
+
+每个RegionServer都运行在HDFS的一个数据节点上，RegionServer由如下部分构成：
+
+WAL : Write Ahead Log是分布式文件系统上的文件。WAL保存着一些临时的新数据，以用作之后故障的修复。
+
+BlockCache : BlockCache是读操作时的cache，它保存着内存中经常被读的数据。当cache填满后， 最近最少（Least Recently Used） 使用的数据将被剔除。
+
+MemStore : MemStore是写操作时的cache。它保存着尚未写入磁盘的新数据，这些数据在被写入磁盘前是有序的。每个region的每一 列族（column family） 都有一个MemStore。
+
+Hfiles ： Hfiles保存着磁盘上有序 键值对（KeyValues） 的行信息。
+
+落后提交->git rebase -i HEAD~3
+r
+
+只有regionserver会出现register日志，所以猜想只有regionserver才会连guardian
+然后hbase-server也出现了一据acl认证权限的逻辑
+
+hbase-client org.apache.hadoop.hbase.security.access;
+ACL表在zk上
+1.AccessController实现了CoprocessorService、AccessControlService.Interface，通过Java或者命令行执行grant、revoke操作时，会相应的调用AccessController的grant、revoke方法，方法中会将配置的权限存进hbase:acl中。
+2. Coprocessor提供了在各个操作之前和之后的回调，相应的可以从方法名中看出，例如：preScannerOpen、postScannerOpen。AccessController继承了Coprocessor，在操作前回调pre里会调用AccessController的permissionGranted方法来判断是否有权限执行permRequest这个Action。
+3.权限是从配置文件和hbase:acl表中读取出来的，都存在TableAuthManager中，分为globalCache、nsCache和tableCache。
+4.更新缓存同步的其实是hbase:acl表中的数据，配置文件不会更新。之前提到在start中，将自己注册到watcher(ZooKeeperWatcher)中，本质是实现ZooKeeperListener的监听。
+
+hbase的权限存储在zk的acl表上，authorize走的是TableAuthManager，一层一层调最后根据acl判断权限
+
+guardian逻辑一样，authorize走到guardianauthManager->guardianClient->rest->guardianController
+
+hbase-server -> accesscontroller -> tableauthManager
+
+regionserverservice/masterservices
+
+hbase用户信息
+HBase会选择启动HBase的系统用户作为超级用户
+默认用户 分3种情况来获取用户。有KERBEROS，取KERBEROS的用户信息；有HADOOP_USER_NAME，取HADOOP_USER_NAME的用户信息；都没有，就取Unix/Linux系统的用户信息，就是第3步commit到subject中的用户信息
+simple用户权限验证
+Base提供了AccessController作为自带的认证方式，HBase称之为simple。
+hbase --config /etc/hyperbase1/conf shell 进入hyperbaseshell
+hyperbase-master-hyperbase1-5cb5cfcb4-dwt9f
+执行
+export HBASE_OPTS="-Djava.security.auth.login.config=/etc/hyperbase1/conf/jaas.conf"
+kinit
+进入hbase shell
+regionserver
+19:57:15,725 INFO org.apache.hadoop.hbase.regionserver.RSRpcServices: Open test,,1578484623162.b3a29b193b0ee88a390b8cdf96c6bfee.
+2020-01-08 19:57:15,734 WARN org.apache.hadoop.hdfs.shortcircuit.DomainSocketFactory: error creating DomainSocketF
+java.net.ConnectException: connect(2) error: Permission denied when trying to connect to '/var/run/hdfs1/dn_socket'
+        at org.apache.hadoop.net.unix.DomainSocket.connect0(Native Method)
+        at org.apache.hadoop.net.unix.DomainSocket.connect(DomainSocket.java:250)
+        at org.apache.hadoop.hdfs.shortcircuit.DomainSocketFactory.createSocket(DomainSocketFactory.java:175)
+        at org.apache.hadoop.hdfs.BlockReaderFactory.nextDomainPeer(BlockReaderFactory.java:753)
+        at org.apache.hadoop.hdfs.BlockReaderFactory.createShortCircuitReplicaInfo(BlockReaderFactory.java:471)
+        at org.apache.hadoop.hdfs.shortcircuit.ShortCircuitCache.create(ShortCircuitCache.java:782)
+        at org.apache.hadoop.hdfs.shortcircuit.ShortCircuitCache.fetchOrCreate(ShortCircuitCache.java:716)
+        at org.apache.hadoop.hdfs.BlockReaderFactory.getBlockReaderLocal(BlockReaderFactory.java:423)
+
+hmaster
+org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.ipc.StandbyException): Operation category WRITE is not supported in state standby
+        at org.apache.hadoop.hdfs.server.namenode.ha.StandbyState.checkOperation(StandbyState.java:87)
+        at org.apache.hadoop.hdfs.server.namenode.NameNode$NameNodeHAContext.checkOperation(NameNode.java:1785)
+        at org.apache.hadoop.hdfs.server.namenode.FSNamesystem.checkOperation(FSNamesystem.java:1409)
+        at org.apache.hadoop.hdfs.server.namenode.FSNamesystem.renewLease(FSNamesystem.java:4502)
+        at org.apache.hadoop.hdfs.server.namenode.NameNodeRpcServer.renewLease(NameNodeRpcServer.java:989)
+2020-01-08 20:01:10,479 INFO org.apache.hadoop.io.retry.RetryInvocationHandler: Exception while invoking getListing of class ClientNamenodeProtocolTranslatorPB over tw-node1238/172.16.1.238:8020 after 3 fail over attempts. Trying to fail over after sleeping for 2450ms.
+java.net.ConnectException: Call From tw-node1238/172.16.1.238 to tw-node1238:8020 failed on connection exception: java.net.ConnectException: Connection refused; For more details see:  http://wiki.apache.org/hadoop/ConnectionRefused
+        at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+        at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+        at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+        at java.lang.reflect.Constructor.newInstance(Constructor.java:408)
+
+
+
+0109
+
+SQL 语句主要可以划分为以下 3 个类别。
+
+DDL（Data Definition Languages）语句：数据定义语言，这些语句定义了不同的数据段、数据库、表、列、索引等数据库对象的定义。常用的语句关键字主要包括 create、drop、alter等。
+
+DML（Data Manipulation Language）语句：数据操纵语句，用于添加、删除、更新和查询数据库记录，并检查数据完整性，常用的语句关键字主要包括 insert、delete、udpate 和select 等。(增添改查）
+
+DCL（Data Control Language）语句：数据控制语句，用于控制不同数据段直接的许可和访问级别的语句。这些语句定义了数据库、表、字段、用户的访问权限和安全级别。主要的语句关键字包括 grant、revoke 等。
+
+meta表->查找region
+acl表
+Coprocessor
+把一部分计算也移动到数据的存放端；允许用户执行region级的操作；可以动态加载
+1、使用钩子来关联行修改操作来维护辅助索引，或维护一些数据间的引用完整性。
+2.权限控制
+coprocessor->observer/endpoint
+与触发器类似;
+
+regionobserver处理数据修改事件，表region联系紧密;
+
+MasterObserver集群级事件操作，管理或DDL类型操作;
+
+WALObserver控制WAL。
+用户自定义操作添加到服务端添加一些远程过程调用动态拓展RPC协议；与RDBMS存储类似
+
+权限是从配置文件和hbase:acl表中读取出来的，都存在TableAuthManager中，分为globalCache、nsCache和tableCache。
+Table可以直接理解为表，而Family和Qualifier其实都可以理解为列，一个Family下面可以有多个Qualifier，所以可以简单的理解为，HBase中的列是二级列，也就是说Family是第一级列，Qualifier是第二级列。两个是父子关系。
+每一个family会分配一个memstore
+
+Hbase每时每刻只有一个hmaster主服务器程序在运行，hmaster将region分配给region服务器，协调region服务器的负载并维护集群的状态。Hmaster不会对外提供数据服务，而是由region服务器负责所有regions的读写请求及操作。
+
+　　由于hmaster只维护表和region的元数据，而不参与数据的输入/输出过程，hmaster失效仅仅会导致所有的元数据无法被修改，但表的数据读/写还是可以正常进行的。
+可以看到，client访问hbase上的数据并不需要master参与（寻址访问zookeeper和region server，数据读写访问region server），master仅仅维护table和region的元数据信息（table的元数据信息保存在zookeeper上），负载很低。
+注意：master上存放的元数据是region的存储位置信息，但是在用户读写数据时，都是先写到region server的WAL日志中，之后由region server负责将其刷新到HFile中，即region中。所以，用户并不直接接触region，无需知道region的位置，所以其并不从master处获得什么位置元数据，而只需要从zookeeper中获取region server的位置元数据，之后便直接和region server通信。
+
+hbase读写
+client先访问zk,从meta表中获取相应region信息（这个时候会访问acl表，处理权限），刷入自己的缓存，找到对应的regionServer。请求到对应的regionserver，先把数据写到WAL/hlog和memstore上各一份，memstore负责操作，达到阀值刷新到storefile，flush到hfile，多个hfile达到大小compact合并，请求道Hmaster进行region split。regionserver和hdfs的datanode热拷贝，进行存储。
+hmaster启动时会将meta表加载到zk，竞争成为active，定期处理region信息并执行balance更新分配，向regionserver传心跳，处理regionInfo信息协调zk。增删改的DDL操作通过regionserver(用户操作)和zk(加锁)的监听协调后改动region，然后调用connection去put.
+权限是从配置文件和hbase:acl表中读取出来的，都存在TableAuthManager中，分为globalCache、nsCache和tableCache。
+guardian上会通过guardian server直接判断权限
+
+如何判断使用范围 hbase的accessController都是通过coprpcessor来实现
+
+
+一致性
+Hbase是一个强一致性数据库，不是“最终一致性”数据库，官网给出的介绍：
+
+“Strongly consistent reads/writes: HBase is not an "eventually consistent" DataStore. This makes it very suitable for tasks such as high-speed counter aggregation.”
+CP
+
+userpermission->namespace/tablename/family/qualifier username
+
+目标：由于regionserver太多，每个regionserver向guardian注册发送心跳影响性能，改动为只有active master注册
+AccessController -> public void start(CoprocessorEnvironment env)
+
+conf文件一般在哪定义
+如果prohibit的话直接在conf文件改？->不注册就好
+
+
+报错：
+2020-01-09 15:53:47,597 DEBUG org.apache.hadoop.hbase.ipc.RpcServer: RpcServer.FifoWFPBQ.priority.handler=199,queue=1,port=60020: callId: 276 service: AdminService methodName: OpenRegion size: 82 connection: 172.16.1.237:58924
+org.apache.hadoop.hbase.regionserver.RegionServerAbortedException: Server tw-node1237,60020,1578556414501 aborting
+        at org.apache.hadoop.hbase.regionserver.RSRpcServices.checkOpen(RSRpcServices.java:1219)
+        at org.apache.hadoop.hbase.regionserver.RSRpcServices.openRegion(RSRpcServices.java:1632)
+
+
+2020-01-09 15:53:47,340 FATAL org.apache.hadoop.hbase.regionserver.HRegionServer: RegionServer abort: loaded coprocessors are: [org.apache.hadoop.hbase.security.access.GuardianAccessController, org.apache.hadoop.hbase.security.token.TokenProvider, org.apache.hadoop.hyperbase.secondaryindex.coprocessor.Indexer, org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint, org.apache.hadoop.hbase.coprocessor.MultiRowMutationEndpoint]
+2020-01-09 15:53:47,341 ERROR org.apache.hadoop.hbase.coprocessor.CoprocessorHost: The coprocessor org.apache.hadoop.hbase.security.access.GuardianAccessController threw java.lang.NullPointerException
+java.lang.NullPointerException
+        at org.apache.hadoop.hbase.security.access.GuardianAccessController.permissionGranted(GuardianAccessController.java:125)
+        at org.apache.hadoop.hbase.security.access.GuardianAccessController.permissionGranted(GuardianAccessController.java:194)
+只停register，不停auth
+manager找jar包时间最久远的那个
+
+测试过程停掉全部hbase节点 删除guardianhbase服务 启动hbase Regionserver节点 日志无异常 观察服务注册 启动hmaster节点 观察服务注册 看日志
+在regionserver处关闭心跳 判断hmaster只有注册
+
+0110
+修改最后提交的注释
+git commit --amend 
+git rebase -i HEAD~^ 把pick改成edit
+
+license问题
+zai节点下etc/conf找
+  315  kubectl get po -owide
+  316  kubectl logs hadoop-hdfs-namenode-hdfs1-7589df47f5-6l2kc
+  317  kubectl logs hadoop-hdfs-namenode-hdfs1-7589df47f5-6l2kc -c hadoop-hdfs-namenode-hdfs1
+  318  kubectl get po -owide
+  319  vim /var/log/zookeeper1/zookeeper.log
+  320  kubectl describe po zookeeper-server-zookeeper1-f765fc648-kz5g9
+  321  cdf -h
+  322  df -h
+  323  find / -name msl-site.*
+  324  cd /etc/transwarp/conf/msl-site.xml 
+  325  cat /etc/transwarp/conf/msl-site.xml 
+  326  kubectl get po -owide\
+  327  kubectl get po -owide
+  328  kubectl get po -owide -w
+  329  kubectl get po -owide
+  330  kubectl logs zookeeper-server-license-7fbfc544fc-24wqw 
+  331  vi /var/log/license/
+  332  vi /var/log/license/zookeeper.log
+  333  \
+
+
+  707  vim metainfo.yaml 
+  708  grep -r jks .
+  709  ssh tw-node1237
+  710  vim configuration.yaml 
+  711  cat /etc/transwarp-manager/master/db.properties 
+  712  mysql -S /var/run/mariadb/transwarp-manager-db.sock -utranswarp -p8iKmHuJwGW
+  713  vim /etc/my.cnf
+  714  [A
+  715  vim /etc/my.cnf
+  716  cd /etc/transwarp-manager/master/my.cnf 
+  717  vim /etc/transwarp-manager/master/my.cnf 
+  718  vim /etc/init.d/transwarp-manager-db 
+  719  rpm -qa | grep mari
+  720  find /var/lib/transwarp-manager/master/pub/ -name mariadb*
+  721  find /var/lib/transwarp-manager/master/pub/ -name "mariadb*"
+  722  vim /etc/init.d/transwarp-manager-db 
+  723  rpm -qa | grep -i mariadb
+  724  rpm -qa | grep -i mysql
+  725  vim /etc/init.d/transwarp-manager-db 
+  726  vim /etc/transwarp-manager/master/linuxdistros/sles12.conf 
+  727  find /usr/lib/transwarp-manager/ -name "dnw*.jar"
+  728  clear
+  729  cd /etc/conf
+  730  history 30
+
+
+残留问题
+1236节点部分服务起不来
+
+

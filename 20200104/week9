@@ -526,7 +526,7 @@ df
 find . -name 'hbase-*'
 当前目录下查找
 
-shaded直接删掉也不会有影响？
+shaded直接删掉也不会有影响？->还是没删
 
 172.26.2.6 root/123456
 node206上面没有guardian，所以没有镜像，去node530上面
