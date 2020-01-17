@@ -1,0 +1,414 @@
+kk
+0113
+
+172.16.0.249:3128
+网络代理
+vi /etc/profile
+export http_proxy=http://172.16.0.249:3128
+export https_proxy=http://172.16.0.249:3128
+
+0113
+2020/01/06 ~ 2020/01/10
+
+本周工作内容：
+完成:
+1.WARP-41187:Hyperbase对guardian服务注册的优化
+wiki: http://172.16.1.168:8090/pages/viewpage.action?pageId=23473424
+2.WARP-37961: 重构后为过滤权限接口增加action参数
+3.WARP-34954: Search资源在V2中的迁移，测试
+
+下周工作计划：
+1.review提交代码 查缺
+
+shift+鼠标单击 = 多选
+
+docker overlay2
+docker system prune
+docker system df
+sudo docker container prune
+docker container ls -a
+启动        systemctl start docker
+守护进程重启   sudo systemctl daemon-reload
+重启docker服务   systemctl restart  docker
+重启docker服务  sudo service docker restart
+关闭docker   service docker stop   
+关闭docker  systemctl stop docker
+
+docker system df -v 空间占用细节
+--max-depth=1
+
+alt+ctrl+1-5 防死机
+
+2020-01-09 16:26:10,700 DEBUG org.apache.hadoop.hbase.procedure.ZKProcedureCoordinatorRpcs: Starting the controller for procedure member:tw-node1237,60000,1578558032080
+2020-01-09 16:26:10,714 DEBUG org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper: Node /hyperbase1/online-snapshot/acquired already exists
+2020-01-09 16:26:10,716 INFO org.apache.hadoop.hbase.procedure.ZKProcedureUtil: Clearing all procedure znodes: /hyperbase1/online-snapshot/acquired /hyperbase1/online-snapshot/reached /hyperbase1/online-snapshot/abort
+2020-01-09 16:26:10,717 DEBUG org.apache.hadoop.hbase.procedure.ZKProcedureCoordinatorRpcs: Starting the controller for procedure member:tw-node1237,60000,1578558032080
+2020-01-09 16:26:10,771 INFO org.apache.hadoop.hbase.master.MasterCoprocessorHost: System coprocessor loading is enabled
+2020-01-09 16:26:10,908 DEBUG org.apache.hadoop.hbase.master.HMaster: Registered master coprocessor service: service=AccessControlService
+2020-01-09 16:26:10,918 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initializing GuardianAuthManager ...
+
+jinfo
+    1  jps
+    2  jinfo 12599
+    3  whic java
+    4  which java
+    5  which jinfo
+    6  ps -efww
+    7  ps -efww | grep plugin
+    8  history 10
+    9  history 15
+hyperbase调用guardian-client起不来->文件权限需要修改
+1. hyperbase每次读写都要调用协处理器，都要注册一下服务，改动后写wiki
+协处理器：https://www.jianshu.com/p/71252d503692
+hyperbase那边逻辑 + guardian这边 https://www.jianshu.com/p/5d68d91214fb
+2. 对接inceptor，调用hive那边的接口直接拉owner列表
+3. WARP-40784
+
+一，hbase accessController
+
+0114
+
+Simple方式的实现类是AccessController，是HBase中自带的，只要在conf/hbase-site.xml中设置好以下属性，即可生效。
+
+与触发器类似;
+
+regionobserver处理数据修改事件，表region联系紧密;MasterObserver集群级事件操作，管理或DDL类型操作;WALObserver控制WAL。
+
+镇邦，代码在review中，你用的时候应该是直接从hive.java调：http://172.16.1.41:10080/Inceptor2g/hive-0.12.0-transwarp/merge_requests/1338/diffs  这个是metastore的m
+
+//返回该user为owner的db, incldDbOfTabOwner为true时，除了user为owner的db, 还包括该user为owner的table所在的database.
+  public List<String> getDatabasesWithUser(String pattern, String user, boolean incldDbOfTabOwner) throws MetaException {
+//返回user为owner的table.
+  public List<String> getTablesWithUser(String dbName, String pattern, String type, String user)
+
+GuardianHiveAuthorizationValidator/GuardianHiveAccessController->HiveMetastoreClientFactory->HiveMetastoreClientFactoryImpl->Hive
+
+//版本号需要统一到8.0
+
+必须具有database的admin权限的用户才能在整个库所有表执行show create table，这导致需要分配过大的权限，存在操作风险。
+
+shows the CREATE TABLE statement that creates the named table. To use this statement, you must have some privilege for the table. This statement also works with views.
+SHOW CREATE TABLE 语句用于显示用 SQL 重新创建已有表的确切语句。 
+0: jdbc:hive2://localhost:10000/default> show create table testtb;
++-----------------------------------------------------------------------------+
+|                               createtab_stmt                                |
++-----------------------------------------------------------------------------+
+| CREATE  TABLE `testtb`(                                                     |
+|   `id` int DEFAULT NULL                                                     |
+| )                                                                           |
+| ROW FORMAT SERDE                                                            |
+|   'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'                      |
+| WITH SERDEPROPERTIES (                                                      |
+|   'serialization.format'='1')                                               |
+| STORED AS INPUTFORMAT                                                       |
+|   'org.apache.hadoop.mapred.TextInputFormat'                                |
+| OUTPUTFORMAT                                                                |
+|   'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'              |
+| LOCATION                                                                    |
+|   'hdfs://nameservice1/inceptor1/user/hive/warehouse/test.db/admin/testtb'  |
+| TBLPROPERTIES (                                                             |
+|   'transient_lastDdlTime'='1573632571',                                     |
+|   'author'='lishinho')                                                      |
++-----------------------------------------------------------------------------+
+16 rows selected (0.576 seconds)
+0: jdbc:hive2://localhost:10000/default> 
+
+privilege是对于用户 group,role的权限
+permission是对动作行为的权限
+CommandUtil->AuthorizeCommand->HiveAuthorizer.checkPriviledges->HiveAuthorizerImpl.checkpriv->
+
+HiveOperationType:SHOW_CREATETABLE
+
+    op2Priv.put(HiveOperationType.SHOW_CREATETABLE, PrivRequirement.newIOPrivRequirement
+        (SEL_GRANT_AR, null));
+
+DDLTask中的认证->HiveOperationType中SHOW_CREATETABLE对应operation2Priviledge中的PrivRequirement.newIOPrivRequirement (SEL_GRANT_AR, null)->  private static SQLPrivTypeGrant[] SEL_GRANT_AR = arr(SQLPrivTypeGrant.SELECT_WGRANT);
+
+在hiveAuthorizer的chackPriviledges接口中对应void checkPrivileges(HiveOperationType hiveOpType, List<HivePrivilegeObject> inputsHObjs,
+      List<HivePrivilegeObject> outputHObjs, HiveAuthzContext context)
+      throws HiveAuthzPluginException, HiveAccessControlException;
+HiveOperationType
+
+hiveAuthorizer(checkPrivileges)->HiveAuthImpl->HiveAuthValid(checkPriviledge)->SQLstdHiveAuthValid(checkpriv)->checkGlobalPriv/checkPriv(Input)/checkPriv(output)
+globalPriv通过operation2Priv转getRequiredGlobalPrivs接口返回的是map中的SQLPrivTypeGrant.SELECT_WGRANT；
+ public enum HivePrivilegeObjectType {
+    GLOBAL, DATABASE, TABLE_OR_VIEW, PARTITION, COLUMN, LOCAL_URI, DFS_URI,
+    STARGATE_URI, COMMAND_PARAMS, FUNCTION, APPLICATION, ALL_APP, STREAMJOB
+  };
+checkPriv(Input)：所有的object组件通过getRequiredPrivs匹配检测，如果hiveObj的type不是LOCAL_URI，DFS_URI，等奇怪的obj就要加上admin权限
+checkPriv(output)：同理，不过show create table的output是null，会直接return
+GuardianHiveAuthValidator(checkPriv)->
+->findMissingPrivs->checkglobalPermission->SQLprivTypeGrant2Perm	operation2Priv->add permission op2GlobalPriv对应为空
+
+assertNoDeniedPermission抛出异常
+
+
+jar cvf abc.jar ./*
+组件/etc/XXX/conf/  下面的log4j.properties开日志debug?没成功
+
+1979  jar cf new.jar '/home/transwarp/Desktop/hbase-shaded-server-1.3.1-transwarp-6.2.1' 
+ 1980  ls
+ 1981  cd Desktop/
+ 1982  ls
+ 1983  ls -l
+ 1984  chmod 777 /home/transwarp/Desktop/hbase-shaded-server-1.3.1-transwarp-6.2.1.jar
+ 1985  ls -l
+ 1986  jar cvf hbase-shaded-server-1.3.1-transwarp-6.2.1.jar hbase-shaded-server-1.3.1-transwarp-6.2.1
+ 1987  ls
+ 1988  cd hbase-shaded-server-1.3.1-transwarp-6.2.1/
+ 1989  ls
+ 1990  cd ../
+ 1991  ls
+ 1992  mkdir hbase
+ 1993  cp hbase-shaded-server-1.3.1-transwarp-6.2.1 hbase
+ 1994  cp hbase-shaded-server-1.3.1-transwarp-6.2.1.jar hbase
+ 1995  cd hbase
+ 1996  ls
+ 1997  jar xvf hbase-shaded-server-1.3.1-transwarp-6.2.1.jar 
+ 1998  ls
+ 1999  rm hbase-shaded-server-1.3.1-transwarp-6.2.1 -rf
+ 2000  ls
+ 2001  r META-INF/ -rf
+ 2002  rm META-INF/ -rf
+ 2003  ls
+ 2004  jar xvf hbase-shaded-server-1.3.1-transwarp-6.2.1.jar 
+ 2005  ls
+
+ 1939  ls
+ 1940  jar xvf hbase-shaded-server-1.3.1-transwarp-6.2.1.jar 
+ 1941  ls
+ 1942  rm hbase-shaded-server-1.3.1-transwarp-6.2.1.jar -rf
+ 1943  ls
+ 1944  cd io/transwarp/guardian/
+ 1945  ls
+ 1946  cd ../
+ 1947  ls
+ 1948  rm guardian/ -rf
+ 1949  ls
+ 1950  cd ../
+
+ 1952  cd ../
+ 1953  ls
+ 1954  jar cvf abc.jar ./*
+ 1955  ls
+ 1956  mv abc.jar ../
+ 1957  ls
+ 1958  ls -al
+ 1959  cd ../
+ 1960  ls
+ 1961  chmod 755 abc.jar 
+ 1962  history 20
+ 1963  history 50
+ 1964  cd ~/Downloads/
+ 1965  ls
+ 1966  ls -al hbase-shaded-server-1.3.1-transwarp-6.2.1.jar 
+ 1967  chmod 777 hbase-shaded-server-1.3.1-transwarp-6.2.1.jar 
+ 1968  mv hbase-shaded-server-1.3.1-transwarp-6.2.1.jar ~/Documents/hbase
+
+0115
+
+ 2004  jar xvf hbase-shaded-server-1.3.1-transwarp-6.2.1.jar 解压
+ 1954  jar cvf abc.jar ./*  打包
+
+2020-01-15 10:51:09,245 INFO  inceptor.GuardianHiveAuthorizationValidator: (GuardianHiveAuthorizationValidator.java:checkPrivileges(65)) [HiveServer2-Handler-Pool: Thread-209(SessionHandle=aed50510-be30-4603-ab1d-34f32a7e2494)] - Checking privileges for operation SHOW_CREATETABLE by user admin on  input objects [Object [type=TABLE_OR_VIEW, name=test.testtb]] and output objects []. Context Info: HiveAuthzContext [userIpAddress=127.0.0.1, commandString=show create table testtb]
+2020-01-15 10:51:09,431 INFO  ql.Driver: (PerfLogger.java:PerfLogEnd(138)) [HiveServer2-Handler-Pool: Thread-209(SessionHandle=aed50510-be30-4603-ab1d-34f32a7e2494)] - </PERFLOG method=doAuthorization start=1579056669238 end=1579056669431 duration=193>
+
+
+showCreateTable
+
+SQLAuthutil->
+String errMsg = sortedmissingPrivs + " on " + hivePrivObject;
+ Permission denied: Principal [name=test, type=USER] does not have following privileges for operation SHOW_CREATETABLE [[SELECT with grant] on Object [type=TABLE_OR_VIEW, name=system.tables_v]] (state=42000,code=20388)
+
+gAuthorizer.findMissingPrivs######
+
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property>
+        <name>license.zookeeper.quorum</name>
+        <value>tw-node1237:2291,tw-node1238:2291,tw-node1236:2291</./value>
+    </property>
+</configuration>
+
+[root@tw-node1236 dev]# blkid /dev/sdb
+/dev/sdb: UUID="a043b218-f24f-4ff1-a511-a02c7a105d49" TYPE="xfs" 
+/dev/sdb: UUID="5ea8e1d8-5d8e-4859-8461-906c732425d5" TYPE="xfs"
+
+lsblk硬盘大小
+重新装集群
+先挂载磁盘系统分区 ： https://www.warpcloud.cn/#/documents-support/docs-detail/document/TDH-OPS/6.2/010InstallManual?docType=products&docName=TDH%E5%AE%89%E8%A3%85%E6%89%8B%E5%86%8C
+配置hosts
+下载manager和tdh解压安装
+
+
+查到了show create table需要用户的global的swg权限 和 该表的select with grant权限 加上tbOwner/admin等一系列特权 在集群测一下行不行
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/MANAGER/manager-7.0.1910a-final/IMAGE/centos-7/MANAGER-Basic-Component-Transwarp-7.0.1910a-final.tar.gz" > /var/lib/docker/manager.tar.gz
+
+
+	http://tw-node1236:8179/
+
+http://172.16.1.168:8090/pages/viewpage.action?pageId=3997860重装资源
+http://support.transwarp.cn/t/topic/1633 卸载manager
+
+jps
+ pid信息残留，去/tmp/hsperfdata_[用户名]文件夹删除该pid文件
+
+[root@tw-node1236 ~]# cd /var/lib/docker
+[root@tw-node1236 docker]# xfs_info /dev/sdb | grep ftype=1
+xfs_info: /dev/sdb is not a mounted XFS filesystem
+[root@tw-node1236 docker]# mkfs.xfs -f -n ftype=1 /dev/sdb
+meta-data=/dev/sdb               isize=256    agcount=4, agsize=3276800 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=0        finobt=0
+data     =                       bsize=4096   blocks=13107200, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0 ftype=1
+log      =internal log           bsize=4096   blocks=6400, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+[root@tw-node1236 docker]# mount /dev/sdb /var/lib/docker
+[root@tw-node1236 docker]# xfs_info /dev/sdb | grep ftype=1
+naming   =version 2              bsize=4096   ascii-ci=0 ftype=1
+[root@tw-node1236 docker]# blkid /dev/sdb
+/dev/sdb: UUID="37a74677-f6e0-4a00-891e-2bb8740bf4e9" TYPE="xfs" 
+[root@tw-node1236 docker]# vi /etc/fstab 
+[root@tw-node1236 docker]# cd /root
+[root@tw-node1236 ~]# ls
+anaconda-ks.cfg  node.list  uninstall_community_agent_template.sh  uninstall.log  uninstall.log.1  uninstall.sh
+[root@tw-node1236 ~]# cd /var/lib/docker/
+[root@tw-node1236 docker]# ls
+[root@tw-node1236 docker]# ls
+[root@tw-node1236 docker]# curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/MANAGER/manager-7.0.1910a-final/IMAGE/centos-7/MANAGER-Basic-Component-Transwarp-7.0.1910a-final.tar.gz" > /var/lib/docker/manager.tar.gz
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/tdh.tar.gz
+
+<a class="name" href="/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz"><span class="nametext"><span class="innernametext">TDH-Image-Registry-Transwarp-6.2.1-final.tar</span><span class="extension">.gz</span></span><span class="fileactions"><a class="action action-share permanent shared-style" href="#" data-action="Share" data-original-title="" title=""><span class="icon icon-share"></span><span> 苏由之</span></a><a class="action action-menu permanent" href="#" data-action="menu" data-original-title="" title=""><span class="icon icon-more"></span><span class="hidden-visually">动作</span></a></span></a>
+
+http://172.16.1.97:8080 owncloud 
+https://172.16.1.99/harbor/projects/6/repositories/transwarp%2Fzookeeper
+
+0116
+
+manager可以直接装docker
+fdisk -l 查看磁盘
+
+ mvn dependency:tree > ~/master.log
+ create table if not exists `tb1`(
+`id`, int unsigned auto_increment,
+`name`,varchar(100) not null,
+);
+select name, id
+from tb
+where id = 1;
+
+Could not find artifact org.apache.hive:inceptor-exe:pom:8.0.2 in central (http://172.16.1.168:8081/artifactory/libs-release)
+
+kubectl get nodes -w
+
+mysql -u root -p password
+create table tt1(id int, name varchar(20),age int);
+
+mvn install:install-file -Dfile=/home/transwarp/Downloads/guardian-plugins/inceptor-metastore-1.0.0.jar -DgroupId=org.peersafe -DartifactId=metastore 
+
+0: jdbc:hive2://localhost:10000/default> grant select
+. . . . . . . . . . . . . . . . . . . .> on db1.customer
+. . . . . . . . . . . . . . . . . . . .> to user test1
+. . . . . . . . . . . . . . . . . . . .> with grant option;
+No rows affected (0.132 seconds)
+
+
+0117
+因为这些公司没有拥有任何真正的超出对手的知识产权，因此成功的唯一途径就是残酷的争分夺秒的市场竞争，让竞争对手失去市场。
+
+  144  service kubelet restart
+[root@tw-node1237 ~]# free -m
+              total        used        free      shared  buff/cache   available
+Mem:          11855       10316         648         507         890         166
+Swap:          6015         464        5551
+
+[root@tw-node1236 ~]# free -m
+              total        used        free      shared  buff/cache   available
+Mem:          15887       12538         850         719        2497        1072
+Swap:          6015         989        5026
+
+top -H 内存监控
+free -m 使用内存情况
+
+ 1998  git clone http://172.16.1.41:10080/lishinho/metastore.git
+ 1999  cd metastore/
+ 2000  git remote add trunk http://172.16.1.41:10080/Inceptor2g/metastore.git
+ 2001  git remote -v
+ 2002  cd ..
+ 2003  ls
+ 2004  cd guardian-plugins/
+ 2005  git remote add trunk http://172.16.1.41:10080/security/guardian-plugins.git
+ 2006  git remote remove trunk
+ 2007  git remote add trunk http://172.16.1.41:10080/security/guardian-plugins.git
+ 2008  git remote -v
+ 2009  history
+git remote update
+
+抛异常的处理方法：
+方法1
+吃掉抛出其他异常
+方法2:日志 打印return
+
+
+List<String> filterDatabaseByPrivileges(List<String> dbs) throws HiveAuthzPluginException {
+    String username = authenticator.getUserName();
+    List<String> userOwnedDbs;
+    try {
+      userOwnedDbs = metastoreClientFactory.getHiveMetastoreClient().getDatabasesWithUser(null, username, true);
+    } catch (TException e) {
+      LOG.error("Fail to obtain owned databases for user: {}", username, e);
+      throw new HiveAuthzPluginException(e);
+    }
+    return gAuthorizer.filterDatabaseByPrivileges(username, dbs, userOwnedDbs);
+  }
+
+  List<String> filterTablesByPrivileges(String dbName, List<String> tbls) throws HiveAuthzPluginException {
+    String username = authenticator.getUserName();
+    List<String> userOwnedTbs;
+    try {
+      userOwnedTbs = metastoreClientFactory.getHiveMetastoreClient().getTablesWithUser(dbName, null, username);
+    } catch (TException e) {
+      LOG.error("Fail to obtain owned tables for user: {}", username, e);
+      throw new HiveAuthzPluginException(e);
+    }
+    return gAuthorizer.filterTablesByPrivileges(username, dbName, tbls, userOwnedTbs);
+  }
+
+getAuthorizedDatanodes
+
+ @GetMapping("/dataNodes/user/{username}")
+  @ApiOperation(value = "read user's authorized child nodes of data source", notes = "login is needed")
+  @Auditable(field = AuditField.PERMISSION, requestClass = "UserDatasourcePermRequest", level = AuditLevel.READ,
+      operationFormat = "read authorized child data source nodes of user [%s], filter: component [%s], dataSource [%s], action [%s], " +
+          "substring [%s], inheritance [%s], sorting [%s]")
+  public List<String> findUserDatasource(HttpServletRequest request,
+                                    @PathVariable("username") String userName,
+                                    @RequestParam(name = "component", required = false) String component,
+                                    @RequestParam(name = "dataSource", required = false) List<String> dataSource,
+                                    @RequestParam(name = "action", required = false) String action,
+                                    @RequestParam(name = "substring", required = false) String substring,
+                                    @RequestParam(name = "inheritance", defaultValue = "false", required = false) Boolean inheritance,
+                                    @RequestParam(name = "sorting", defaultValue = "false", required = false) Boolean sorting) throws GuardianException {
+    Session session = (Session) request.getSession().getAttribute(Constants.FORTRESS_SESSION);
+    PermFilterParams permFilterParams = new PermFilterParams.Builder()
+        .component(component)
+        .dataSource(dataSource)
+        .action(action)
+        .subString(substring)
+        .inheritance(inheritance)
+        .scope(RestUtil.getSearchScope("true"))
+        .sorting(sorting)
+        .build();
+    return permManager.userAuthorizedDataNodes(session, userName, permFilterParams);
+  }
+
+WARP-41400
+miniclass
+apache-api/apche-parent
+绿的网站找资源

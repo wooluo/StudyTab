@@ -60,7 +60,7 @@ cp: cannot create regular file '/etc/docker/certs.d/172.16.1.99/ca.crt': Permiss
 transwarp@transwarp-Latitude-5480:~/Downloads$ sudo  cp -r ca.crt /etc/docker/certs.d/172.16.1.99/
 
 
-    SEARCH:
+    ELASTICSEARCH:
       superuserConfig:
         type: REGISTRANT
         password: __RANDOM
@@ -90,6 +90,7 @@ transwarp@transwarp-Latitude-5480:~/Downloads$ docker push node206:5000/transwar
 transwarp@transwarp-Latitude-5480:~/Downloads$ docker push node206:5000/transwarp/guardian:guardian-3.2
 The push refers to repository [node206:5000/transwarp/guardian]
 Get https://node206:5000/v2/: x509: certificate signed by unknown authority
+
 vim  /lib/systemd/system/docker.service
 ExecStart后面加上--insecure-registry node206:5000
 保存完执行 systemctl darmon-reload
@@ -282,6 +283,7 @@ simple用户权限验证
 Base提供了AccessController作为自带的认证方式，HBase称之为simple。
 hbase --config /etc/hyperbase1/conf shell 进入hyperbaseshell
 hyperbase-master-hyperbase1-5cb5cfcb4-dwt9f
+2020-01-10 10:41:30,793 ERROR zookeeper.ZooKeeperWatcher: hconnection-0x441b8382-0x626f69ad945e4fb9, quorum=tw-node1237:2181,tw-node1238:2181,tw-node1236:2181, baseZNode=/hyperbase1 Received unexpected KeeperException, re-throwing exception
 执行
 export HBASE_OPTS="-Djava.security.auth.login.config=/etc/hyperbase1/conf/jaas.conf"
 kinit
@@ -449,5 +451,70 @@ zai节点下etc/conf找
 
 残留问题
 1236节点部分服务起不来
+
+2020-01-10 09:59:04,436 DEBUG org.apache.hadoop.hbase.regionserver.HRegionServer: No master found; retry
+2020-01-10 10:08:10,423 DEBUG org.apache.hadoop.hbase.regionserver.HRegionServer: No master found; retry
+
+regionserver
+2020-01-10 10:09:53,032 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initializing GuardianAuthManager ...
+2020-01-10 10:09:53,070 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Service hyperbase1 startup username obtained: hbase
+2020-01-10 10:09:53,074 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initialize GuardianAuthManager done
+
+2020-01-10 10:09:40,663 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initializing GuardianAuthManager ...
+2020-01-10 10:09:40,706 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Service hyperbase1 startup username obtained: hbase
+2020-01-10 10:09:40,730 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1237:8380
+2020-01-10 10:09:40,731 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1238:8380
+2020-01-10 10:09:41,120 INFO io.transwarp.guardian.client.GuardianClient: Login guardian client using configuration in guardian-site.xml implicitly
+2020-01-10 10:09:41,400 INFO io.transwarp.guardian.client.GuardianClient: Guardian client cache enabled: true
+2020-01-10 10:09:41,411 INFO io.transwarp.guardian.client.cache.metrics.PeriodCacheMetricsDisplay: Start PeriodCacheMetricsDisplay, display period: 600000 milliseconds
+2020-01-10 10:09:41,475 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Register GuardianCache CheckAccessCache
+2020-01-10 10:09:41,475 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Register GuardianCache QuotaCache
+2020-01-10 10:09:41,475 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Staring a PeriodCacheUpdater to update caches of Guardian Client
+2020-01-10 10:09:41,893 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: The first time to fetch change list, just keep the latest change list version: 0
+2020-01-10 10:09:41,894 INFO io.transwarp.guardian.client.GuardianClient: Guardian client heartbeat report enabled: true
+2020-01-10 10:09:41,895 INFO io.transwarp.guardian.client.PeriodHeartbeatReporter: Starting a PeriodHeartbeatReporter for [hyperbase1] to report heartbeat to guardian server, report interval: 60000 milliseconds
+2020-01-10 10:09:41,895 INFO io.transwarp.guardian.client.GuardianClientFactory: Create a new instance of RestClientImpl
+2020-01-10 10:09:41,914 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1237:8380
+2020-01-10 10:09:41,914 INFO io.transwarp.guardian.client.impl.rest.AbstractGuardianClient: A guardian server is configured : https://tw-node1238:8380
+2020-01-10 10:09:41,938 INFO io.transwarp.guardian.client.impl.rest.RestAdminImpl: Login guardian admin using configuration in guardian-site.xml implicitly
+2020-01-10 10:09:41,942 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Fetch change version: 0
+2020-01-10 10:09:42,111 INFO io.transwarp.guardian.client.GuardianAdminFactory: Create a new instance of RestAdminImpl
+2020-01-10 10:09:42,111 INFO io.transwarp.guardian.plugins.hyperbase.GuardianAuthManager: Initialize GuardianAuthManager done
+
+ava.util.concurrent.TimeoutException
+	at java.util.concurrent.FutureTask.get(FutureTask.java:205)
+	at io.transwarp.guardian.resource.ResourceServiceManager.runTimedTask(ResourceServiceManager.java:420)
+	at io.transwarp.guardian.resource.ResourceServiceManager.lookupResource(ResourceServiceManager.java:226)
+	at io.transwarp.guardian.server.boot.controller.ResourceServiceController.lookupResource(ResourceServiceController.java:104)
+	at io.transwarp.guardian.server.boot.controller.ResourceServiceController$$FastClassBySpringCGLIB$$1f811119.invoke(<generated>)
+	at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:204)
+
+
+测试过程停掉全部hbase节点 删除guardian-hbase服务 启动hbase Regionserver节点 日志无异常(等待链接master) 观察服务注册(无改动) 启动hmaster节点 观察服务注册(active master注册服务，register) 看日志
+启动hbase shell 
+list create drop操作
+guardian界面赋权限 
+guardian抛错 错误(code: 56008): Timeout to fetch resources for this service in time 15000 MILLISECONDS, you can type the resource URI in following input box or retry to lookup
+at java.util.concurrent.FutureTask.get(FutureTask.java:205)
+	at io.transwarp.guardian.resource.ResourceServiceManager.runTimedTask(ResourceServiceManager.java:420)
+	at io.transwarp.guardian.resource.ResourceServiceManager.lookupResource(ResourceServiceManager.java:226)
+	at io.transwarp.guardian.server.boot.controller.ResourceServiceController.lookupResource(ResourceServiceController.java:104)
+
+
+ PermissionVo perm = new PermissionVo(component, dataSource, action.name());
+
+hbase的权限结构
+global / namespace->table->family->qualifier 每个部分分别对应一个authorize函数，最后统一走到最后的checkaccess
+之前的审查权限逻辑问题在于走了checkAccess借口，每个perm都要发一次请求走逻辑，如果到qualifier层最多要发5次请求
+
+getInheritResources
+getAuthorizedResources
+
+v2
+getAuthorizedResources
+v1
+filterPermissions
+findPrincPermissions(user/group/role)
+
 
 
