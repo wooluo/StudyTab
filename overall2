@@ -575,13 +575,4 @@ Attribute pwdHistoryAt = entry.get( pwdHistoryAT );
 
             }
 
-pwdHistLiveDays
-pwdHistLiveAge
-
-
-io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 1018, ErrorMessage: Failed to change/reset the password for user test: the previous password is incorrect
-	at io.transwarp.guardian.core.manager.UserManager.updatePasswordInApacheDs(UserManager.java:418)
-	at io.transwarp.guardian.core.manager.UserManager.updateUserPassword(UserManager.java:378)
-	at io.transwarp.guardian.server.boot.controller.UserController.updatePassword(UserController.java:158)
-
 

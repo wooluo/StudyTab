@@ -1,0 +1,111 @@
+0120
+
+上周工作内容：
+完成:
+1.WARP-40784: show create table权限问题 - http://172.16.1.168:8090/pages/viewpage.action?pageId=23474919
+2.WARP-41187： 收尾并总结hyperbase在插件中的权限审核 - http://172.16.1.168:8090/pages/viewpage.action?pageId=23473424
+3.WARP-31985:对接inceptor 加metastore的接口 提供现场支持jar包
+
+进行中：
+3.WARP-41400：修改密码一段时间内不可重复使用	50%
+4.WARP-27294：重构getAuthorizedNode方法到v2	50%
+
+本周工作计划：
+完成上周未全部完成的工作
+1.WARP-41400：本地测试 尽量完成对接
+2.WARP-31985：metastore接口工作对接完成
+3.WARP-27294：重构getAuthorizedNode方法到v2
+
+
+
+m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
+
+version: 1
+dn: m-oid=1.3.6.1.4.1.42.2.27.8.1.33,ou=attributeTypes,cn=pwdpolicy,ou=schema
+m-singlevalue: TRUE
+m-oid: 1.3.6.1.4.1.42.2.27.8.1.33
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.27
+objectclass: metaTop
+objectclass: metaAttributeType
+objectclass: top
+m-name: pwdHistLiveDays
+creatorsname: uid=admin,ou=system
+m-equality: integerMatch
+m-length: 0
+
+
+pwdHistLiveDays
+
+import static org.jasig.cas.client.authentication.AuthenticationFilter.CONST_CAS_SKIP_REDIRECTION;
+import static org.jasig.cas.client.util.HttpServletRequestWrapperFilter.CONST_CAS_SKIP_WRAPPING;
+把你本地的~/.m2/repository/org/jasig/cas/client/cas-client-core/3.5.1-transwarp-guardian-3.1.3  文件夹删掉再试试看
+
+两次支持
+一次权限chmod 777
+一次打包jar包出问题
+
+
+ long changedTime = DateUtils.getDate( pwdChangedTimeAt.getString() ).getTime();
+
+        long currentTime = DateUtils.getDate( DateUtils.getGeneralizedTime() ).getTime();
+        long pwdAge = ( currentTime - changedTime ) / 1000;
+
+        if ( pwdAge > policyConfig.getPwdMaxAge() )
+        {
+            return 0;
+        }
+
+        warningAge = policyConfig.getPwdMaxAge() - warningAge;
+
+        if ( pwdAge >= warningAge )
+        {
+            long timeBeforeExpiration = ( ( long ) policyConfig.getPwdMaxAge() ) - pwdAge;
+
+            if ( timeBeforeExpiration > Integer.MAX_VALUE )
+            {
+                timeBeforeExpiration = Integer.MAX_VALUE;
+            }
+
+            return ( int ) timeBeforeExpiration;
+
+==========================================================
+
+
+
+                String valueTime = pwdh.getTime();
+                SimpleDateFormat format = new SimpleDateFormat( "yyyy-MM-dd" );
+                try
+                {
+                    Date date1 = format.parse( currentTime );
+                    Date date2 = format.parse( valueTime );
+                    if ( ( int ) ( date1.getTime() - date2.getTime() ) / ( 1000 * 3600 * 24 ) < pwdHistLiveDays )
+                    {
+                        pwdHistLst.add( pwdh );
+                    }
+                    else if ( pwdHistLst.size() > histSize )
+                    {
+                        continue;
+                    }
+                }
+                catch ( ParseException pe )
+                {
+                    LOG.error( "Time format is different", pe );
+                }
+
+
+Exception in thread "main" java.lang.NoClassDefFoundError: io/transwarp/guardian/apacheds/ApacheDsServer
+        at io.transwarp.guardian.examples.StandaloneEnv.main(StandaloneEnv.java:12)
+Caused by: java.lang.ClassNotFoundException: io.transwarp.guardian.apacheds.ApacheDsServer
+        at java.net.URLClassLoader.findClass(URLClassLoader.java:382)
+
+-Pcopy-deps
+
+1.guardian-plugin 31985接口
+2.41400 查报错 时间打上日志 提交 
+3.接口最好开始改
+
+
+0121
+md5sum 
+
+
