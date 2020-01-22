@@ -88,7 +88,7 @@ source /etc/profile打开maven
 明天把类的关系梳理清楚，DDL类需要再看一下，接口的概念再好好看，工程流程找资料熟练一些。把改动争取做出来。测试指令走两轮。
 
 11.12
-节点崩了怎么办-》237节点重启，控制权不在本地，docker不可用原因是没有配置预先挂载好的文件将查到的UUID值<UUID>添加在/etc/fstab中：confluence
+节点崩了怎么办-》237节点重启，控制权不在本地，docker不可用原因是没有配置预先挂载好的文件将查到的UUID值<UUID>添加在/etc/fstab中：confluence	#1
 gardian本身没有接收控制权限的文件，在本地修改后的代码要在hive端使用接口才能生效
 几个查找方式指令k8s和docker
 docker常用指令：https://blog.gtwang.org/linux/docker-commands-and-container-management-tutorial/

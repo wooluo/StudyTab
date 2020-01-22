@@ -108,4 +108,234 @@ Caused by: java.lang.ClassNotFoundException: io.transwarp.guardian.apacheds.Apac
 0121
 md5sum 
 
+重构的唯一目的就是让我们开发更快，用更少的工作量创造更大的价值。—— 《重构：改善既有代码的设计》
+
+WARP-41400:  Password remains in a period of time in password history
+
+There is a new requirement:
+We cannot use password in the password history and hope to set a certain time for used password so that used cannot use it in a period of time.
+Our pwd history used pwdInhistory to constrain the password number in pwd history and in this MR, the new pwd policy has added in the relative code
+ part.
+
+PermFilterParams permFilterParams = new PermFilterParams.Builder().principal(princ).searchValue(filterParams).build();
+
+getAuthorizedDatanodes
+
+getInheritDatandoes
+
+permMapper
+selectUserAuthorizedDatanodes
+selectRoleAuthorizedDatanodesByUser
+selectRoleAuthorizedDatanodes
+selectGroupAuthorizedDatanodes
+
+
+    } catch (GuardianClientException | TException e) {
+      LOG.error("Fail to filter DBs by privileges. username: [{}]", username, e);
+      throw new HiveAuthzPluginException(e);
+    } catch (HiveAuthzPluginException ex) {
+      LOG.error("Fail to check if user [{}] is the owner of some database ", username, ex);
+      throw ex;
+
+
+<select id="selectResourceUserPerms" resultMap="UserPermMap">
+        SELECT
+            U.username,
+            U.category,
+            P.perm_id,
+            P.resource_id,
+            P.action,
+            UP.grant_option
+        FROM gs_user U LEFT JOIN gs_user_perm UP ON U.user_id = UP.user_id
+            LEFT JOIN gs_perm P ON UP.perm_id = P.perm_id
+        WHERE P.resource_id IN
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+<select id="selectUserAuthorizedResources" resultMap="ResourceMap">
+        SELECT DISTINCT
+            R.resource_id,
+            R.path,
+            R.external_id,
+            R.service_id
+        FROM gs_resources R LEFT JOIN gs_perm P ON R.resource_id = P.resource_id
+            LEFT JOIN gs_user_perm UP ON P.perm_id = UP.perm_id
+        WHERE UP.user_id = (SELECT user_id FROM gs_user WHERE username = #{username})
+    </select>
+
+    <select id="selectRoleResourcePermsByUser" resultMap="RolePermMap">
+        SELECT
+            P.resource_id,
+            P.action,
+            RP.grant_option
+        FROM gs_role_perm RP LEFT JOIN gs_perm P ON RP.perm_id = P.perm_id
+            LEFT JOIN gs_user_role UR ON RP.role_id = UR.role_id
+        WHERE UR.user_id = (SELECT user_id FROM gs_user WHERE username = #{username})
+        AND P.resource_id IN
+        <foreach collection="resourceIds" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+      ResourceServiceMapper resourceServiceMapper = session.getMapper(ResourceServiceMapper.class);
+      ResourceMapper resourceMapper = session.getMapper(ResourceMapper.class);
+
+      // keyword matching can only be done in memory
+      Map<Long, ResourceVo> resources = getRequestedResourcesMap(resourceServiceMapper, resourceMapper, filterParams).entrySet()
+          .stream().filter(e -> StringUtils.containsKeyword(e.getValue().getDataSource(), filterParams.getSearchValue()))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      if (MapUtils.isEmpty(resources)) {
+        return EMPTY_PRINC_SEARCH_RESULT;
+      }
+      List<Long> resourceIds = new ArrayList<>(resources.keySet());
+
+
+selectGroupsAuthorizedDatanodes
+selectRolesAuthorizedDatanodes
+
+getInheritDatandoes
+
+selectUserAuthorizedResources
+selectRoleAuthorizedResourcesByUser
+selectRoleAuthorizedResources
+selectGroupAuthorizedResources
+
+
+selectUserAuthorizedDatanodes
+selectRoleAuthorizedDatanodesByUser
+selectRoleAuthorizedDatanodes
+selectRolesAuthorizedDatanodes
+selectGroupAuthorizedDatanodes
+selectGroupsAuthorizedDatanodes
+
+WARP-27294:
+1. 加action
+2. 测试 加前端写wiki
+
+
+@Param("action") String action
+
+        <if test="action != null">
+            AND P.action = #{action}
+        </if>
+
+
+整理自己的东西
+
+
+  "returnCode": 500,
+  "errorMessage": "Required request body is missing: public java.util.List<io.transwarp.guardian.common.model.v2.ResourceVo> io.transwarp.guardian.server.boot.controller.v2.PermController.getAuthorizedDatanodes(io.transwarp.guardian.common.model.v2.SessionVo,java.lang.String,io.transwarp.guardian.common.model.PrincipalType,io.transwarp.guardian.common.model.v2.ResourceVo,java.lang.String,boolean) throws io.transwarp.guardian.common.exception.GuardianException"
+
+tmp/server-work
+
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \ 
+   "isSystem": false, \ 
+   "password": "123", \ 
+   "username": "admin" \ 
+ }' 'http://localhost:8380/api/v2/login'
+
+
+curl -X GET --header 'Accept: application/json' 'http://localhost:8380/api/v2/perms/authorized-resources?princ=admin&princType=USER&service=inceptor1&inheritance=false'
+
+
+curl -L -H "PRIVATE-TOKEN: swch1r1jLV-fsMe7ZMJn" "http://172.16.1.41:10080/api/v4/projects/402/jobs/artifacts/master/download?job=postcommit" -o artifact.zip
+    unzip artifact.zip
+    mkdir -p guardian-server-boot/src/main/resources/static
+    cp -r public/* guardian-server-boot/src/main/resources/static/
+
+
+   private void validatePasswordClasses( String password, PasswordPolicyConfiguration policyConfig )
+        throws PasswordPolicyException
+    {
+        int minClasses = policyConfig.getPwdMinClasses();
+
+        if ( minClasses > 0 )
+        {
+            byte condition = 0;
+            for ( int i = 0; i < password.length(); i++ )
+            {
+                char c = password.charAt( i );
+                if ( c >= 'a' && c <= 'z' )
+                {
+                    condition |= 1;
+                }
+                else if ( c >= 'A' && c <= 'Z' )
+                {
+                    condition |= 2;
+                }
+                else if ( c >= '0' && c <= '9' )
+                {
+                    condition |= 4;
+                }
+                else if ( c <= 32 || c >= 127 )
+                {
+                    condition |= 16;
+                }
+                else
+                {
+                    condition |= 8;
+                }
+            }
+
+            int curClasses = 0;
+            for ( int i = 0; i < 5; i++ )
+            {
+                if ( ( ( condition & 0xff ) & ( 1 << i ) ) != 0 )
+                {
+                    curClasses++;
+                }
+            }
+
+            if ( curClasses < minClasses )
+            {
+                throw new PasswordPolicyException( "Password should have a minimum of " + minClasses + " classes",
+                    INSUFFICIENT_PASSWORD_QUALITY.getValue() );
+            }
+        }
+    }
+
+291-54-25
+WV5yu0P3HhKxh8pCs55S-TDH
+
+curl -X GET --header 'Accept: application/json' 'http://localhost:8380/api/v2/perms/authorized-resources?
+princ=admin&princType=USER&service=inceptor1&inheritance=false'
+
+
+/home/transwarp/.m2/repository/org/apache
+
+week1 kerberous
+week2 docker/k8s/maven
+week3 git
+week4 project refactor
+week5 ldap
+week6 apacheds/fortress/lmdb
+week7 ldap search logic/ fortress 
+week8 ABAC
+week9 ldap operation
+week10 hbase / coprocessor
+
+I23IvHIq
+
+touch 
+#!/bin/bash
+# This is used to ...
+
+        dn:dc=transwarp,dc=io
+        objectclass:dcObject
+        objectclass:organization
+        o:Transwarp,Inc.
+        dc:Transwarp
+
+        dn:ou=Manager,dc=transwarp,dc=io
+        objectclass:organizationalRole
+        cn:Manager
+
+ldap部署手册
+http://172.16.1.168:8090/pages/viewpage.action?pageId=3998300
+
+
+git reset HEAD . 重塑缓存区
 
