@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd" xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <servers>
+    <server>
+      <username>huwei</username>
+      <password>123456</password>
+      <id>public-transwarp-release</id>
+    </server>
+    <server>
+      <username>huwei</username>
+      <password>123456</password>
+      <id>public-transwarp-snapshots</id>
+    </server>
+    <server>
+      <username>huwei</username>
+      <password>123456</password>
+      <id>public-transwarp-plugin</id>
+    </server>
+    <server>
+      <username>huwei</username>
+      <password>123456</password>
+      <id>publictranswarp-plugin-snapshots</id>
+    </server>
+  </servers>
+  <mirrors>
+    <mirror>
+      <id>public-transwarp-remote</id>
+      <name>public repo for dependencies</name>
+      <url>http://172.16.1.168:8081/artifactory/remote-repos</url>
+      <mirrorOf>*,!central,!public-transwarp-snapshots,!public-transwarp-release,!public-transwarp-snapshots-repo,!remote</mirrorOf>
+    </mirror>
+  </mirrors>  
+  <profiles>
+    <profile>
+      <repositories>
+        <repository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>central</id>
+          <name>libs-release</name>
+          <url>http://172.16.1.168:8081/artifactory/libs-release</url>
+        </repository>
+        <repository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>remote</id>
+          <name>remote</name>
+          <url>http://172.16.1.168:8081/artifactory/remote-repos</url>
+        </repository>
+
+        <repository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>public-transwarp-release</id>
+          <name>libs-release-local</name>
+          <url>http://172.16.1.168:8081/artifactory/libs-release-local</url>
+        </repository>
+        <repository>
+          <snapshots />
+          <id>public-transwarp-snapshots-repo</id>
+          <name>libs-snapshot</name>
+          <url>http://172.16.1.168:8081/artifactory/libs-snapshot</url>
+        </repository>
+        <repository>
+          <snapshots />
+          <id>public-transwarp-snapshots</id>
+          <name>libs-snapshot-local</name>
+          <url>http://172.16.1.168:8081/artifactory/libs-snapshot-local</url>
+        </repository>
+      </repositories>
+     <pluginRepositories>
+        <pluginRepository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>priv-transwarp-plugin</id>
+          <name>plugins-release</name>
+          <url>http://172.16.1.168:8081/artifactory/plugins-release</url>
+        </pluginRepository>
+        <pluginRepository>
+          <snapshots />
+          <id>priv-transwarp-plugin-snapshots</id>
+          <name>plugins-snapshot</name>
+          <url>http://172.16.1.168:8081/artifactory/plugins-snapshot</url>
+        </pluginRepository>
+     </pluginRepositories>
+     <id>artifactory</id>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>artifactory</activeProfile>
+  </activeProfiles>
+</settings>
