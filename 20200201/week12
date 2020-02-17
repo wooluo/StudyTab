@@ -339,3 +339,16 @@ http://172.16.1.168:8090/pages/viewpage.action?pageId=3998300
 
 git reset HEAD . 重塑缓存区
 
+
+api-passwdpolicyschemaconstants
+
+    // pwdFailureTime
+    public static final String PWD_FAILURE_TIME_AT = "pwdFailureTime";
+是不是另加一个属性把pwdInhistory隔离开
+
+apached-parent
+//authenticationInterceptor
+
+    public static final String PWD_FAILURE_TIME_AT_OID = "1.3.6.1.4.1.42.2.27.8.1.19";
+
+
