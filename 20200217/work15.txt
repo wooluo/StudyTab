@@ -1,0 +1,250 @@
+一，什么是GFW
+
+Great FireWall, 防火长城，特指中国国家防火墙。网友常说的网站被墙，指的就是网站内容被防火长城所屏蔽或者指服务器的通讯被封阻，“翻墙”也被引申为突破网络审查浏览大陆境外被屏蔽的网站或使用服务的行为。
+
+防火墙是由分散部门的各服务器和路由器等设备加上相关公司的应用程序组成，用于信息审查和管制。GFW一直没有官方承认，不过可以称得上是互联网时代最优秀的系统之一，系统神秘而深奥 据悉还没有人通过黑盒了解GFW的全貌，再加上大陆内部蓬勃的互联网发展使民众并不在意GFW的存在，造成人们对它的现在印象。
+
+二，主要技术
+
+从最开始说，其实做到信息防护，我们可以把所有信息记录在磁盘上，然后一点点查过滤敏感信息，不过这么做一是信息量太大，二是无法实时防护，更不要说分布式一系列问题。所以我们把过滤权限写在ACL表中，通过技术进行封锁敏感网站信息，当海外网站信息进入国家入口网关时，既可以选择性过滤，当然黑名单白名单就要自己设计，如果技术隔离做得好，甚至技术人员可以不知道过滤信息就能达到作用（即开发者没有读写改敏感词权限），即使海外网站信息使用代理，只要信息不加密 一样会倒在GFW面前。
+
+技术不断发展，就有人为创造的可能，刚刚我们说入口网关会根据敏感信息实现过滤屏蔽网站，如果实现多级代理信息加密技术，让网关识别不到或蒙蔽逃过审核，就可以实现翻过GFW的目的，而这一概念实际上早就存在了，只不过技术一直在演化。07年阮一峰老师写的绕过GFW方法中（https代理，tor，ssh隧道，vpn等）就有介绍。
+
+魔高一尺，道高一丈。什么动态SSL Freenet VPN SSH TOR GNUnet JAP I2P Psiphon 什么Feed Over Email 。所有的翻墙方法，只要有人想得到，GFW都有研究并且有反制措施的实验室方案储备。GFW对每一项翻墙技术都有做相应的对策，包括资料中常见的是DNS缓存污染，IP地址封锁，TCP连接重置等，具体细节要参考论文，有很多都算作机密，而采取方法的过程中有一些方法甚至会阶段性影响境外网站的正常使用，这也是一些国家一直恐惧而敌视中国互联网发展的原因之一。只是GFW面对一些标志难题也是无能为力，比如P2P的隐匿性，比如DDoS攻击等。技术就是这样，只有相互借鉴相互促进，只不过使用用途可能不尽相同。
+
+那既然GFW如此强大，为什么还会有各种可用的翻墙软件呢？
+
+我猜想是各个时期的要求不同，相关政策和敏感权限也不是一曾不变。
+
+三，方法汇总
+
+绕过GFW的方法：
+
+1. 修改hosts文件
+修改电脑内部的host文件，通过自主指定相关网站的IP地址的方式实现，即避开DNS，简单粗暴，这种方式现在依然存在；
+我们访问网站的时候，输入的是域名，实际上DNS会进行IP解析，把域名对应IP进行访问，GFW 会干扰DNS 的解析过程，并且返回一个错误的 IP 地址给你，使你无法正确连接到你要的服务器上读取正确的信息。Host的级别比DNS要高，修改Host文件实际上相当于是直接访问IP.在有些时候，即使修改了Host文件，有些网站还是打不开。这就是这个网站的IP被封锁了.就是说你即使改了Host，可以打开Google但是打不开FB，Twitter 也是正常现象，这个时候就必须要翻墙了.
+2. 强制指定DNS
+GFW主要攻击手段之一是DNS污染，于是便有了强制指定DNS的方式以避免IP被污染的方法，这种方法经常会结合1使用；
+3. VPN
+原本用来作为一种匿名，安全，保密的VPN服务也被发掘出翻墙的潜力，其原理比较简单，选择一个没有被GFW封杀的服务器，通过该服务器将相关网站的流量转发到自己的设备，而设备与VPN服务器之间的通信并不在GFW的屏蔽范围之内，于是便达成了翻墙的目的。VPN最初的目的是用于企业服务，方便员工远程登录企业内网进行操作，主要协议有PPTP、L2TP，IPsec、IKEv2、openVPN等等；
+4.网络服务
+GoAgent，自由门，fqrouter等一系列网络服务；
+
+5. Shadowsocks（搭建ss/ssr服务器集群->客户端工具翻墙）
+Shadowsocks类：主要包括各类Shadowsocks衍生版本，ShadowsocksR，Shadowsocks-libev等，特点是加密了通信过程中的数据以及流量分流；由于种种原因，ss，ssr等版本原创者不再更新，现在流行的小火箭shadowRocket，surge等
+6. 内网穿透
+内网穿透：比较典型的是ZeroTier，简单解释就是假装自己在国外上网，这么说的主要原因是因为当两台设备同时加入到ZeroTier的服务器之后，两台设备会拥有同一IP段内的IP地址，此时两台电脑相当于处于一个虚拟局域网之中，可以用iPad连接电脑远程运行MATLAB；
+7. V2Ray
+V2Ray 是 Project V 下的一个工具。Project V 是一个包含一系列构建特定网络环境工具的项目，而 V2Ray 属于最核心的一个。官方介绍 Project V 提供了单一的内核和多种界面操作方式。内核（V2Ray）用于实际的网络交互、路由等针对网络数据的处理，而外围的用户界面程序提供了方便直接的操作流程。不过从时间上来说，先有 V2Ray才有Project V；
+
+GFW相应对策：
+
+1.VPN及其软件系列
+防火长城现已有能力早就可以对基于PPTP和L2TP协议的VPN连接进行监控和封锁，一方面对各大应用软件市场进行vpn封锁，致使开发者只能使用testflights，一旦开发者在试用期后不再开发，服务也不再继续。
+
+
+2.对破网软件流量检测
+GFW可以提取加密流量数据包分析特征，基于神经网络算法对shadowsocks等软件流量进行检测，定位打击。即使v2ray等软件基于websocket和tls加密，能够将加密流量和https协议流量进行混淆，也有方法进行定量识别。
+
+
+3.基于tls的连接进行tor刺探，建立破坏连接
+
+
+4.其他防护方法
+数据包探测加速嗅出可疑流量，IPV6审查，间歇性封锁等
+
+因此为了稳定的达到翻GFW的目的，最好推荐用搬瓦工自建ss/V2Ray服务器，搭梯子进行翻墙，这样由于量小GFW不会细致进行流量识别。不过这么做有一定技术要求。
+
+
+
+以上内容只涉及技术分享，无关政治人文
+
+参考文献粗糙，如有出入请留言。
+
+
+if(c<32) 控制字符
+else if(c>'0'&&c<'9') 数字
+else if(c>'a'&&c<'z') 小写字母
+else if(c>'A'&&c<'Z') 大写字母
+else 其它字母
+
+guardian-3.2发布模块
+manager上架 迁移代码要合进去
+tdc上架
+
+
+kunDB限制登陆ip地址
+openldap有 apacheds没有
+userugi
+拿到用户的ip
+ldap带到用户的ip vpget
+限制ip数据从哪里读-
+mysql用户ip创建一张表
+
+inceptor-plugin修改
+kunDB代码 
+限制策略怎么存储 怎么vpget曾 资源动态加载在哪边实现
+
+////////
+
+工作周报 - 李镇邦 20200203 ~ 20200207
+工作周报 - 李镇邦 20200203 ~ 20200207
+
+完成：
+1. WARP-41400：审核提交完成
+2. 了解kunDB项目架构，跟踪权限审核模块，了解golang的基础
+3. WARP-41627：之前WARP-27294在getAuthorizedDatanode的改动新创建jira，并更改逻辑和需求相左的代码
+
+本周：
+1. WARP-41627：等待提交，有必要的话修改底层接口
+2. 开始解决kunDB的权限相关工作，并把相关工作积累到wiki上
+
+
+完成：
+1. WARP-41400：审核提交完成
+调用密码策略代码易读性
+2. 了解kunDB项目架构，跟踪权限审核模块，了解golang的基础
+guardian/kunDB权限管制各一套 guardian-apacheds-用户密码 
+kunDB-kungate 限制ip mysql acl ldap
+产品手册和wiki
+- 读代码
+- 编译
+
+3. WARP-27294：修改相应逻辑不对的地方，等待提交
+
+
+本周：
+1. WARP-27294：等待提交，有必要的话修改底层接口
+2. 开始解决kunDB的权限相关工作
+
+
+/////
+tls-grpc-ldap
+通过gRPC
+通信层提供tls认证方式
+服务接口认证
+注册中心认证
+
+
+
+
+通过grpc框架
+mysql-ldapauthserver-auth_server_通过ldap存储
+
+apacheds主要特性：
+-支持ldap，kerberos和change pwd protocol
+-基于java实现，支持多平台
+-支持分区，多实例，多虚拟服务器
+
+一个Keyspace即指一个逻辑数据库，它可以对应一个或多个MySQL数据库，而对上层应用则呈现为一个数据库。
+
+对一个Keyspace执行查询时，vtGate会根据路由从正确的MySQL数据库里读取数据，从而使应用层像是在对一个数据库操作。
+
+
+http://www.warpcloud.cn/#/documents-support/docs-detail/document/KUNDB-PLATFORM/1.2/000KunDBManual?docType=docs%3Fcategory%3DKUNDB&docName=KunDB使用手册
+
+KunDB增强了安全机制，支持通过Guardian使用LDAP方式来控制访问权限。如果您的集群启用了Guardian服务，在使用KunDB之前，所有要用到的账户都需要在Guardian里先创建。
+
+
+工信部测试
+kunDB登陆限制
+- 限制登陆ip地址
+- 限制登陆时间
+- 限制登陆失败次数
+
+MySQL RBAC 角色权限控制
+开发guardian插件，支持guardian进行管理
+
+框架结构和搭建环境
+
+
+WARP-41682:[KunDB]需要支持show privileges或相关语句
+
+
+export MYSQL_FLAVOR="MySQL56"
+export VT_MYSQL_ROOT="/usr/local/mysql57"
+export VT_MARIA_ROOT="/usr/local/mariadb"
+export kunDataRoot="$GOPATH/vtdataroot"
+export kunRoot="$GOPATH/src/github.com/youtube"
+export kunHome="$kunRoot/vitess"
+alias gk="[ -d $kunHome ] && cd $kunHome || echo 'no kundb src directory'"
+alias gkd="[ -d $kunDataRoot ] && cd $kunDataRoot || echo 'no kundb data directory'"
+
+
+
+https://www.cnblogs.com/EasonJim/p/6283190.html
+mac让.bashrc生效
+https://www.jianshu.com/p/263b9107a047
+mac下载pip
+
+https://newsn.net/say/pip-six-error.html
+pip install 时，报错 Cannot uninstall 'six' 的解决方案
+
+sudo yum install unixODBC-devel.x86_64(centos) sudo apt-get install unixodbc-dev(ubuntu)
+
+192.168.30.10 lishinhodeMacBook-Air.local 192.168.30.10
+
+下载brew
+brew install unixodbc
+
+
+BREW_REPO = “https://mirrors.ustc.edu.cn/brew.git “.freeze 
+CORE_TAP_REPO = “https://mirrors.ustc.edu.cn/homebrew-core.git“.freeze
+
+
+1. 问舒锦sql怎么存priviledge
+2. 问圣哥装没装kundb
+
+s舒锦
+
+fatal: remote error: access denied or repository not exported:
+
+git clone https://mirrors.ustc.edu.cn/homebrew-core.git//usr/local/Homebrew/Library/Taps/homebrew/homebrew-core --depth=1
+
+mac增加path的方法
+https://www.jianshu.com/p/2d7a2c705b4a
+
+挂外网
+https://zhuanlan.zhihu.com/p/59805070
+装brew
+
+安装pkg-config
+https://blog.csdn.net/sojlu/article/details/70229848
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig/:/usr/local/lib/pkgconfig/
+
+mysql启动
+https://stackoverflow.com/questions/32234142/error-the-server-quit-without-updating-pid-file-usr-local-mysql-data-mac-local
+kundb集群启动出错
+没有读到host ip E0212 19:37:25.643640    5077 zkctl.go:87] failed start: dial tcp :21811: connect: connection refused
+bison语法
+
+问舒锦
+sql.go是什么意思
+_mfed是什么
+
+https://www.jianshu.com/p/fe78d2036192
+关闭系统完整性保护
+
+case sqlparser.ShowPrivilegesStr:
+		res, err := e.shardExec(ctx, session, sqlparser.String(show), bindVars, target)
+		if err != nil {
+			return nil, err
+		}
+		rowLen := len(res.Rows)
+		rows := make([][]sqltypes.Value, rowLen)
+		return &sqltypes.Result{
+			Fields:       buildVarCharFields("Privilege", "Context", "Comment"),
+			Rows:         rows,
+			RowsAffected: uint64(len(rows)),
+		}, nil
+
+
+goimports -w /Users/sd/go/src/github.com/youtube/vitess/.git/../misc/git/hooks/goimports
+
+vtgate
+配置文件/动态语法
+
+PRIVILEGES
+
+http://172.16.1.41:10080/lishinho/kundb/-/jobs/329632/raw
+报错

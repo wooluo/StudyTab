@@ -2875,7 +2875,7 @@ git checkout -b guardian-3.1.2-final trunk/guardian-3.1.2-final
 hive.version 8.0.1 tag:transwarp-6.2.1-final
 guardian.version: guardian-3.1.2  tag:guardian-3.1.2-final
 tdh.version: transwarp-6.2.1
-
+examples/target jar
 替换jar包 
 inceptor镜像里/usr/lib/inceptor/lib 
 guardian-client-guardian-xxx.jar -> guardian-client-guardian-3.1.2.jar
