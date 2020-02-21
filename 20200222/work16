@@ -1,0 +1,345 @@
+0217
+1. 本地安装kundb和其他在家工作工具
+2. WARP-41682: [KunDB]需要支持show privileges或相关语句 review中
+3. kundb代码架构学习
+
+本周：
+1. 完成WARP-41682
+2. 完成WARP-41400：密码一段时间不可修改的测试并merge
+3.工作环境安装kundb并测试两个项目
+4. 支持新网权限metastore启动不了问题
+5. 编写kundb支持ip限制的功能建立jira
+
+ImportError: No module named zipp+--out of VPN
+
+root@172.26.0.93 1234
+
+怎么用docker拉去文件并编译
+
+
+sudo apt-get install unixodbc-dev
+
+transwarp@transwarp-Latitude-5480:~/go/src/github.com/youtube/vitess$ hostname -f
+transwarp-Latitude-5480
+transwarp@transwarp-Latitude-5480:~/go/src/github.com/youtube/vitess$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s31f6: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast state DOWN group default qlen 1000
+    link/ether 10:65:30:ea:b8:7e brd ff:ff:ff:ff:ff:ff
+3: wlp2s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 3c:6a:a7:71:34:5f brd ff:ff:ff:ff:ff:ff
+    inet 172.16.203.45/23 brd 172.16.203.255 scope global dynamic wlp2s0
+       valid_lft 79630sec preferred_lft 79630sec
+    inet6 fe80::221b:e4a:8b8:1e60/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:5d:02:e4:b7 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+
+
+export MYSQL_FLAVOR="MariaDB"
+export VT_MYSQL_ROOT="/usr/local/mariadb"
+export VT_MARIA_ROOT="/usr/local/mariadb"
+
+
+panic: interface conversion: sqlparser.Privilege is not sqlparser.SQLNode: missing method Format [recovered]
+	panic: interface conversion: sqlparser.Privilege is not sqlparser.SQLNode: missing method Format
+
+
+2020-02-17 15:33:41 0 [Warning] No argument was provided to --log-bin and neither --log-basename or --log-bin-index where used;  This may cause repliction to break when this server acts as a master and has its hostname changed! Please use '--log-basename=transwarp-Latitude-5480' or '--log-bin=mysql-bin' to avoid this problem.
+2020-02-17 15:33:41 0 [ERROR] mysqld: Can't open shared library '/usr/local/mariadb/lib/plugin/semisync_master.so' (errno: 22, cannot open shared object file: No such file or directory)
+2020-02-17 15:33:41 0 [ERROR] Couldn't load plugin 'rpl_semi_sync_master' from 'semisync_master.so'.
+2020-02-17 15:33:41 0 [Note] InnoDB: Mutexes and rw_locks use GCC atomic builtins
+2020-02-17 15:33:41 0 [Note] InnoDB: Uses event mutexes
+2020-02-17 15:33:41 0 [Note] InnoDB: Compressed tables use zlib 1.2.3
+2020-02-17 15:33:42 0 [Note] InnoDB: Number of pools: 1
+2020-02-17 15:33:42 0 [Note] InnoDB: Using SSE2 crc32 instructions
+2020-02-17 15:33:42 0 [Note] InnoDB: Initializing buffer pool, total size = 32M, instances = 1, chunk size = 32M
+2020-02-17 15:33:42 0 [Note] InnoDB: Completed initialization of buffer pool
+2020-02-17 15:33:42 0 [Note] InnoDB: If the mysqld execution user is authorized, page cleaner thread priority can be changed. See the man page of setpriority().
+2020-02-17 15:33:42 0 [Note] InnoDB: 128 out of 128 rollback segments are active.
+2020-02-17 15:33:42 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2020-02-17 15:33:42 0 [Note] InnoDB: Setting file '/home/transwarp/go/vtdataroot/vt_0000000101/innodb/data/ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2020-02-17 15:33:42 0 [Note] InnoDB: File '/home/transwarp/go/vtdataroot/vt_0000000101/innodb/data/ibtmp1' size is now 12 MB.
+2020-02-17 15:33:42 0 [Note] InnoDB: Waiting for purge to start
+2020-02-17 15:33:42 0 [Note] InnoDB: 10.3.7 started; log sequence number 1603984; transaction id 9
+2020-02-17 15:33:42 0 [Note] InnoDB: Loading buffer pool(s) from /home/transwarp/go/vtdataroot/vt_0000000101/innodb/data/ib_buffer_pool
+2020-02-17 15:33:42 0 [Note] Plugin 'FEEDBACK' is disabled.
+2020-02-17 15:33:42 0 [ERROR] Could not open mysql.plugin table. Some plugins may be not loaded
+2020-02-17 15:33:42 0 [ERROR] /usr/local/mariadb/bin/mysqld: unknown variable 'gtid_mode=ON'
+2020-02-17 15:33:42 0 [ERROR] Aborting
+
+docker run -it --privileged --rm -v /home/transwarp/Downloads/work/mariadb:/root/ mariadb_src 172.16.1.99/kundb/x86_64/mysql-compiler:v1 bash
+
+
+docker run -it --privileged --rm -v /home/transwarp/Downloads/work/mysql:/root/mysql_src 172.16.1.99/kundb/x86_64/mysql-compiler:v1 bash
+
+
+172.16.1.99/postcommit/x86_64/kundb:kundb-1.3
+
+cd /root && tar czvf mariadb.tar.gz mariadb
+git submodule
+
+mkdir ~/tmp; docker cp $ containerID：/root/mariadb.tar.gz〜/ tmp
+
+docker pull 172.16.1.99/kundb/x86_64/mysql-compiler
+
+cmake ../mysql_src -DCMAKE_INSTALL_PREFIX=/root/mysql -DDOWNLOAD_BOOST=1 -DWITH_BOOST=/root/boost/ -DBUILD_CONFIG=mysql_release -DWITH_EMBEDDED_SERVER=false -DWITH_EMBEDDED_SHARED_LIBRARY=false -DWITH_UNIT_TESTS=OFF -DWITHOUT_TOKUDB=1 -DWITH_JEMALLOC=no
+($uname -i)
+$括号里的是指令
+make的含义？
+
+cd /root && tar czvf mysql.tar.gz mysql
+
+sudo tar xzvf mysql57.tar.gz -C /usr/local
+
+
+
+文档： http://172.16.1.168:8090/display/TRAN/KunDB+First+Day
+编译mysql/mariadb：http://172.16.1.168:8090/display/TRAN/Compile+Mariadb+or+MySQL
+x86_64 mariadbjar包：172.26.0.93：~/mariadb_0217_ok.tar.gz 1234
+
+基于tag:transwarp-6.2.1-final新创立分支XWBank_guardian_show_privilege
+
+https://gitbook.tw/chapters/faq/stash.html
+git stash pop和git stash apply
+
+测试
+1. 只开histduration 设为60
+建立用户user1 初始密码123
+123改为1234 成功
+1234改为123 间隔23秒 报错
+2020-02-19 10:34:53,572 INFO ApachedsAuditLogger: 2020-02-19 10:34:53,053, operation='LDAP_AUTH', principal='uid=user1,ou=People,dc=tdh', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 10:34:53,575 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 23 take check been reached.
+2020-02-19 10:34:53,579 INFO ApachedsAuditLogger: 2020-02-19 10:34:53,053, operation='LDAP_AUTH', principal='uid=admin,ou=system', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 10:34:53,580 INFO io.transwarp.guardian.core.manager.UserManager: Password policy violation: {}
+org.apache.directory.fortress.core.PasswordException: org.apache.directory.fortress.core.model.User.changePassword user [user1]  constraint violation, ldap rc=CONSTRAINT_VIOLATION: failed for MessageType : MODIFY_REQUEST
+Message ID : 17
+    Modify Request
+        Object : 'uid=user1,ou=People,dc=tdh'
+            Modification[0]
+                Operation :  replace
+                Modification
+userPassword: 0x31 0x32 0x33 org.apache.directory.api.ldap.model.message.ModifyRequestImpl@3adb19ee: invalid reuse of password present in password history Fortress rc=4024
+间隔142秒成功
+2020-02-19 10:37:22,191 INFO ApachedsAuditLogger: 2020-02-19 10:37:22,022, operation='LDAP_AUTH', principal='uid=user1,ou=People,dc=tdh', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 10:37:22,194 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 142 it has been reached.
+2020-02-19 10:37:22,194 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: break
+2020-02-19 10:37:22,251 INFO ApachedsAuditLogger: 2020-02-19 10:37:22,022, operation='LDAP_AUTH', principal='uid=admin,ou=system', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+
+换密码多次可行
+
+swagger的接口是updatepwd 当curpwd=null时会走resetpwd，在reset中会把ldap的reset位置1,让user在下次登陆改密码，所以设计修改时会通过admin身份创建连接绕过pwdpolicy直接改密码，导致无效 好像前端不能没有curpwd，这一接口也没暴露给用户，在swagger可以用
+
+改完密码策略用户没有权限更改密码
+没有权限读角色和组
+
+inceptor-metastore-8.0.1.jar
+
+
+测试2\
+新建用户user
+密码策略设置pwdhistsize为3
+pwdduration为60
+初始密码12345
+123456过
+12345没过 userPassword: 0x31 0x32 0x33 0x34 0x35 org.apache.directory.api.ldap.model.message.ModifyRequestImpl@55a4beb8: invalid reuse of password present in password history Fortress rc=4024
+1236
+123
+12345
+123456
+1236没过
+userPassword: 0x31 0x32 0x33 0x36 org.apache.directory.api.ldap.model.message.ModifyRequestImpl@55a6182a: invalid reuse of password present in password history Fortress rc=4024
+	at org.apache.directory.fortress.core.impl.UserDAO.changePassword(UserDAO.java:1824)
+	at org.apache.directory.fortress.core.impl.UserP.changePassword(UserP.java:589)
+	at org.apache.directory.fortress.core.impl.AdminMgrImpl.changePassword(AdminMgrImpl.java:182)
+	at io.transwarp.guardian.core.manager.UserManager.updatePasswordInApacheDs(UserManager.java:396)
+	... 96 more
+2020-02-19 16:15:52,599 INFO io.transwarp.guardian.resource.HeartbeatProcessor: Delete 0 service(s) staying OFFLINE since 1582100147389
+2020-02-19 16:15:52,616 INFO ApachedsAuditLogger: 2020-02-19 16:15:52,052, operation='LDAP_AUTH', principal='uid=user,ou=People,dc=tdh', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 7 take check been reached.
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 21 take check been reached.
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 31 take check been reached.
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 58 take check been reached.
+2020-02-19 16:15:52,622 INFO io.transwarp.guardian.core.manager.UserManager: Password policy violation: {}
+
+总结： pwdhistsize和pwdduration功能单独和合并在简单测试中都是好的
+3
+
+关于出现perious password false的情况：
+定位在修改密码策略时的操作有误。如果按swagger默认的put密码策略就会让几个参数变化，其中包含  "pwdAllowUserChange": true ,会改为false，改的策略只影响user所以之前的错误现象就很好说明了，关于一闪出现的那种错估计是读密码策略时apacheds反应的时间差？不过从我看来应该可以确定代码不存在问题 不需要修改代码
+
+
+mysql> show privileges;
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: target: _mfed.0.master, used tablet: test-800 (transwarp-Latitude-5480), vttablet: rpc error: code = Unknown desc = syntax error at position 11 near 'privileges', CallerID: vt_app
+
+
+
+    在夲机启动一个KunDB的伪分布式集群
+	    cd $kunHome
+	    source dev.env
+	    cd examples/local_mfed
+	    ./startKunDB all
+
+    使用mac的同学请注意，因为脚本中使用getopt是GNU getopt，而mac中自带BSD getopt，因此需要安装gnu版本
+    brew install gnu-getopt
+    然后将其加入到PATH中，一般的bin目录为/usr/local/opt/gnu-getopt/bin，source后再执行上述脚本即可
+
+    如何清除集群？
+    可以使用startKunDB同目录下的tearDownForce脚本。如果需要清除数据库中的数据，添加rmdata参数
+
+    更多使用方法可执行./startKunDB -h查看。与startKunDB对应的是stopKunDB脚本，也可以使用./stopKunDB -h查看用法
+
+    使用mysql连接到KunDB
+    mysql -h127.0.0.1 -uvt_app -p123 -P15307
+172.16.203.45
+mysql -h172.16.203.45 -uvt_app -p123 -P15307
+
+    如果你的系统中没有安装mysql客户端，那么可以使用自己编译的mysql。
+    sudo ln -s /usr/local/mysql57/bin/mysql /usr/local/bin/mysql
+
+
+drop table if exists customer;
+drop table if exists item;
+drop table if exists buy;
+drop table if exists expensive_item;
+drop table if exists cheap_item;
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+
+create table item (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+
+
+create table buy (custid int, itemid int) partition by HASH(custid) using binary_md5;
+insert into buy (custid, itemid) values (1, 1), (1, 2), (2, 1), (2, 3), (3, 1), (3, 2), (4, 3);
+
+
+create table expensive_item (itemid int primary key) partition by HASH(itemid) using binary_md5;
+create table cheap_item(itemid int, itemname varchar(100), price decimal) partition by HASH(itemid) using binary_md5;
+
+
+drop table if exists `_kundb_sequence_metadata`;
+CREATE TABLE `_kundb_sequence_metadata` (
+ `sequence_name` varchar(200) NOT NULL PRIMARY KEY,
+ `next_not_cached_value` bigint(21) NOT NULL DEFAULT 1,
+ `minimum_value` bigint(21) NOT NULL DEFAULT 1,
+ `maximum_value` bigint(21) NOT NULL DEFAULT 9223372036854775806,
+ `start_value` bigint(21) NOT NULL DEFAULT 1 COMMENT 'start value when sequences is created or value if RESTART is used',
+ `increment` bigint(21) NOT NULL DEFAULT 1 COMMENT 'increment value',
+ `cache_size` bigint(21) unsigned NOT NULL DEFAULT 100,
+ `cycle_option` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '0 if no cycles are allowed, 1 if the sequence should begin a new cycle when maximum_value is passed',
+ `cycle_count` bigint(21) NOT NULL DEFAULT 0 COMMENT 'How many cycles have been done',
+ `_next_n_values` bigint(21) NOT NULL DEFAULT 0 COMMENT 'Special flag for kundb',
+ `_next_n_values_param` bigint(21) NOT NULL DEFAULT 0 COMMENT 'Special param for kundb'
+) partition by hash(sequence_name) using binary_md5;
+
+
+kundb可以use一个不存在的数据库？
+kundb的安全管控机制
+http://172.16.1.168:8090/pages/viewpage.action?pageId=18681869
+
+
+func (c tLSWithPasswordAuthCred) blockIP(conn net.Conn) error {
+	if *ipBlocked == "" {
+		return nil
+	}
+	remoteAddr := conn.RemoteAddr().String()
+	bannedAddrs := []string{"127.0.0.1"}
+	for _, bannedAddr := range bannedAddrs {
+		if remoteAddr == bannedAddr {
+			return vterrors.Errorf(vtrpcpb.Code_FAILED_PRECONDITION, "disallowed to connect due to get blocked")
+		}
+	}
+	return nil
+}
+
+func (c tLSWithPasswordAuthCred) blockIP(conn net.Conn) error {
+	qr := rules.NewQueryRule("Blacklisted IP", "blacklisted_table", rules.QRFailRetry)
+	remoteAddr := conn.RemoteAddr().String()
+	bannedAddr := "127.0.0.1"
+	qr.SetIPCond(bannedAddr)
+	action := qr.GetAction(remoteAddr, "ddd", make(map[string]*querypb.BindVariable))
+	switch action {
+	case rules.QRFail :
+		return vterrors.Errorf(vtrpcpb.Code_INVALID_ARGUMENT, "disallowed to connect due to get blocked")
+	case rules.QRFailRetry:
+		return vterrors.Errorf(vtrpcpb.Code_FAILED_PRECONDITION, "disallowed to connect due to get blocked")
+	}
+	return nil
+}
+
+
+type BlockedIP struct {
+	BannedAddrs string 
+}
+
+
+
+type BlockIPList struct {
+	BannedAddrs []string `json:"bannedAddrs"`
+}
+
+
+E0221 12:03:18.858495    7146 main.go:55] remote error: rpc error: code = Unknown desc = tablet test-0000000102 ResetReplication failed (either fix it, or Scrap it): rpc error: code = Unavailable desc = all SubConns are in TransientFailure, latest connection error: connection error: desc = "transport: Error while dialing failed to do connect handshake, response: \"HTTP/1.1 403 Forbidden\\r\\nContent-Length: 337\\r\\nCache-Control: no-cache\\r\\nConnection: keep-alive\\r\\nContent-Type: text/html\\r\\nPragma: no-cache\\r\\n\\r\\n<!DOCTYPE html>\\n<html>\\n\\t<head> <title>COW Proxy</title> </head>\\n\\t<body>\\n\\t\\t<h1>[Error] Forbidden tunnel port</h1>\\n\\t\\t<p>HTTP Request <strong>CONNECT :16102</strong></p> <p>Please contact proxy admin.</p>\\n\\t\\t<hr />\\n\\t\\tGenerated by <i>COW 0.9.8</i> <br />\\n\\t\\tHost <i>localhost.localdomain</i> <br />\\n\\t\\tFri Feb 21 12:03:18 2020\\n\\t</body>\\n</html>\\n\""
+
+
+gkd/public/audit
+{"Action":"Login","AuthResult":"Success","ConnectionID":1,"RemoteAddr":{"IP":"127.0.0.1","Port":49808,"Zone":""},"Time":"Friday, 21-Feb-20 12:17:21 CST","User":"vt_app","level":"info","msg":"Auth","time":"2020-02-21T12:17:21+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"3.20","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":1,"SQL":"select @@version_comment limit 1","SQLType":"DML","Session":"a8969ccf-46d8-4c21-9dd2-a939b9f937b7","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-02-21T12:17:21+08:00"}
+{"BindVars":{},"Cost":"6.11","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":32,"SQL":"show privileges","SQLType":"SHOW","Session":"a8969ccf-46d8-4c21-9dd2-a939b9f937b7","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-02-21T12:17:26+08:00"}
+
+
+
+51874
+
+
+
+type BlockIPList struct {
+	BannedAddrs []string `json:"bannedAddrs"`
+}
+
+func (c *tLSWithPasswordAuthCred) blockIP(rawConn net.Conn) error {
+	tlsConn, _, err := c.tlsCred.ServerHandshake(rawConn)
+	if err != nil {
+		return err
+	}
+	data := []byte(*ipBlocked)
+	if *ipBlocked != "" {
+		var err error
+		data, err = ioutil.ReadFile(*ipBlocked)
+		if err != nil {
+			log.Fatalf("Failed to read ip_blocked_file: %v", err)
+		}
+	}
+
+	var ipList BlockIPList
+	if err := json.Unmarshal(data, &ipList); err != nil {
+		log.Fatalf("Error parsing ip_blocked_file config: %v", err)
+	}
+	remoteAddr := tlsConn.RemoteAddr().String()
+	log.Infof("remoteAddr is %s", remoteAddr)
+	for _, bannedAddr := range ipList.BannedAddrs {
+		i := strings.LastIndex(remoteAddr, ":")
+		if remoteAddr[:i] == bannedAddr {
+			return vterrors.Errorf(vtrpcpb.Code_FAILED_PRECONDITION, "disallowed to connect due to get blocked")
+		}
+	}
+	return nil
+}
+
+select insert update
+
+transwarp@transwarp-Latitude-5480:~/go/vtdataroot/public/audit$ mysql -h127.0.0.1 -uvt_app -p123 -P15307
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 2059 (HY000): Authentication plugin 'mysql_clear_password' cannot be loaded: plugin not enabled
+
+mysql -h172.16.132.31 -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
+开启安全模式
