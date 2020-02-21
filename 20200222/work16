@@ -343,3 +343,74 @@ ERROR 2059 (HY000): Authentication plugin 'mysql_clear_password' cannot be loade
 
 mysql -h172.16.132.31 -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
 开启安全模式
+
+
+就2个grpc和mysql是分开的
+go/mysql/server.go, 这是mysql的接口
+
+
+transwarp@transwarp-Latitude-5480:~/go/src/github.com/youtube/vitess$ mysql -h127.0.0.1 -P15307 -uvt_app -p123 
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 13
+E0221 20:04:01.830966    6406 server.go:234] Error parsing ip_blocked_file config: unexpected end of JSON input
+
+
+	//First check it if the ip is in the blacklist
+	//BlockIPList is used to make blacklist ip
+	type BlockIPList struct {
+		BannedAddrs []string `json:"bannedAddrs"`
+	}
+
+	data := []byte(*ipBlocked)
+	if *ipBlocked != "" {
+		var err error
+		data, err = ioutil.ReadFile(*ipBlocked)
+		if err != nil {
+			log.Errorf("Failed to read ip_blocked_file: %v", err)
+			return
+		}
+	}
+
+	var ipList BlockIPList
+	if err := json.Unmarshal(data, &ipList); err != nil {
+		log.Errorf("Error parsing ip_blocked_file config: %v", err)
+		return
+	}
+	remoteAddr := conn.RemoteAddr().String()
+	bannedAddr := "172.26.0.93"
+
+	if audit.IsAuditLoggerExisted() {
+		audit.AuditLogger.WithFields(logrus.Fields{
+			"Time":       time.Now().Format(time.RFC850),
+			"AuthResult": "haha",
+			"RemoteAddr": remoteAddr,
+			"bannedAddr": "172.26.0.93",
+		}).Info("Auth")
+	}
+
+	for _, bannedAddr := range ipList.BannedAddrs {
+		i := strings.LastIndex(remoteAddr, ":")
+		if i == -1 {
+			i = len(remoteAddr)
+		}
+		if remoteAddr[:i] == bannedAddr {
+			log.Errorf("disallowed to connect due to get blocked")
+			return
+		}
+	}
+
+	// Tell the handler about the connection coming and going.
+	l.handler.NewConnection(c)
+	defer func() {
+		if audit.IsAuditLoggerExisted() {
+			audit.AuditLogger.WithFields(logrus.Fields{
+				"Time":         time.Now().Format(time.RFC850),
+				"Action":       actionQuit,
+				"RemoteAddr":   conn.RemoteAddr(),
+				"ConnectionID": c.ConnectionID,
+				"User":         c.User,
+			}).Info("Auth")
+		}
+		l.handler.ConnectionClosed(c)
+	}()
+
