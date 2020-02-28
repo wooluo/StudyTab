@@ -1,0 +1,376 @@
+工作周报 - 李镇邦 20200217 ~ 20200221
+
+完成：
+1. WARP-41682: [KunDB]需要支持show privileges或相关语句完成测试并提交
+2. WARP-41400：密码一段时间不可修改的本地mock测试并merge
+3. WARP-42080：[KunDB]需要ip限制访问功能代码编写 支持静态读json文件 有效实现黑白名单 本地mock测试
+
+
+其他：
+1. 解决sla2-5502 新网权限metastore问题重新出包 更新wiki
+
+本周：
+1. WARP-42080： 找人review并merge
+2. 支持kundb的权限工作
+
+
+"blackListIP":["172.16.1.236","172.16.1.235","127.0.0.1"],
+"whiteListIP":["172.26.0.93"]
+
+type IPList struct {
+    BlackListIP []string 
+    WhiteListIP []string 
+}
+
+
+    ipList := IPList{}
+    err := json.Unmarshal(data, &ipList)
+    if err != nil {
+        log.Errorf("Error parsing ip_blocked_file config: %v", err)
+	return
+    }
+
+if len(m.WhiteListIP) != 0 {
+for _, ip := range ipList.WhiteListIP {
+			log.Errorf("disallowed to connect due to get blocked")
+			return
+		}
+	} else {
+for _, ip := range ipList.BlackListIP {
+			log.Errorf("disallowed to connect due to get blocked")
+			return
+		}
+		
+	}
+
+
+{
+  "BlackListIP": ["172.16.1.236","172.16.1.235","172.16.1.238"],
+  "WhiteListIP": ["172.26.0.93", "127.0.0.1"]
+}
+
+
+1. Warp-41393
+2. 设置登陆时间
+
+*\[0-9]?+-+[0-9]?\]*+$/
+ 
+func reParse(strs string[]) {
+for m, _ := range strs {
+regexStr = ".*\[.*"
+regexp.Match(regexStr, str)
+reg := regexp.MustCompile(regexStr)
+start := reg.FindStringIndex(str))
+i,err:=strconv.Atoi(str[start+1])
+j,err:=strconv.Atoi(str[start+3])
+for ; i < j; i = i+1	 {
+
+strs =append(strs, str[:start-1]+i+str[start
+}
+}
+}
+
+
+// SetIPCond adds a regular expression condition for the client IP.
+// It has to be a full match (not substring).
+func SetIPCond(pattern string) (err error) {
+	regexp, err = regexp.Compile(makeExact(pattern))
+	return err
+}
+
+func reMatch(re *regexp.Regexp, val string) bool {
+	return re == nil || re.MatchString(val)
+}
+
+func makeExact(pattern string) string {
+	return fmt.Sprintf("^%s$", pattern)
+}
+
+if !reMatch(regexp, ip) {
+	}
+
+
+263
+				var regex *regexp.Regexp
+				regex, err = regexp.Compile(makeExact(ip))
+				if err != nil {
+					log.Errorf("Error parsing ipConfig file config: %v", err)
+					return
+				}
+				if reMatch(regex, ip) {
+					outofWhiteListCheck = false
+					break
+				}
+
+WARP-42080:解决regex匹配问题
+WARP-41393：目标在executor上 找出grant for user时候的赋权行为，加上secondary index表的权限；创建secodary index表的时候把相应表的权限赋权在index表上
+WARp-xxxx：创建用户时间匹配问题
+
+
+Oracle数据库当中至少会有一个Profie文件，它可以限制口令和资源。建立oracle数据库时候，oracle会自动建立命名为default的profile，初始化的default有默认值，下面可以查看默认的profile的资源和口令限制的详细信息
+Oracle会话达到一定连接时间自动断开的方法
+
+IDLE_TIME：限制每个会话所允许的最长连续空闲时间，超过这个时间会话将自动断开。参数值是一个整数，单位是分钟。
+
+在大而复杂的用户数据库环境中，因为用户众多，系统资源可能会成为影响性能的瓶颈，为了有效利用系统资源，应该根据用户承担责任的不同而为其合理分配资源，所以有了profile
+
+mysqlSlowConnectWarnThreshold = flag.Duration("mysql_slow_connect_warn_threshold", 0, "Warn if it takes more than the given threshold for a mysql connection to establish")
+
+
+258
+		if len(ipList.WhiteListIP) != 0 {
+			outofWhiteListCheck := true
+			for _, ip := range ipList.WhiteListIP {
+				if MatchIP(remoteAddr, ip) {
+					outofWhiteListCheck = false
+					break
+				}
+			}
+			if outOfWhiteListCheck {
+				if audit.IsAuditLoggerExisted() {
+					audit.AuditLogger.WithFields(logrus.Fields{
+						"Time":         time.Now().Format(time.RFC850),
+						"AuthResult":   "Fail",
+						"RemoteAddr":   remoteAddr,
+						"ConnectionID": c.ConnectionID,
+						"User":         c.User,
+					}).Info("Auth")
+				}
+				return
+			}
+		} else if len(ipList.BlackListIP) != 0 {
+			for _, ip := range ipList.BlackListIP {
+				if MatchIP(remoteAddr, ip) {
+					if audit.IsAuditLoggerExisted() {
+						audit.AuditLogger.WithFields(logrus.Fields{
+							"Time":         time.Now().Format(time.RFC850),
+							"AuthResult":   "Fail",
+							"RemoteAddr":   remoteAddr,
+							"ConnectionID": c.ConnectionID,
+							"User":         c.User,
+						}).Info("Auth")
+					}
+					return
+				}
+			}
+		}
+
+
+ERAccessDeniedError, SSHandshakeError
+golang -%d -string
+-%v -int32/int64
+
+预提交不能设黑白名单
+mysql_slow_connect_warn_threshold
+
+bool: %t
+int, int8 etc.: %d
+uint, uint8 etc.: %d, %#x if printed with %#v
+float32, complex64, etc: %g
+string: %s
+chan: %p
+pointer: %p
+
+
+http://172.16.1.41:10080/OLTP/kundb/merge_requests/431/diffs
+
+把ip加测试
+找到conn的方法-> 
+
+
+c := time.Tick(5 * time.Second)
+for {
+	<- c
+	go f()
+}
+
+
+http://172.16.1.41:10080/OLTP/kundb/merge_requests/431/diffs
+
+func (axp *TxPool) transactionKiller() {
+	defer tabletenv.LogError()
+	now := time.Now()
+	for _, v := range axp.activePool.GetOutdated(time.Duration(0), "for rollback") {
+		conn := v.(*TxConnection)
+		txTimeout := conn.TransactionTimeout
+		var effectiveTimeout time.Duration
+		if txTimeout.Get() > 0 {
+			effectiveTimeout = txTimeout.Get()
+		} else {
+			effectiveTimeout = axp.timeout.Get()
+		}
+		if conn.StartTime.Add(effectiveTimeout).Sub(now) <= 0 {
+			log.Warningf("killing transaction (exceeded effectiveTimeout: %v): %s", effectiveTimeout, conn.Format(nil))
+			tabletenv.KillStats.Add("Transactions", 1)
+			conn.Close()
+			conn.conclude(TxKill)
+		} else {
+			axp.activePool.Put(conn.TransactionID)
+		}
+	}
+}
+
+l.SlowConnectWarnThreshold != 0 && connectTime > l.SlowConnectWarnThreshold
+
+
+connectTime.Add(effectiveTimeout).Sub(now) <= 0
+
+/ Open makes the TxPool operational. This also starts the transaction killer that will kill long-running transactions.
+
+err:
+Grant Create temporary tables ON *.* TO <username>
+REVOKE Create temporary tables ON *.* TO <username>
+Grant Event ON *.* TO <username>
+REVOKE Event ON *.* TO <username>	
+
+
+GRANT
+    priv_type [(column_list)]
+      [, priv_type [(column_list)]] ...
+    ON [object_type] priv_level
+    TO user [auth_option] [, user [auth_option]] ...
+    [REQUIRE {NONE | tls_option [[AND] tls_option] ...}]
+    [WITH {GRANT OPTION | resource_option} ...]
+
+GRANT PROXY ON user
+    TO user [, user] ...
+    [WITH GRANT OPTION]
+
+object_type: {
+    TABLE
+  | FUNCTION
+  | PROCEDURE
+}
+
+priv_level: {
+    *
+  | *.*
+  | db_name.*
+  | db_name.tbl_name
+  | tbl_name
+  | db_name.routine_name
+}
+
+user:
+    (see Section 6.2.3, “Specifying Account Names”)
+
+auth_option: {
+    IDENTIFIED BY 'auth_string'
+  | IDENTIFIED WITH auth_plugin
+  | IDENTIFIED WITH auth_plugin BY 'auth_string'
+  | IDENTIFIED WITH auth_plugin AS 'hash_string'
+  | IDENTIFIED BY PASSWORD 'hash_string'
+}
+
+tls_option: {
+    SSL
+  | X509
+  | CIPHER 'cipher'
+  | ISSUER 'issuer'
+  | SUBJECT 'subject'
+}
+
+resource_option: {
+  | MAX_QUERIES_PER_HOUR count
+  | MAX_UPDATES_PER_HOUR count
+  | MAX_CONNECTIONS_PER_HOUR count
+  | MAX_USER_CONNECTIONS count
+}
+
+
+
+REVOKE
+    priv_type [(column_list)]
+      [, priv_type [(column_list)]] ...
+    ON [object_type] priv_level
+    FROM user [, user] ...
+
+REVOKE ALL [PRIVILEGES], GRANT OPTION
+    FROM user [, user] ...
+
+REVOKE PROXY ON user
+    FROM user [, user] ...
+
+
+根据waterdroop的操作不可行命令列表 又按照本地kundb和mysql5.7分别重试一遍
+1. 所有revoke命令不符合语法规则 "TO <username>"应该改为"FROM <username>"
+2. proxy 是设代理用户 不可用*.* 正确语法为 Grant Proxy ON <username> TO <username>
+REVOKE Proxy ON <username> FROM <username>
+3. Grant Select ON *.* TO <username> 和 REVOKE Select ON *.* FROM <username>这两条本地有效可识别
+具体grant/revoke语句用法见 http://www.searchdoc.cn/rdbms/mysql/dev.mysql.com/doc/refman/5.7/en/grant.com.coder114.cn.html
+priv_level
+
+listener close禁掉端口
+connection close禁掉连接 会重连
+
+	// This will start the connection killer which will kill long-running idle connection.
+	l.ticks.Start(func() {
+		log.Errorf("killing connection (exceeded idleTimeout: %v) ", l.ticks.Interval())
+		c.writeErrorPacket(ERAccessDeniedError, SSHandshakeError, "idle-time error")
+		l.Close()
+	})
+
+timer计时器没有重置的接口
+waterdrop
+
+jdbc:kundb://172.16.203.45:15991
+https://pandolia.net/tinyc/ch13_bison.html
+
+
+-queryserver-config-transaction-timeout 90"
+
+1.如何读到配置
+2.定时器重启
+
+ip读json文件时不该return
+二级索引表
+
+http://172.16.1.97:8080/index.php/apps/files/?dir=/TRANSWARP_RELEASES/OFFICIAL&fileid=18123
+owncloud
+
+
+create global unique index ry_zzbdxx_bdbh_rybh_idx on ry_zzbdxx(BDBH);
+
+data := []byte(*ipConfig)
+
+
+
+	/*check the if secondary vindex exist */
+	indexName, tableName, _ := e.getSecondaryVindex(keyspace, tableName)
+	if len(indexName) != 0 {
+		for _, indexID := range indexName {
+			_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+
+
+			// WARP-41393: check if the secondary vindex exist and we will grant the same privilege to the vindex table
+			indexName, tableName, _ := e.getSecondaryVindex(strings.ToLower(grant.GrantIdent.Keyspace.String()), strings.ToLower(grant.GrantIdent.Table.String()))
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					// GRANT <PRIVILEGES> ON <table> TO user_name -> GRANT <PRIVILEGES> ON <vindex> TO user_name
+					i := strings.Index(strings.ToLower(sql), tableName)
+					newSQL := fmt.Sprintf(sql[0:i]+"%s"+sql[i+1:], indexID)
+					if grant.GrantOption {
+						newSQL += " with grant option"
+					}
+					_, err := e.handleDCL(ctx, session, newSQL, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+if len(table.ColumnVindexes) > 1 {
+			var indexName []string
+			for index, value := range table.ColumnVindexes {
+				if index > 0 {
+					indexName = append(indexName, value.Name)
+				}
+			}
+			return indexName, tableName, nil
+		}

@@ -181,10 +181,10 @@ ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: target: _mfed
 
 
     在夲机启动一个KunDB的伪分布式集群
-	    cd $kunHome
-	    source dev.env
-	    cd examples/local_mfed
-	    ./startKunDB all
+cd $kunHome
+source dev.env
+cd examples/local_mfed
+./startKunDB all
 
     使用mac的同学请注意，因为脚本中使用getopt是GNU getopt，而mac中自带BSD getopt，因此需要安装gnu版本
     brew install gnu-getopt
@@ -196,7 +196,7 @@ ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: target: _mfed
     更多使用方法可执行./startKunDB -h查看。与startKunDB对应的是stopKunDB脚本，也可以使用./stopKunDB -h查看用法
 
     使用mysql连接到KunDB
-    mysql -h127.0.0.1 -uvt_app -p123 -P15307
+mysql -h127.0.0.1 -uvt_app -p123 -P15307
 172.16.203.45
 mysql -h172.16.203.45 -uvt_app -p123 -P15307
 
@@ -214,8 +214,8 @@ create table customer (custid int primary key, custname varchar(20), age int) pa
 insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
 
 
-create table item (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
-insert into item(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
 
 
 create table buy (custid int, itemid int) partition by HASH(custid) using binary_md5;
@@ -414,3 +414,48 @@ E0221 20:04:01.830966    6406 server.go:234] Error parsing ip_blocked_file confi
 		l.handler.ConnectionClosed(c)
 	}()
 
+	ipBlocked  = flag.String("ip_blocked_file", "", "kundb ip blocked management file")
+
+
+
+m := make(map[string]interface{})
+
+http://172.16.1.97:8080/index.php/apps/files/?dir=/TRANSWARP_RELEASES/OFFICIAL&fileid=18123
+owncloud
+
+
+create global unique index ry_zzbdxx_bdbh_rybh_idx on ry_zzbdxx(BDBH);
+
+data := []byte(*ipConfig)
+
+
+
+	/*check the if secondary vindex exist */
+	indexName, tableName, _ := e.getSecondaryVindex(keyspace, tableName)
+	if len(indexName) != 0 {
+		for _, indexID := range indexName {
+			_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+
+
+			// WARP-41393: check if the secondary vindex exist and we will grant the same privilege to the vindex table
+			indexName, tableName, _ := e.getSecondaryVindex(strings.ToLower(grant.GrantIdent.Keyspace.String()), strings.ToLower(grant.GrantIdent.Table.String()))
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					// GRANT <PRIVILEGES> ON <table> TO user_name -> GRANT <PRIVILEGES> ON <vindex> TO user_name
+					i := strings.Index(strings.ToLower(sql), tableName)
+					newSQL := fmt.Sprintf(sql[0:i]+"%s"+sql[i+1:], indexID)
+					if grant.GrantOption {
+						newSQL += " with grant option"
+					}
+					_, err := e.handleDCL(ctx, session, newSQL, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
