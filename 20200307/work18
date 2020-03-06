@@ -1,0 +1,304 @@
+20200302
+
+工作周报 - 李镇邦 20200224 ~ 20200228
+
+完成：
+1. WARP-42080: 加入ip名单支持正则表达式写入，并增加单元测试
+2. WARP-42233: 加入用户连接登陆空闲时间限制，默认30min长时间不操作会自动断开连接 
+3. WARP-41393: 增加赋权主表时，附在主表上的global索引表会赋同样的权限
+
+其他：
+1. 检测kundb不支持的mysql语法类型，并作统计开jira，WARP-42290
+
+本周：
+1. 支持kundb权限方面的问题，增加JDBC接口验证用户限制单元
+2. global索引表重构，或增加拉取表权限的接口
+
+
+#!/bin/bash
+echo "Hello World !"
+
+metainfo
+
+
+1.这个函数调用的时候就是不走正常流程关闭，具体效果可以看jira，因为这个条件没有外部触发的条件，只是开了goroutine到时去执行.执行的时候没有固定的地方可以return，调用的时候只是起点，终点只能结束在函数里
+
+2. 不走case我测过行不通，估计因为不是所有的mysql报文都由客户发起，连接断开时也要进行mysql通讯报文传递，server还会接收一些处理结束的保文，之前已经关闭计时器这里的setinterval打不开会一直锁住资源，不让处理，就导致用户不能正常退出客户端，卡在界面不动
+![Screenshot_from_2020-03-02_20-22-42](/uploads/ebe9f16b79ca3fa803dc5007b108ff61/Screenshot_from_2020-03-02_20-22-42.png)
+
+
+// connectionKiller is a process to kill connection
+func (l *Listener) connectionKiller(c *Conn) {
+	connCount.Add(-1)
+	servenv.CurrentConns.Add(-1)
+	log.Warningf("killing connection (exceeded idleTimeout: %v) ", c.ticks.Interval())
+	l.handler.ConnectionClosed(c)
+	c.Close()
+	if audit.IsAuditLoggerExisted() {
+		audit.AuditLogger.WithFields(logrus.Fields{
+			"Time":         time.Now().Format(time.RFC850),
+			"Action":       actionQuit,
+			"RemoteAddr":   c.RemoteAddr(),
+			"ConnectionID": c.ConnectionID,
+			"User":         c.User,
+		}).Info("Server")
+	}
+	c.ticks.Stop()
+	if x := recover(); x != nil {
+		log.Errorf("mysql_server caught panic:\n%v\n%s", x, tb.Stack(4))
+	}
+}
+
+
+c.ticks.Start(func() { l.connectionKiller(c) })
+
+
+mysql -h -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
+
+
+{
+  "BlackListIP": ["172.16.1.236","172.16.1.235","172.16.1.238"],
+  "WhiteListIP": ["172.26.0.93", "127.0.0.1"]
+}
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
+
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+E0303 13:45:06.153791    9876 server.go:321] Cannot read post-SSL client handshake response from client 1 (127.0.0.1:47812): io.ReadFull(header size) failed: tls: client didn't provide a certificate
+E0303 13:46:09.623856    9876 server.go:321] Cannot read post-SSL client handshake response from client 2 (127.0.0.1:47822): io.ReadFull(header size) failed: tls: client didn't provide a certificate
+
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-key=kungate-client-key.pem --ssl-cert=kungate-client-cert.pem --ssl-ca=ca-cert.pem --ssl-mode=VERIFY_CA
+
+var effectiveTimeout time.Duration
+if conn.StartTime.Add(effectiveTimeout).Sub(now) <= 0 {
+			log.Warningf("killing transaction (exceeded effectiveTimeout: %v): %s", effectiveTimeout, conn.Format(nil))
+			tabletenv.KillStats.Add("Transactions", 1)
+			conn.Close()
+			conn.conclude(TxKill)
+		} else {
+			axp.activePool.Put(conn.TransactionID)
+		}
+
+
+
+
+			/*check the if secondary vindex exist */
+			indexName, tableName, _ := e.getSecondaryVindex(ksName, tableName)
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+修改manager的metainfo
+metainfo->configuration.yaml->kundb-env.sh.ftl->oltp-kungate.up.sh.raw
+
+I0304 19:24:45.181839   25929 service_map.go:65] Registering vtgateservice for grpc, disable it with -grpc-vtgateservice service_map parameter
+
+
+gRPC默认基于HTTP/2的TLS 对客户端和服务端交换的所有数据进行加密传输GRPC使用HTTP/2作为应用层的传输协议
+重连机制通过启动一个Goroutine异步的去建立连接实现的，可以避免服务器因为连接空闲时间过长关闭连接、服务器重启等造成的客户端连接失效问题。也就是说通过GRPC的重连机制可以完美的解决连接池设计原则中的空闲连接的超时与保活问题。
+
+netstat -antp
+connectivity 模块很短，只有常量定义、String() 方法，和一个 Reporter 接口
+
+在这种状态下，由于缺少新的或待处理的RPC，channel没有尝试创建连接。在这种状态下可以创建新的RPC。任何在通道上启动RPC的尝试都会使该通道退出此状态以进行连接。当通道上没有可配置IDLE_TIMEOUT的RPC活动时，即在此期间没有新的或挂起的（活动的）RPC，则READY或CONNECTING的通道会切换到IDLE。另外，当没有活动或暂挂的RPC时收到GOAWAY的通道也应切换到IDLE，以避免试图断开连接的服务器上的连接过载。
+
+selectNode, ok := sqlInfo.stmt.(*sqlparser.Select)
+			if ok {
+				if e.contains(selectNode.Comments, "/*!99999 select for mfed ddl*/") {
+					return e.handleOther(ctx, session, sql, bindVars, target)
+				}
+				return e.handleExec(ctx, session, sqlInfo, bindVars, target)
+			}
+
+
+	/*check the if secondary vindex exist */
+			indexName, tableName, _ := e.getSecondaryVindex(ksName, tableName)
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+直连
+ps -ef |grep mysql
+mysql --socket=/home/transwarp/go/vtdataroot/vt_0000000110/mysql.sock -uroot
+
+mysql> select * from TABLE_PRIVILEGES
+    -> where TABLE_NAME = 'customer'
+    -> and PRIVILEGE_TYPE in ('select','insert','update','delete');
++-----------+---------------+--------------+------------+----------------+--------------+
+| GRANTEE   | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME | PRIVILEGE_TYPE | IS_GRANTABLE |
++-----------+---------------+--------------+------------+----------------+--------------+
+| 'lzb'@'%' | def           | kundb1       | customer   | SELECT         | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | INSERT         | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | UPDATE         | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DELETE         | NO           |
++-----------+---------------+--------------+------------+----------------+--------------+
+
+
+/*check the same name if exists in mysql*/
+			indexRes, err := e.handleShow(ctx, session, "show index from "+tableName, false, make(map[string]*querypb.BindVariable), target)
+			if err != nil {
+				return "", "", nil, err
+			}
+			for _, v := range indexRes.Rows {
+				if strings.ToLower(v[2].ToString()) == indexName {
+					return "", "", nil, fmt.Errorf("index %s already exists", indexName)
+				}
+			}
+			/*show columns first */
+			columnRes, err := e.handleShow(ctx, session, "show full columns from "+tableName, false, make(map[string]*querypb.BindVariable), target)
+			if err != nil {
+				return "", "", nil, err
+			}
+			for _, v := range columnRes.Rows {
+				if v[0].ToString() == column {
+				}
+			}
+
+
+			//for pull privileges in table
+			privRes, err = e.handleMfedAnyShard(ctx, session, "select * from TABLE_PRIVILEGES where TABLE_NAME = "+tableName, make(map[string]*querypb.BindVariable), target)
+			if err != nil {
+				return "", "", nil, err
+			}
+
+
+indexName := strings.ToLower(ddlNode.IndexSpec.IndexName.Name.String())
+
+			if privRes != nil {
+				for _, v := range privRes.Rows {
+					grantee := v[0].ToString()
+					priv := v[4].ToString()
+					e.handleDCL(ctx, session, "grant "+priv+" on "+indexName+" to "+grantee, make(map[string]*querypb.BindVariable), target)
+				}
+			}
+
+mysql> select * from TABLE_PRIVILEGES;
++-----------+---------------+--------------+------------+------------------------+--------------+
+| GRANTEE   | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME | PRIVILEGE_TYPE         | IS_GRANTABLE |
++-----------+---------------+--------------+------------+------------------------+--------------+
+| 'lzb'@'%' | def           | kundb1       | customer   | SELECT                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | INSERT                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | UPDATE                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DELETE                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | CREATE                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DROP                   | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | REFERENCES             | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | INDEX                  | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | ALTER                  | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | CREATE VIEW            | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | SHOW VIEW              | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | TRIGGER                | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DELETE VERSIONING ROWS | NO           |
+| 'lzb'@'%' | def           | kundb1       | item1      | TRIGGER                | NO           |
+| 'lzb'@'%' | def           | kundb1       | id1        | TRIGGER                | NO           |
++-----------+---------------+--------------+------------+------------------------+--------------+
+15 rows in set (0.00 sec)
+
+%s string
+create global unique index ry_zzbdxx_bdbh_rybh_idx on ry_zzbdxx(BDBH);
+
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: target: kundb1..master, no valid tablet
+
+	if privRes != nil {
+		for _, v := range privRes.Rows {
+			grantee := v[0].ToString()
+			log.Infof("have grantee: %s", grantee)
+			priv := v[4].ToString()
+			e.handleDDL(ctx, session, "grant "+priv+" on "+indexName+" to "+grantee, bindVars, target)
+		}
+	}
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+show tables;
+create user lzb;
+grant all on item1 to lzb;
+show grants for lzb;
+create global unique index id1 on item1(price);
+show grants for lzb;
+
+mysql> grant INSERT on id1 to 'lzb'@'%';
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: syntax error at position 30 near '@'
+mysql> grant INSERT on id1 to 'lzb';
+Query OK, 0 rows affected (0.04 sec)
+
+DDL:Create drop
+DCL:grant/revoke
+資料定義語言：
+DDL(Data Definition Language)
+
+用來定義資料庫、資料表、檢視表、索引、預存程序、觸發程序、函數等資料庫物件。
+可以用來建立、更新、刪除 table,schema,domain,index,view
+
+常見的指令有：
+CREATE 建立資料庫的物件
+ALTER 變更資料庫的物件
+DROP 刪除資料庫的物件
+
+ 
+
+資料操作語言：
+DML(Data Manipulation Language)
+
+用來處理資料表裡的資料。
+
+常見的指令有：
+INSERT 新增資料到資料表中
+UPDATE 更改資料表中的資料
+DELETE 刪除資料表中的資料
+
+ 
+
+資料控制語言：
+DCL(Data Control Language)
+
+用來控制資料表、檢視表之存取權限，提供資料庫的安全性。
+
+常見的指令有：
+GRANT 賦予使用者使用權限
+REVOKE 取消使用者的使用權限
+COMMIT 完成交易作業
+ROLLBACK 交易作業異常，將已變動的資料回復到交易開始的狀態
+
+ 
+
+資料查詢語言：
+DQL(Data Query Language)
+
+負責進行資料查詢，不會對資料本身進行修改的語句
+
+用來查詢資料表裡的資料。
+
+指令只有一個：
+SELECT 選取資料庫中的資料
+
+各類輔助指令：SELECT,FROM,WHERE,GROUP BY,ORDER BY
+
+indexName := strings.ToLower(ddl.IndexSpec.IndexName.Name.String())
+	if privRes != nil {
+		for _, v := range privRes.Rows {
+			grantee := v[0].ToString()[:len(v[0].ToString())-4]
+			log.Infof("have grantee: %s", grantee)
+			priv := v[4].ToString()
+			grantSQL := "grant "+priv+" on "+indexName+" to "+grantee
+			log.Infof("grantSQL: %s", grantSQL)
+			e.handleDCL(ctx, session, grantSQL, make(map[string]*querypb.BindVariable), target)
+		}
+	}
+
+
+remoteAddr := conn.RemoteAddr().String()
+		i := strings.LastIndex(remoteAddr, ":")
+		if i != -1 {
+			remoteAddr = remoteAddr[:i]
+		}
