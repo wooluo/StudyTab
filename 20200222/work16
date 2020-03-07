@@ -414,6 +414,7 @@ E0221 20:04:01.830966    6406 server.go:234] Error parsing ip_blocked_file confi
 		l.handler.ConnectionClosed(c)
 	}()
 
+<<<<<<< Updated upstream
 	ipBlocked  = flag.String("ip_blocked_file", "", "kundb ip blocked management file")
 
 
@@ -459,3 +460,90 @@ data := []byte(*ipConfig)
 					}
 				}
 			}
+=======
+
+在 C++ 中，每一个对象都能通过 this 指针来访问自己的地址。this 指针是所有成员函数的隐含参数。因此，在成员函数内部，它可以用来指向调用对象。
+
+var slice1 []type = make([]type, len)
+
+也可以简写为
+
+slice1 := make([]type, len)
+
+* 声明变量，默认 map 是 nil */
+var map_variable map[key_data_type]value_data_type
+
+/* 使用 make 函数 */
+map_variable := make(map[key_data_type]value_data_type)
+
+值语义：
+
+变量赋值后，两个变量拥有的存储空间是独立的，相互之间不影响
+
+引用语义：
+
+变量引用赋值后，两个变量只有一份的存储空间，相互之间可以理解为是别名，操作任意一个变量，就可以认为是操作另外一个变量，效果完全一样
+
+就是a和b都有自己对应的存储空间，存储的是一个struct，里面有一个指针，他们的值是相同的，这个指针都指向同一块底层数据
+
+struct 类似于 java 中的类，可以在 struct 中定义成员变量。
+要访问成员变量，可以有两种方式：
+ 1.通过 struct 变量.成员 变量来访问。
+2.通过s truct 指针.成员 变量来访问。
+不需要通过 getter, setter 来设置访问权限。
+
+type People struct {
+   Name string `json:"name_title"`
+   Age int `json:"age_size"`
+}
+ 
+func JsonToStructDemo(){
+   jsonStr := `
+{
+"name_title": "jqw"
+"age_size":12
+}
+`
+   var people People
+   json.Unmarshal([]byte(jsonStr), &people)
+   fmt.Println(people)
+}
+ 
+func main(){
+   JsonToStructDemo()
+}
+
+// convert json to struct
+
+package main
+
+
+import (
+    "fmt"
+    "encoding/json"
+)
+
+type Host struct {
+    IP string
+    Name string
+}
+
+func main() {
+
+    b := []byte(`{"IP": "192.168.11.22", "name": "SKY"}`)
+
+    m := Host{}
+
+    err := json.Unmarshal(b, &m)
+    if err != nil {
+
+        fmt.Println("Umarshal failed:", err)
+        return
+    }
+
+
+    fmt.Println("m:", m)
+    fmt.Println("m.IP:", m.IP)
+    fmt.Println("m.Name:", m.Name)
+}
+>>>>>>> Stashed changes
