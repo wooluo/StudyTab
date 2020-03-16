@@ -187,7 +187,7 @@ for {
 
 http://172.16.1.41:10080/OLTP/kundb/merge_requests/431/diffs
 
-func (axp *TxPool) transactionKiller() {
+func (axp *TxPool) transactionKiller() {c
 	defer tabletenv.LogError()
 	now := time.Now()
 	for _, v := range axp.activePool.GetOutdated(time.Duration(0), "for rollback") {
@@ -374,3 +374,7 @@ if len(table.ColumnVindexes) > 1 {
 			}
 			return indexName, tableName, nil
 		}
+
+conn.RemoteAddr().String()
+
+metainfo

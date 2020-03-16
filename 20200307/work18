@@ -302,3 +302,20 @@ remoteAddr := conn.RemoteAddr().String()
 		if i != -1 {
 			remoteAddr = remoteAddr[:i]
 		}
+
+
+/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts
+
+1.yaml文件
+2. 整理近3周资料 审查brpc
+
+grpc/keepalive
+这个包分别为client和server定义了测试传输路径是否work的参数来协调池中的连接数
+client端：
+当一段时间（10s）客户端没有请求发送，客户端就会向server发送ping消息，等待一段时间看传输是否受损，来检测server的状态
+server端：维护最大空闲连接时间，最大空闲连接数，默认值最大，我们可以调用这个来完成对用户连接的空闲时间管理
+我们可以通过grpc_connection_idle_time参数来配置
+			MaxConnectionIdle: *GRPCConnectionIdleTime,
+MaxConnectionIdle
+
+30 * 1e9

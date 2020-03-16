@@ -1,0 +1,500 @@
+0309
+1. WARP-42233: 解决计时器非正常返回问题，维护连接断开后正常审计和计数
+2. 在manager为参数所做加上meta-info
+3. WARP-42372: JDBC的gRPC路径加上IP限制
+4. 查gRPC关于连接断活时间的原理，整理jira记录：http://172.16.1.168:8090/pages/viewpage.action?pageId=23485673
+5. WARP-41393：完成拉取一个表上的所有权限并 赋权在另一张表上的功能
+
+
+private List<PermissionVo> findPrincPermissions(SessionVo sessionVo, PrincipalVo principalVo,
+                                                  String component, List<String> dataSource,
+                                                  String substring, String action, boolean subtree, Boolean inheritance) throws GuardianException {
+    if (CollectionUtils.isEmpty(dataSource) && StringUtils.isEmpty(component) && subtree) {
+      GenericFilterParams filterParams = new GenericFilterParams.Builder().searchValue(substring).build();
+      return PermUtil.of(permManager.getPrincPerms(sessionVo, principalVo, filterParams, inheritance).getBody());
+    }
+
+    if (StringUtils.isNotEmpty(component) && (CollectionUtils.isNotEmpty(dataSource) || subtree)) {
+      ResourceVo resourceVo = new ResourceVo.Builder().serviceName(component).dataSource(DataSourceUtil.toV2(dataSource)).build();
+      if (CollectionUtils.isNotEmpty(dataSource)) {
+        Assert.assertLegal(resourceVo);
+      }
+      PermFilterParams filterParams = new PermFilterParams.Builder()
+          .resourceVo(resourceVo)
+          .scope(subtree ? Scope.SUB_TREE : Scope.ONE_LEVEL)
+          .action(action)
+          .searchValue(substring)
+          .build();
+      return PermUtil.of(permManager.getPrincPerms(sessionVo, principalVo, filterParams, inheritance).getBody());
+    }
+    return Collections.emptyList();
+  }
+
+
+kerberos不标准 ldap标准 开安全一些web类的语言不一定work
+622  ResourceStorage.getChildNodes(resourceServiceMapper, resourceMapper, parentResourceVo).forEach(resourceNode -> resourceIds.add(resourceNode.getResourceId()));
+
+  <select id="selectUserAuthorizedResources" resultMap="ResourceMap">
+        SELECT DISTINCT
+            R.resource_id,
+            R.path,
+            R.external_id,
+            R.service_id
+        FROM gs_resources R LEFT JOIN gs_perm P ON R.resource_id = P.resource_id
+            LEFT JOIN gs_user_perm UP ON P.perm_id = UP.perm_id
+        WHERE R.service_id = (SELECT service_id FROM gs_resource_services WHERE service_name = #{serviceName})
+              AND UP.user_id = (SELECT user_id FROM gs_user WHERE username = #{username})
+        <if test="action != null">
+            AND P.action = #{action}
+        </if>
+    </select>
+
+ <select id="selectGroupAuthorizedResources" resultMap="ResourceMap">
+        SELECT DISTINCT
+            R.resource_id,
+            R.path,
+            R.external_id,
+            R.service_id
+        FROM gs_resources R LEFT JOIN gs_perm P ON R.resource_id = P.resource_id
+            LEFT JOIN gs_group_perm GP ON P.perm_id = GP.perm_id
+        WHERE R.service_id = (SELECT service_id FROM gs_resource_services WHERE service_name = #{serviceName})
+              AND GP.group_id = (SELECT group_id FROM gs_group WHERE group_name = #{groupName})
+        <if test="action != null">
+            AND P.action = #{action}
+        </if>
+    </select>
+
+ allUserPerms.values().forEach(userPerm -> {
+            List<NodeVo> ds = userPerm.getDataSource();
+            if (StringUtils.containsKeyword(ds, filterParams.getSearchValue())) {
+              result.add(PrincPermVo.userPerm(princ, new PermVo(new ResourceVo.Builder().serviceName(userPerm.getServiceName())
+                  .serviceType(userPerm.getServiceType()).dataSource(ds).build(),
+                  new PermActionVo(userPerm.getAction())), userPerm.getGrantOption()));
+            }
+          });
+
+// keyword matching can only be done in memory
+      Map<Long, ResourceVo> resources = getRequestedResourcesMap(resourceServiceMapper, resourceMapper, filterParams).entrySet()
+          .stream().filter(e -> StringUtils.containsKeyword(e.getValue().getDataSource(), filterParams.getSearchValue()))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      if (MapUtils.isEmpty(resources)) {
+        return EMPTY_PRINC_SEARCH_RESULT;
+      }
+      List<Long> resourceIds = new ArrayList<>(resources.keySet());
+
+allUserPerms.values().forEach(userPerm -> {
+            List<NodeVo> ds = userPerm.getDataSource();
+            if (StringUtils.containsKeyword(ds, filterParams.getSearchValue())) {
+              result.add(PrincPermVo.userPerm(princ, new PermVo(new ResourceVo.Builder().serviceName(userPerm.getServiceName())
+                  .serviceType(userPerm.getServiceType()).dataSource(ds).build(),
+                  new PermActionVo(userPerm.getAction())), userPerm.getGrantOption()));
+            }
+          });
+
+if(CollectionUtils.isNotEmpty(userResources)) {
+            userResources.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                userAuthorizedNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+
+
+if(CollectionUtils.isNotEmpty(groupDataNodes)) {
+            groupDataNodes.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+
+             if (CollectionUtils.isNotEmpty(groupDataNodes)) {
+              groupDataNodes.forEach(resource -> groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1)));
+            }
+
+getAuthorizedDataNodes
+
+
+
+mysql> status;
+--------------
+mysql  Ver 14.14 Distrib 5.7.28, for Linux (x86_64) using  EditLine wrapper
+
+Connection id:		444
+Current database:	
+Current user:		root@localhost
+SSL:			Not in use
+Current pager:		stdout
+Using outfile:		''
+Using delimiter:	;
+Server version:		5.7.28-log MySQL Community Server (GPL)
+Protocol version:	10
+Connection:		Localhost via UNIX socket
+Server characterset:	utf8
+Db     characterset:	utf8
+Client characterset:	utf8
+Conn.  characterset:	utf8
+UNIX socket:		/home/transwarp/go/vtdataroot/vt_0000000101/mysql.sock
+Uptime:			34 min 30 sec
+
+Threads: 42  Questions: 907  Slow queries: 0  Opens: 146  Flush tables: 1  Open tables: 140  Queries per second avg: 0.438
+--------------
+
+
+mysql> status;
+--------------
+mysql  Ver 14.14 Distrib 5.7.28, for Linux (x86_64) using  EditLine wrapper
+
+Connection id:		1
+Current database:	kundb1
+Current user:		vt_app@localhost
+SSL:			Not in use
+Current pager:		stdout
+Using outfile:		''
+Using delimiter:	;
+Server version:		KunDB-1.3.0 MariaDB Server
+Protocol version:	10
+Connection:		127.0.0.1 via TCP/IP
+Server characterset:	utf8
+Db     characterset:	utf8
+Client characterset:	utf8
+Conn.  characterset:	utf8
+TCP port:		15307
+--------------
+
+Some commands are issued as exec'd tools, some are handled by connecting via the mysql protocol.
+
+
+mysqld
+
+SQL后台程序(即MySQL服务器)。要想使用客户端程序，该程序必须运行，因为客户端通过连接服务器来访问数据库。参见5.3节，“mysqld：MySQL服务器”。
+mysqld意思是mysql daemon，在后台运行，监听3306端口
+
+· mysql
+
+交互式输入SQL语句或从文件以批处理模式执行它们的命令行工具。参见8.3节，“mysql：MySQL命令行工具”。
+
+
+vtgate.INFO
+I0310 10:13:07.167117    3266 file.go:38] Root for cell[global] is /kundb/global
+I0310 10:13:07.167137    3266 file.go:43] Will create /kundb/global/keyspaces/kundb1/VSchema
+I0310 10:13:07.176878    3266 conn.go:323] zk conn: session for addr localhost:21811,localhost:21812,localhost:21813 event: {EventNodeDataChanged Unknown /kundb/test/SrvVSchema <nil> }
+I0310 10:13:07.177019    3266 auth_server_ldap.go:62] Not configuring AuthServerLdap because mysql_ldap_auth_config_file and mysql_ldap_auth_config_string are empty
+I0310 10:13:07.177144    3266 service_map.go:65] Registering vtgateservice for grpc, disable it with -grpc-vtgateservice service_map parameter
+I0310 10:13:07.180138    3266 grpc_server.go:158] Listening for gRPC calls on port 15991
+I0310 10:13:07.180187    3266 unix_socket.go:36] Not listening on socket file
+I0310 10:13:18.719353    3266 vtgate.go:443] SQLLog: Session Info: 1d5607d3-1460-422c-9f16-1d0a9f28638a , Executed sql: select @@version_comment limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 8.305971ms
+I0310 10:13:22.995313    3266 vtgate.go:443] SQLLog: Session Info: 1d5607d3-1460-422c-9f16-1d0a9f28638a , Executed sql: select DATABASE(), USER() limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 9.793193ms
+I0310 10:13:23.029424    3266 vtgate.go:443] SQLLog: Session Info: 1d5607d3-1460-422c-9f16-1d0a9f28638a , Executed sql: select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 32.886266ms
+E0310 10:13:23.029895    3266 server.go:796] Got unhandled packet from client 1 (127.0.0.1:37976), returning error: [9]
+
+
+audit
+{"Action":"Login","AuthResult":"Success","ConnectionID":1,"RemoteAddr":{"IP":"127.0.0.1","Port":37976,"Zone":""},"Time":"Tuesday, 10-Mar-20 10:13:18 CST","User":"vt_app","level":"info","msg":"Auth","time":"2020-03-10T10:13:18+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"7.87","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":0,"SQL":"select @@version_comment limit 1","SQLType":"DML","Session":"1d5607d3-1460-422c-9f16-1d0a9f28638a","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-03-10T10:13:18+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"9.15","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":0,"SQL":"select database(), user() limit 1","SQLType":"DML","Session":"1d5607d3-1460-422c-9f16-1d0a9f28638a","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-03-10T10:13:22+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"32.50","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":0,"SQL":"select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database limit 1","SQLType":"DML","Session":"1d5607d3-1460-422c-9f16-1d0a9f28638a","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-03-10T10:13:23+08:00"}
+
+
+https://172.26.5.95:8380/swagger-ui.html
+
+mysql -h172.26.5.94 -P15307 -uvt_app -p123 --enable-cleartext-plugin
+
+mysql> select user, host from mysql.user;
++-----------------+------------+
+| user            | host       |
++-----------------+------------+
+| lzb             | %          |
+| orc_client_user | %          |
+| root            | %          |
+| vt_repl         | %          |
+| zjj             | %          |
+| root            | 127.0.0.1  |
+| root            | ::1        |
+| root            | localhost  |
+| vt_allprivs     | localhost  |
+| vt_app          | localhost  |
+| vt_appdebug     | localhost  |
+| vt_dba          | localhost  |
+| vt_filtered     | localhost  |
+| root            | tw-node595 |
++-----------------+------------+
+14 rows in set (0.01 sec)
+
+current_user: The authenticated user name and host name
+user: 	The user name and host name provided by the client
+mysql在登陆时会用最精确匹配user表中的帐户，host来作为当前的用户
+
+Try the the CURRENT_USER() function. This returns the username that MySQL used to authenticate your client connection. It is this username that determines your privileges.
+
+This may be different from the username that was sent to MySQL by the client (for example, MySQL might use an anonymous account to authenticate your client, even though you sent a username). If you want the username the client sent to MySQL when connecting use the USER() function instead.
+
+The value indicates the user name you specified when connecting to the server, and the client host from which you connected. The value can be different from that of CURRENT_USER().
+
+mysql> select user, host from mysql.user;
+ERROR 1045 (HY000): vtgate: http://tw-node594:15001/: target: _mfed.0.master, used tablet: transwarp-800 (tw-node595), vttablet: rpc error: code = Unknown desc = Target User Not Found (errno 1045) (sqlstate HY000) during query: change user to 'lzb', CallerID: lzb
+mysql> show grants;
+ERROR 1045 (HY000): vtgate: http://tw-node594:15001/: target: _mfed.0.master, used tablet: transwarp-800 (tw-node595), vttablet: rpc error: code = Unknown desc = Target User Not Found (errno 1045) (sqlstate HY000) during query: change user to 'lzb', CallerID: lzb
+
+一个用户名需要在Guardian和KunDB里（使用 CREATE USER 命令）都成功创建，才能保证该用户能够访问KunDB并对数据进行操作。
+
+transwarp@transwarp-Latitude-5480:~/go/vtdataroot$ mysql -h172.26.5.94 -P15307 -ulzb -p --enable-cleartext-plugin
+Enter password: 
+ERROR 2003 (HY000): Can't connect to MySQL server on '172.26.5.94' (111)
+
+transwarp@transwarp-Latitude-5480:~/go/vtdataroot$ mysql -h172.26.5.94 -P15307 -ulzb -p --enable-cleartext-plugin
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 35
+Server version: KunDB-1.3.0 MariaDB Server
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> select user from mysql.user;
++-----------------+
+| user            |
++-----------------+
+| lzb             |
+| orc_client_user |
+| root            |
+| vt_repl         |
+| zjj             |
+| root            |
+| root            |
+| root            |
+| vt_allprivs     |
+| vt_app          |
+| vt_appdebug     |
+| vt_dba          |
+| vt_filtered     |
+| root            |
++-----------------+
+14 rows in set (0.06 sec)
+
+vtGate框架图
+
+gRPC
+一个连接上可以多路复用，并发处理多个请求和响应
+
+MySQL has many built-in functions.
+
+This reference contains string, numeric, date, and some advanced functions in MySQL.
+
+解决“一个用户名需要在Guardian和KunDB里（使用 CREATE USER 命令）都成功创建，才能保证该用户能够访问KunDB并对数据进行操作。”这一操作，在guardian注册之后可以在mysql中认证注册,设立账户，也通过mysql的认证，这样我们不需要在kunDB create user。那边也可以正常的设定user了
+
+ gofmt -s -w \
+    /home/transwarp/go/src/github.com/youtube/vitess/go/mysql/server.go
+dbconfigs
+
+CURRENT_USER
+
+在为可能输入较多的语句，且语句中包含有分号。所以我们用delimiter，也叫定界符/分号
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+create definer=lzb trigger q before delete on customer for each row begin insert into item1 values(6, 'baby', 35); end;//
+
+kundb中：
+mysql> create definer=lzb trigger q before delete on customer for each row begin insert into item1 values(6, 'baby', 35); end;//
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: syntax error at position 27 near 'trigger'
+mysql中：
+Database changed
+mysql> create definer=lzb trigger q before delete on customer for each row begin insert into item1 values(6, 'baby', 35); end;//
+Query OK, 0 rows affected (0.02 sec)
+
+1015 // 3809
+
+delimiter $$
+  
+CREATE  DEFINER=`vt_app`@`localhost` TRIGGER Tri_Item_Insert BEFORE INSERT ON item1
+FOR EACH ROW
+BEGIN
+        insert into item1 values(6, 'baby', 35)
+END; $$
+
+=============
+如果在GRANT 语句中指定的帐户不存在， GRANT可以在稍后讨论NO_AUTO_CREATE_USERSQL模式的条件下创建它 。还可以使用它 GRANT来指定非特权帐户特征，例如是否使用安全连接和限制访问服务器资源。
+
+但是，GRANT从MySQL 5.7.6起，不建议使用创建帐户或定义非特权特性。相反，使用CREATE USER或 执行这些任务 ALTER USER。
+
+You should use FLUSH PRIVILEGES; only if you modify the grant tables directly using statements such as INSERT, UPDATE, or DELETE.
+
+
+// WARP-41393: check if the secondary vindex exist, we will grant the same privilege to the vindex table
+			indexName, tableName, _ := e.getSecondaryVindex(strings.ToLower(grant.GrantIdent.Schema.String()), strings.ToLower(grant.GrantIdent.Table.String()))
+			if len(indexName) != 0 {
+				for _, index := range indexName {
+					// GRANT <PRIVILEGES> ON <table> TO user_name -> GRANT <PRIVILEGES> ON <vindex> TO user_name
+					i := strings.Index(strings.ToLower(sql), tableName)
+					newSQL := fmt.Sprintf(sql[0:i] + index + sql[i+len(tableName):])
+					if grant.GrantOption {
+						newSQL += " with grant option"
+					}
+					_, err := e.handleDCL(ctx, session, newSQL, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+
+The USER(), CURRENT_USER() (or CURRENT_USER), UUID(), VERSION(), and LOAD_FILE() functions are replicated without change and thus do not work reliably on the slave unless row-based replication is enabled. (See Section 17.2.1, “Replication Formats”.)
+
+USER() and CURRENT_USER() are automatically replicated using row-based replication when using MIXED mode, and generate a warning in STATEMENT mode. (See also Section 17.5.1.8, “Replication of CURRENT_USER()”.) This is also true for VERSION() and RAND().
+
+
+// This method COULD transfer privileges from one table to another and grantee with '@%'
+// It is now just for secondary vindex table, but we should restrict the privileges for it
+func (e *Executor) genPrivileges(ctx context.Context, session *vtgatepb.Session, ddlNode *sqlparser.DDL, target querypb.Target) (*sqltypes.Result, error) {
+	indexName := strings.ToLower(ddlNode.IndexSpec.IndexName.Name.String())
+	tableName := "'" + strings.ToLower(ddlNode.Table.Name.String()) + "'"
+	privRes, err := e.handleMfedAnyShard(ctx, session, "select * from information_schema.TABLE_PRIVILEGES where TABLE_NAME = "+tableName, make(map[string]*querypb.BindVariable), target, true)
+	if err != nil {
+		return nil, err
+	}
+	if privRes != nil {
+		for _, v := range privRes.Rows {
+			grantee := v[0].ToString()
+			commaLoc := strings.LastIndex(grantee, "@")
+			if commaLoc > 0 {
+				grantee = grantee[:commaLoc]
+			}
+			priv := v[4].ToString()
+			grantSQL := "grant " + priv + " on " + indexName + " to " + grantee
+			log.Infof("grantSQL: %s", grantSQL)
+			e.handleDCL(ctx, session, grantSQL, make(map[string]*querypb.BindVariable), target)
+		}
+	}
+	return privRes, nil
+}
+
+1.我之前写的ip限制那部分，读mysql/server的时候比较烦 不易读，我重新在conn封装成函数。至于单元测试当时没做现在也没做 是因为如果加了测试那部分配置文件就要往外提或者另写一个解码配置文件的函数，这样的话剩下的函数部分就只剩审计了，很别扭，当时时间紧也没想出好的办法，现在把处理ip那部分写成私有，就没加单元测试。已经测试过功能ok，如果有必要的话我提mr给你改一下
+2.WARP-41406 mysql提交给你的mr是因为user()对于kundb 没用，改很少 你有时间看可以改你就改 感觉不需要就关了
+
+socket不能直连
+mysql到vtgate这一段也需要认证，重用vt_app连接
+
+## Issues
+If vindexes are seen as tables, there are issues about name collisions. This can be resolved a few ways:
+1. Make the vindex names be part of the table name space in a keyspace. This will allow the application to address a vindex as `keyspace.my_vdx`. However, we still have a problem if a table of that same name exists. In such situations, the table will hide the vindex. This is not a big issue because a vindex is easy to rename because it does not affect anything beyond the vschema itself.
+2. Make vindexes part of a special keyspce `vindexes`. The problem with this approach is that there can be name collisions between vindexes of different keyspaces. This is a problem that's harder to address.
+3. Provide a special syntax like `vindex(keyspace.my_vdx)`. This feels like overkill and aesthetically unpleasing.
+
+
+flag.Duration("grpc_connection_idle_time", time.Duration(math.MaxInt64), "It is a duration for the amount of time after which an idle connection would be closed by sending a GoAway ")
+
+http://172.16.0.244:8080/browse/WARP-31236
+
+http://172.16.1.41:10080/managability/application-metainfo/blob/dev/TDH%205.0%20service%20standard.md
+
+COM_STATISTICS
+
+linux添加源
+mv /etc/apt/sources.list /etc/apt/sources.list.bakup
+sudo vim /etc/apt/sources.list
+
+#deb cdrom:[Ubuntu 16.04 LTS _Xenial Xerus_ - Release amd64 (20160420.1)]/ xenial main restricted 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial main restricted 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-updates main restricted 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial universe 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-updates universe 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial multiverse 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-updates multiverse 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-backports main restricted universe multiverse 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-security main restricted deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-security universe 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-security multiverse
+deb http://mirrors.aliyun.com/ubuntu/ xenial-backports main restricted universe multiverse 
+
+
+transwarp@transwarp-Latitude-5480:~$ sudo su - postgres
+postgres@transwarp-Latitude-5480:~$ psql
+psql (9.5.19)
+Type "help" for help.
+
+postgres=# \password postgres
+Enter new password: 
+Enter it again: 
+postgres=# create user pguser with password Warp1234
+postgres-# ;
+ERROR:  syntax error at or near "Warp1234"
+LINE 1: create user pguser with password Warp1234
+                                         ^
+postgres=# create user pguser with password 'Warp1234';
+CREATE ROLE
+postgres=# create database db1 owner pguser;
+CREATE DATABASE
+postgres=# grant all privileges on database db1 to pguser;
+GRANT
+postgres=# \q
+postgres@transwarp-Latitude-5480:~$ 
+
+
+ public final S withDeadlineAfter(long duration, TimeUnit unit) {
+    return this.build(this.channel, this.callOptions.withDeadlineAfter(duration, unit));
+  }
+
+
+////
+
+
+
+package io.transwarp.kundb.jdbc;
+
+import java.sql.SQLException;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class ReschedulableTimer extends Timer
+{
+  private TimerTask timerTask;
+  private KundbConnection kundbConnection;
+
+  public ReschedulableTimer(TimerTask timerTask, KundbConnection kundbConnection) {
+    this.timerTask = timerTask;
+    this.kundbConnection = kundbConnection;
+  }
+
+  public void schedule(long delay)
+  {
+    timerTask = new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          kundbConnection.close();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    this.schedule(timerTask, delay);
+  }
+
+  public void reschedule(long delay)
+  {
+    timerTask.cancel();
+    timerTask = new TimerTask()
+    {
+      @Override
+      public void run()
+      {
+        try {
+          kundbConnection.close();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    this.schedule(timerTask, delay);
+  }
+}
+

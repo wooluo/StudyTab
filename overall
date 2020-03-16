@@ -3083,7 +3083,7 @@ transwarp@transwarp-Latitude-5480:~/Downloads$ sudo  cp -r ca.crt /etc/docker/ce
     KEYWORD_MAPPER.put(V1Constants.CLUSTER, V2Constants.CLUSTER);
 mvn clean install -DskipTests -Pdocker
 
-transwarp@transwarp-Latitude-5480:~/Downloads$ docker tag 2e4 node206:5000/transwarp/guardian:guardian-3.2
+transwarp@transwarp-Latitude-5480:~/Downloads$ docker tag 2e4 node206:5000/transwarp/guardian:guardian-3.2F
 transwarp@transwarp-Latitude-5480:~/Downloads$ docker push node206:5000/transwarp/guardian:guardian-3.2
 
  1976  vim /lib/systemd/system/docker.service
