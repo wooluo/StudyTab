@@ -1,0 +1,3747 @@
+work12-20
+0120
+
+上周工作内容：
+完成:
+1.WARP-40784: show create table权限问题 - http://172.16.1.168:8090/pages/viewpage.action?pageId=23474919
+2.WARP-41187： 收尾并总结hyperbase在插件中的权限审核 - http://172.16.1.168:8090/pages/viewpage.action?pageId=23473424
+3.WARP-31985:对接inceptor 加metastore的接口 提供现场支持jar包
+
+进行中：
+3.WARP-41400：修改密码一段时间内不可重复使用	50%
+4.WARP-27294：重构getAuthorizedNode方法到v2	50%
+
+本周工作计划：
+完成上周未全部完成的工作
+1.WARP-41400：本地测试 尽量完成对接
+2.WARP-31985：metastore接口工作对接完成
+3.WARP-27294：重构getAuthorizedNode方法到v2
+
+
+
+m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
+
+version: 1
+dn: m-oid=1.3.6.1.4.1.42.2.27.8.1.33,ou=attributeTypes,cn=pwdpolicy,ou=schema
+m-singlevalue: TRUE
+m-oid: 1.3.6.1.4.1.42.2.27.8.1.33
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.27
+objectclass: metaTop
+objectclass: metaAttributeType
+objectclass: top
+m-name: pwdHistLiveDays
+creatorsname: uid=admin,ou=system
+m-equality: integerMatch
+m-length: 0
+
+
+pwdHistLiveDays
+
+import static org.jasig.cas.client.authentication.AuthenticationFilter.CONST_CAS_SKIP_REDIRECTION;
+import static org.jasig.cas.client.util.HttpServletRequestWrapperFilter.CONST_CAS_SKIP_WRAPPING;
+把你本地的~/.m2/repository/org/jasig/cas/client/cas-client-core/3.5.1-transwarp-guardian-3.1.3  文件夹删掉再试试看
+
+两次支持
+一次权限chmod 777
+一次打包jar包出问题
+
+
+ long changedTime = DateUtils.getDate( pwdChangedTimeAt.getString() ).getTime();
+
+        long currentTime = DateUtils.getDate( DateUtils.getGeneralizedTime() ).getTime();
+        long pwdAge = ( currentTime - changedTime ) / 1000;
+
+        if ( pwdAge > policyConfig.getPwdMaxAge() )
+        {
+            return 0;
+        }
+
+        warningAge = policyConfig.getPwdMaxAge() - warningAge;
+
+        if ( pwdAge >= warningAge )
+        {
+            long timeBeforeExpiration = ( ( long ) policyConfig.getPwdMaxAge() ) - pwdAge;
+
+            if ( timeBeforeExpiration > Integer.MAX_VALUE )
+            {
+                timeBeforeExpiration = Integer.MAX_VALUE;
+            }
+
+            return ( int ) timeBeforeExpiration;
+
+==========================================================
+
+
+
+                String valueTime = pwdh.getTime();
+                SimpleDateFormat format = new SimpleDateFormat( "yyyy-MM-dd" );
+                try
+                {
+                    Date date1 = format.parse( currentTime );
+                    Date date2 = format.parse( valueTime );
+                    if ( ( int ) ( date1.getTime() - date2.getTime() ) / ( 1000 * 3600 * 24 ) < pwdHistLiveDays )
+                    {
+                        pwdHistLst.add( pwdh );
+                    }
+                    else if ( pwdHistLst.size() > histSize )
+                    {
+                        continue;
+                    }
+                }
+                catch ( ParseException pe )
+                {
+                    LOG.error( "Time format is different", pe );
+                }
+
+
+Exception in thread "main" java.lang.NoClassDefFoundError: io/transwarp/guardian/apacheds/ApacheDsServer
+        at io.transwarp.guardian.examples.StandaloneEnv.main(StandaloneEnv.java:12)
+Caused by: java.lang.ClassNotFoundException: io.transwarp.guardian.apacheds.ApacheDsServer
+        at java.net.URLClassLoader.findClass(URLClassLoader.java:382)
+
+-Pcopy-deps
+
+1.guardian-plugin 31985接口
+2.41400 查报错 时间打上日志 提交 
+3.接口最好开始改
+
+
+0121
+md5sum 
+
+重构的唯一目的就是让我们开发更快，用更少的工作量创造更大的价值。—— 《重构：改善既有代码的设计》
+
+WARP-41400:  Password remains in a period of time in password history
+
+There is a new requirement:
+We cannot use password in the password history and hope to set a certain time for used password so that used cannot use it in a period of time.
+Our pwd history used pwdInhistory to constrain the password number in pwd history and in this MR, the new pwd policy has added in the relative code
+ part.
+
+PermFilterParams permFilterParams = new PermFilterParams.Builder().principal(princ).searchValue(filterParams).build();
+
+getAuthorizedDatanodes
+
+getInheritDatandoes
+
+permMapper
+selectUserAuthorizedDatanodes
+selectRoleAuthorizedDatanodesByUser
+selectRoleAuthorizedDatanodes
+selectGroupAuthorizedDatanodes
+
+
+    } catch (GuardianClientException | TException e) {
+      LOG.error("Fail to filter DBs by privileges. username: [{}]", username, e);
+      throw new HiveAuthzPluginException(e);
+    } catch (HiveAuthzPluginException ex) {
+      LOG.error("Fail to check if user [{}] is the owner of some database ", username, ex);
+      throw ex;
+
+
+<select id="selectResourceUserPerms" resultMap="UserPermMap">
+        SELECT
+            U.username,
+            U.category,
+            P.perm_id,
+            P.resource_id,
+            P.action,
+            UP.grant_option
+        FROM gs_user U LEFT JOIN gs_user_perm UP ON U.user_id = UP.user_id
+            LEFT JOIN gs_perm P ON UP.perm_id = P.perm_id
+        WHERE P.resource_id IN
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+<select id="selectUserAuthorizedResources" resultMap="ResourceMap">
+        SELECT DISTINCT
+            R.resource_id,
+            R.path,
+            R.external_id,
+            R.service_id
+        FROM gs_resources R LEFT JOIN gs_perm P ON R.resource_id = P.resource_id
+            LEFT JOIN gs_user_perm UP ON P.perm_id = UP.perm_id
+        WHERE UP.user_id = (SELECT user_id FROM gs_user WHERE username = #{username})
+    </select>
+
+    <select id="selectRoleResourcePermsByUser" resultMap="RolePermMap">
+        SELECT
+            P.resource_id,
+            P.action,
+            RP.grant_option
+        FROM gs_role_perm RP LEFT JOIN gs_perm P ON RP.perm_id = P.perm_id
+            LEFT JOIN gs_user_role UR ON RP.role_id = UR.role_id
+        WHERE UR.user_id = (SELECT user_id FROM gs_user WHERE username = #{username})
+        AND P.resource_id IN
+        <foreach collection="resourceIds" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+      ResourceServiceMapper resourceServiceMapper = session.getMapper(ResourceServiceMapper.class);
+      ResourceMapper resourceMapper = session.getMapper(ResourceMapper.class);
+
+      // keyword matching can only be done in memory
+      Map<Long, ResourceVo> resources = getRequestedResourcesMap(resourceServiceMapper, resourceMapper, filterParams).entrySet()
+          .stream().filter(e -> StringUtils.containsKeyword(e.getValue().getDataSource(), filterParams.getSearchValue()))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      if (MapUtils.isEmpty(resources)) {
+        return EMPTY_PRINC_SEARCH_RESULT;
+      }
+      List<Long> resourceIds = new ArrayList<>(resources.keySet());
+
+
+selectGroupsAuthorizedDatanodes
+selectRolesAuthorizedDatanodes
+
+getInheritDatandoes
+
+selectUserAuthorizedResources
+selectRoleAuthorizedResourcesByUser
+selectRoleAuthorizedResources
+selectGroupAuthorizedResources
+
+
+selectUserAuthorizedDatanodes
+selectRoleAuthorizedDatanodesByUser
+selectRoleAuthorizedDatanodes
+selectRolesAuthorizedDatanodes
+selectGroupAuthorizedDatanodes
+selectGroupsAuthorizedDatanodes
+
+WARP-27294:
+1. 加action
+2. 测试 加前端写wiki
+
+
+@Param("action") String action
+
+        <if test="action != null">
+            AND P.action = #{action}
+        </if>
+
+
+整理自己的东西
+
+
+  "returnCode": 500,
+  "errorMessage": "Required request body is missing: public java.util.List<io.transwarp.guardian.common.model.v2.ResourceVo> io.transwarp.guardian.server.boot.controller.v2.PermController.getAuthorizedDatanodes(io.transwarp.guardian.common.model.v2.SessionVo,java.lang.String,io.transwarp.guardian.common.model.PrincipalType,io.transwarp.guardian.common.model.v2.ResourceVo,java.lang.String,boolean) throws io.transwarp.guardian.common.exception.GuardianException"
+
+tmp/server-work
+
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \ 
+   "isSystem": false, \ 
+   "password": "123", \ 
+   "username": "admin" \ 
+ }' 'http://localhost:8380/api/v2/login'
+
+
+curl -X GET --header 'Accept: application/json' 'http://localhost:8380/api/v2/perms/authorized-resources?princ=admin&princType=USER&service=inceptor1&inheritance=false'
+
+
+curl -L -H "PRIVATE-TOKEN: swch1r1jLV-fsMe7ZMJn" "http://172.16.1.41:10080/api/v4/projects/402/jobs/artifacts/master/download?job=postcommit" -o artifact.zip
+    unzip artifact.zip
+    mkdir -p guardian-server-boot/src/main/resources/static
+    cp -r public/* guardian-server-boot/src/main/resources/static/
+
+
+   private void validatePasswordClasses( String password, PasswordPolicyConfiguration policyConfig )
+        throws PasswordPolicyException
+    {
+        int minClasses = policyConfig.getPwdMinClasses();
+
+        if ( minClasses > 0 )
+        {
+            byte condition = 0;
+            for ( int i = 0; i < password.length(); i++ )
+            {
+                char c = password.charAt( i );
+                if ( c >= 'a' && c <= 'z' )
+                {
+                    condition |= 1;
+                }
+                else if ( c >= 'A' && c <= 'Z' )
+                {
+                    condition |= 2;
+                }
+                else if ( c >= '0' && c <= '9' )
+                {
+                    condition |= 4;
+                }
+                else if ( c <= 32 || c >= 127 )
+                {
+                    condition |= 16;
+                }
+                else
+                {
+                    condition |= 8;
+                }
+            }
+
+            int curClasses = 0;
+            for ( int i = 0; i < 5; i++ )
+            {
+                if ( ( ( condition & 0xff ) & ( 1 << i ) ) != 0 )
+                {
+                    curClasses++;
+                }
+            }
+
+            if ( curClasses < minClasses )
+            {
+                throw new PasswordPolicyException( "Password should have a minimum of " + minClasses + " classes",
+                    INSUFFICIENT_PASSWORD_QUALITY.getValue() );
+            }
+        }
+    }
+
+291-54-25
+WV5yu0P3HhKxh8pCs55S-TDH
+
+curl -X GET --header 'Accept: application/json' 'http://localhost:8380/api/v2/perms/authorized-resources?
+princ=admin&princType=USER&service=inceptor1&inheritance=false'
+
+
+/home/transwarp/.m2/repository/org/apache
+
+week1 kerberous
+week2 docker/k8s/maven
+week3 git
+week4 project refactor
+week5 ldap
+week6 apacheds/fortress/lmdb
+week7 ldap search logic/ fortress 
+week8 ABAC
+week9 ldap operation
+week10 hbase / coprocessor
+
+I23IvHIq
+
+touch 
+#!/bin/bash
+# This is used to ...
+
+        dn:dc=transwarp,dc=io
+        objectclass:dcObject
+        objectclass:organization
+        o:Transwarp,Inc.
+        dc:Transwarp
+
+        dn:ou=Manager,dc=transwarp,dc=io
+        objectclass:organizationalRole
+        cn:Manager
+
+ldap部署手册
+http://172.16.1.168:8090/pages/viewpage.action?pageId=3998300
+
+
+git reset HEAD . 重塑缓存区
+
+
+api-passwdpolicyschemaconstants
+
+    // pwdFailureTime
+    public static final String PWD_FAILURE_TIME_AT = "pwdFailureTime";
+是不是另加一个属性把pwdInhistory隔离开
+
+apached-parent
+//authenticationInterceptor
+
+    public static final String PWD_FAILURE_TIME_AT_OID = "1.3.6.1.4.1.42.2.27.8.1.19";
+
+
+2.3
+一，什么是GFW
+
+Great FireWall, 防火长城，特指中国国家防火墙。网友常说的网站被墙，指的就是网站内容被防火长城所屏蔽或者指服务器的通讯被封阻，“翻墙”也被引申为突破网络审查浏览大陆境外被屏蔽的网站或使用服务的行为。
+
+防火墙是由分散部门的各服务器和路由器等设备加上相关公司的应用程序组成，用于信息审查和管制。GFW一直没有官方承认，不过可以称得上是互联网时代最优秀的系统之一，系统神秘而深奥 据悉还没有人通过黑盒了解GFW的全貌，再加上大陆内部蓬勃的互联网发展使民众并不在意GFW的存在，造成人们对它的现在印象。
+
+二，主要技术
+
+从最开始说，其实做到信息防护，我们可以把所有信息记录在磁盘上，然后一点点查过滤敏感信息，不过这么做一是信息量太大，二是无法实时防护，更不要说分布式一系列问题。所以我们把过滤权限写在ACL表中，通过技术进行封锁敏感网站信息，当海外网站信息进入国家入口网关时，既可以选择性过滤，当然黑名单白名单就要自己设计，如果技术隔离做得好，甚至技术人员可以不知道过滤信息就能达到作用（即开发者没有读写改敏感词权限），即使海外网站信息使用代理，只要信息不加密 一样会倒在GFW面前。
+
+技术不断发展，就有人为创造的可能，刚刚我们说入口网关会根据敏感信息实现过滤屏蔽网站，如果实现多级代理信息加密技术，让网关识别不到或蒙蔽逃过审核，就可以实现翻过GFW的目的，而这一概念实际上早就存在了，只不过技术一直在演化。07年阮一峰老师写的绕过GFW方法中（https代理，tor，ssh隧道，vpn等）就有介绍。
+
+魔高一尺，道高一丈。什么动态SSL Freenet VPN SSH TOR GNUnet JAP I2P Psiphon 什么Feed Over Email 。所有的翻墙方法，只要有人想得到，GFW都有研究并且有反制措施的实验室方案储备。GFW对每一项翻墙技术都有做相应的对策，包括资料中常见的是DNS缓存污染，IP地址封锁，TCP连接重置等，具体细节要参考论文，有很多都算作机密，而采取方法的过程中有一些方法甚至会阶段性影响境外网站的正常使用，这也是一些国家一直恐惧而敌视中国互联网发展的原因之一。只是GFW面对一些标志难题也是无能为力，比如P2P的隐匿性，比如DDoS攻击等。技术就是这样，只有相互借鉴相互促进，只不过使用用途可能不尽相同。
+
+那既然GFW如此强大，为什么还会有各种可用的翻墙软件呢？
+
+我猜想是各个时期的要求不同，相关政策和敏感权限也不是一曾不变。
+
+三，方法汇总
+
+绕过GFW的方法：
+
+1. 修改hosts文件
+修改电脑内部的host文件，通过自主指定相关网站的IP地址的方式实现，即避开DNS，简单粗暴，这种方式现在依然存在；
+我们访问网站的时候，输入的是域名，实际上DNS会进行IP解析，把域名对应IP进行访问，GFW 会干扰DNS 的解析过程，并且返回一个错误的 IP 地址给你，使你无法正确连接到你要的服务器上读取正确的信息。Host的级别比DNS要高，修改Host文件实际上相当于是直接访问IP.在有些时候，即使修改了Host文件，有些网站还是打不开。这就是这个网站的IP被封锁了.就是说你即使改了Host，可以打开Google但是打不开FB，Twitter 也是正常现象，这个时候就必须要翻墙了.
+2. 强制指定DNS
+GFW主要攻击手段之一是DNS污染，于是便有了强制指定DNS的方式以避免IP被污染的方法，这种方法经常会结合1使用；
+3. VPN
+原本用来作为一种匿名，安全，保密的VPN服务也被发掘出翻墙的潜力，其原理比较简单，选择一个没有被GFW封杀的服务器，通过该服务器将相关网站的流量转发到自己的设备，而设备与VPN服务器之间的通信并不在GFW的屏蔽范围之内，于是便达成了翻墙的目的。VPN最初的目的是用于企业服务，方便员工远程登录企业内网进行操作，主要协议有PPTP、L2TP，IPsec、IKEv2、openVPN等等；
+4.网络服务
+GoAgent，自由门，fqrouter等一系列网络服务；
+
+5. Shadowsocks（搭建ss/ssr服务器集群->客户端工具翻墙）
+Shadowsocks类：主要包括各类Shadowsocks衍生版本，ShadowsocksR，Shadowsocks-libev等，特点是加密了通信过程中的数据以及流量分流；由于种种原因，ss，ssr等版本原创者不再更新，现在流行的小火箭shadowRocket，surge等
+6. 内网穿透
+内网穿透：比较典型的是ZeroTier，简单解释就是假装自己在国外上网，这么说的主要原因是因为当两台设备同时加入到ZeroTier的服务器之后，两台设备会拥有同一IP段内的IP地址，此时两台电脑相当于处于一个虚拟局域网之中，可以用iPad连接电脑远程运行MATLAB；
+7. V2Ray
+V2Ray 是 Project V 下的一个工具。Project V 是一个包含一系列构建特定网络环境工具的项目，而 V2Ray 属于最核心的一个。官方介绍 Project V 提供了单一的内核和多种界面操作方式。内核（V2Ray）用于实际的网络交互、路由等针对网络数据的处理，而外围的用户界面程序提供了方便直接的操作流程。不过从时间上来说，先有 V2Ray才有Project V；
+
+GFW相应对策：
+
+1.VPN及其软件系列
+防火长城现已有能力早就可以对基于PPTP和L2TP协议的VPN连接进行监控和封锁，一方面对各大应用软件市场进行vpn封锁，致使开发者只能使用testflights，一旦开发者在试用期后不再开发，服务也不再继续。
+
+
+2.对破网软件流量检测
+GFW可以提取加密流量数据包分析特征，基于神经网络算法对shadowsocks等软件流量进行检测，定位打击。即使v2ray等软件基于websocket和tls加密，能够将加密流量和https协议流量进行混淆，也有方法进行定量识别。
+
+
+3.基于tls的连接进行tor刺探，建立破坏连接
+
+
+4.其他防护方法
+数据包探测加速嗅出可疑流量，IPV6审查，间歇性封锁等
+
+因此为了稳定的达到翻GFW的目的，最好推荐用搬瓦工自建ss/V2Ray服务器，搭梯子进行翻墙，这样由于量小GFW不会细致进行流量识别。不过这么做有一定技术要求。
+
+
+
+以上内容只涉及技术分享，无关政治人文
+
+参考文献粗糙，如有出入请留言。
+
+
+if(c<32) 控制字符
+else if(c>'0'&&c<'9') 数字
+else if(c>'a'&&c<'z') 小写字母
+else if(c>'A'&&c<'Z') 大写字母
+else 其它字母
+
+guardian-3.2发布模块
+manager上架 迁移代码要合进去
+tdc上架
+
+
+kunDB限制登陆ip地址
+openldap有 apacheds没有
+userugi
+拿到用户的ip
+ldap带到用户的ip vpget
+限制ip数据从哪里读-
+mysql用户ip创建一张表
+
+inceptor-plugin修改
+kunDB代码 
+限制策略怎么存储 怎么vpget曾 资源动态加载在哪边实现
+
+
+1. 要kundb的项目权限，了解ip的封禁情况
+2. 修改圣哥的comment
+
+byte型为什么要&0xff
+
+2.4
+kundb -> vitess
+vitess是什么 sharded mysql on kubernetes to optimize huge DB
+How to move hundreds of MySQL databases into kubernates
+vitess是一个用于部署 扩展和管理大型mysql实例集群的数据库解决方案。
+1.支持对Mysql数据库进行分片扩展，无需应用程序做太多更改
+2.从物理机迁移到云
+3.部署和管理mysql实例
+
+vitess基本概念
+sharing middleware for Mysql
+Massively scalable
+HA
+Cloud-native
+vitess怎么运行
+spot
+Architecture.jpg
+kundb权限部分实现
+
+写博客：maven和pom文件/vitess基本含义
+
+
+sharing key
+cell
+keyspace
+shard
+vtclt
+vtctld
+vtgate
+
+设置名字和邮箱https://blog.csdn.net/diu_brother/article/details/51982993
+// 设置全局
+git config --global user.name "Author Name"
+git config --global user.email "Author Email"
+
+// 或者设置本地项目库配置
+git config user.name "Author Name"
+git config user.email "Author Email"
+
+git commit --amend --author="NewAuthor <NewEmail@address.com>"
+
+pwdHistLiveAge -> pwdInHistoryDuration
+PWD_IN_HISTORY_DURATION
+OLPW_IN_HISTORY_DURATION
+
+Topology
+
+拓扑服务 一个元数据存储，包含有关正在运行的服务器、分片方案和复制图的信息。拓扑由一致的数据存储支持。您可以使用vtctl (命令行) 和 vtctld (web)查看拓扑.
+
+在Kubernetes中，数据存储是etcd。 Vitess源代码还附带Apache ZooKeeper支持。
+
+vtgate
+
+vtgate 是一个轻型代理服务器，它将流量路由到正确的vttablet，并将合并的结果返回给客户端。应用程序向vtgate发起查询。客户端使用起来非常简单，它只需要能够找到vtgate实例就能使vitess。
+
+为了路由查询，vtgate综合考虑了分片方案、数据延迟以及vttablet及其对应底层MySQL实例的可用性。
+
+vttablet
+
+vttablet 是一个位于MySQL数据库前面的代理服务器。vitess实现中每个MySQL实例都有一个vttablet。
+
+执行的任务试图最大化吞吐量，同时保护mysql不受有害查询的影响。它的特性包括连接池、查询重写和重用重复数据。此外，vtTablet执行vtcl启动的管理任务，并提供用于过滤复制和数据导出的流式服务。
+
+通过在MySQL数据库前运行vttablet并更改您的应用程序以使用Vitess客户端而不是MySQL驱动程序，您的应用程序将受益于vttablet的连接池，查询重写和重用数据集等功能。
+
+vtctl
+
+vtctl vtctl是一个用于管理Vitess集群的命令行工具。它允许用户或应用程序轻松地与Vitess实现交互。使用vtctl，您可以识别主数据库和副本数据库，创建表，启动故障转移，执行分片（和重新分片）操作等。
+
+当vtctl执行操作时，它会根据需要更lockserver。其他Vitess服务器会观察这些变化并做出相应的反应。例如，如果使用vtctl故障转移到新的主数据库，则vtgate会查看更改并将将写入流量切到新主服务器。
+
+vtctld
+
+vtctld vtctld是一个HTTP服务器，允许您浏览存储在lockserver中的信息。它对于故障排除或获取服务器及其当前状态的高层概观非常有用。
+
+vtworker
+
+vtworker 托管长时间运行的进程。它支持插件架构并提供代码库，以便您可以轻松选择要使用的vttablet。插件可用于以下类型的作业：
+
+水平拆分或合并过程中检查数据的完整性
+垂直拆分或合并过程中检查数据的完整性
+vtworker还可以让您轻松添加其他验证程序。例如，如果一个keyspace中的索引表引用到另一keyspace中的数据，则可以执行片内完整性检查以验证类似外键的关系或跨分片完整性检查。
+
+609-682
+ @Override
+  public List<NodeVo> getAuthorizedDataNodes(PrincipalVo principalVo, PermFilterParams filterParams, boolean includeInherited) throws GuardianException {
+    Assert.assertLegal(principalVo);
+    ResourceVo parentResourceVo = filterParams.getResourceVo();
+    Assert.assertLegal(parentResourceVo);
+    try (SqlSession session = sqlSessionFactory.openSession()) {
+      PermMapper permMapper = session.getMapper(PermMapper.class);
+      String princ = principalVo.getPrincipal();
+      PrincipalType princType = principalVo.getPrincipalType();
+
+      ResourceServiceMapper resourceServiceMapper = session.getMapper(ResourceServiceMapper.class);
+      ResourceMapper resourceMapper = session.getMapper(ResourceMapper.class);
+      // keyword matching can only be done in memory
+      Map<Long, ResourceVo> resources = getRequestedResourcesMap(resourceServiceMapper, resourceMapper, filterParams).entrySet()
+          .stream().filter(e -> StringUtils.containsKeyword(e.getValue().getDataSource(), filterParams.getSearchValue()))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      if (MapUtils.isEmpty(resources)) {
+        return Collections.emptyList();
+      }
+      List<Long> resourceIds = new ArrayList<>(resources.keySet());
+      String action = filterParams.getAction();
+
+      switch (princType) {
+        case USER:
+          UserMapper userMapper = session.getMapper(UserMapper.class);
+          User user = userMapper.selectUserWithCategory(princ);
+          if (user == null || !UserUtil.userPresentable(user)) {
+            return Collections.emptyList();
+          }
+          List<Resource> userResources = new ArrayList<>();
+          List<Resource> userSelfResources = permMapper.selectUserAuthorizedDatanodes(princ, resourceIds, action);
+          if (userSelfResources != null) {
+            userResources.addAll(userSelfResources);
+          }
+          if (includeInherited) {
+            List<Resource> userInheritedResourcesFromRole = permMapper.selectRoleAuthorizedDatanodesByUser(princ, resourceIds, action);
+            if (userInheritedResourcesFromRole != null) {
+              userResources.addAll(userInheritedResourcesFromRole);
+            }
+
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            userResources.addAll(getInheritDatanodes(session, resourceIds, groupNames, action));
+          }
+          Set<NodeVo> userAuthorizedDatanodes = new HashSet<>();
+          userResources.forEach(resource -> userAuthorizedDatanodes.add((NodeVo) resource.getDataSource());
+          return rearrangeResources(userAuthorizedDatanodes);
+        case ROLE:
+          List<ResourceVo> roleAuthorizedDatanodes = new ArrayList<>();
+          List<Resource> roleSelfDatanodes = permMapper.selectRoleAuthorizedDatanodes(princ, resourceIds, action);
+          if (CollectionUtils.isNotEmpty(roleSelfDatanodes)) {
+            roleSelfDatanodes.forEach(resource -> roleAuthorizedDatanodes.add(new ResourceVo.Builder().dataSource(resource.getDataSource()).build()));
+          }
+          return roleAuthorizedDatanodes;
+        case GROUP:
+          List<ResourceVo> groupAuthorizedDatanodes = new ArrayList<>();
+          if (includeInherited) {
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            List<Resource> groupDatanodes = new ArrayList<>(getInheritDatanodes(session, resourceIds, groupNames, action));
+
+            groupDatanodes.forEach(resource -> groupAuthorizedDatanodes.add(new ResourceVo.Builder().dataSource(resource.getDataSource()).build()));
+            return rearrangeResources(groupAuthorizedDatanodes);
+          } else {
+
+            List<Resource> groupDatanodes = permMapper.selectGroupAuthorizedDatanodes(princ, resourceIds, action);
+            groupDatanodes.forEach(resource -> groupAuthorizedDatanodes.add(new 
+ResourceVo.Builder().dataSource(resource.getDataSource()).build()));
+            return groupAuthorizedDatanodes;
+          }
+      }
+      return Collections.emptyList();
+    } catch (PersistenceException pe) {
+      LOG.error(String.format("Failed to get authorized datanodes of principal [%s] of dataSource [%s] due to persistence exception", principalVo, filterParams.getResourceVo().toString()), pe);
+      throw new GuardianException(ErrorCodes.GUARDIAN_SERVER_PERSISTENCE_EXCEPTION, "failed to get authorized datanodes");
+    }
+  }
+
+A database clustering system for horizontal scaling of MySQL
+分片管理
+MySQL本身并不提供拆分分片功能，但是您的业务数据量增大到一定程度是您是需要增加集群的。Vitess提供在线拆分功能，只需要很少的时间就完成新集群的切换，无需您在应用程序中添加任何拆分逻辑。
+连接池
+Vitess避免了MySQL连接的高内存开销。 Vitess服务器轻松地一次处理数千个连接。
+工作流
+Vitess会跟踪有关集群配置的所有元数据，以便集群拓扑始终是最新的，对不同的客户端保持一致。
+性能
+Vitess自动重写对数据库性能有损害的查询。它还使用缓存机制来调解查询，并防止重复查询同时到达您的数据库
+扩展性
+Vitess集Mysql数据库的很多重要特性和NoSQL数据库的可扩展性于一体。其内建拆分分片功能使您能够对您的MySQL数据库集群无限水平扩展，同时无需为应用添加分片逻辑
+
+2.5
+什么是rpc
+
+ Modification buildPwdHistory( ModifyOperationContext modifyContext, Attribute pwdHistoryAt,
+        int histSize, int pwdHistLiveAge, byte[] newPassword, boolean isPPolicyReqCtrlPresent ) throws LdapOperationException
+    {
+        List<PasswordHistory> pwdHistLst = new ArrayList<>();
+        List<PasswordHistory> pwdHistSortedLst = new ArrayList<>();
+
+        for ( Value<?> value : pwdHistoryAt )
+        {
+            pwdHistSortedLst.add( new PasswordHistory( Strings.utf8ToString( value.getBytes() ) ) );
+        }
+
+        // see the javadoc of PasswordHistory
+        Collections.sort( pwdHistSortedLst );
+
+        for ( PasswordHistory pwdh : pwdHistSortedLst )
+        {
+            // Admin user is exempt from history check
+            // https://issues.apache.org/jira/browse/DIRSERVER-2084 
+            if ( !modifyContext.getSession().isAnAdministrator() )
+            {
+                boolean matched = Arrays.equals( newPassword, pwdh.getPassword() );
+
+                if ( matched )
+                {
+                    if ( pwdHistLiveAge > 0 )
+                    {
+                        long currentTime = DateUtils.getDate( DateUtils.getGeneralizedTime() ).getTime();
+                        long pwdModifiedTime = DateUtils.getDate( pwdh.getTime() ).getTime();
+                        if ( ( int ) ( currentTime - pwdModifiedTime ) / 1000 >= pwdHistLiveAge && pwdHistLst.size() >= histSize )
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            LOG.error( "invalid reuse of password which has {} seconds left to resume", pwdHistLiveAge - ( currentTime - pwdModifiedTime ) / 1000 );
+                        }
+                    }
+
+                    if ( isPPolicyReqCtrlPresent )
+                    {
+                        PasswordPolicyDecorator responseControl =
+                            new PasswordPolicyDecorator( directoryService.getLdapCodecService(), true );
+                        responseControl.getResponse().setPasswordPolicyError(
+                            PasswordPolicyErrorEnum.PASSWORD_IN_HISTORY );
+                        modifyContext.addResponseControl( responseControl );
+                    }
+
+                    throw new LdapOperationException( ResultCodeEnum.CONSTRAINT_VIOLATION,
+                        "invalid reuse of password present in password history" );
+                }
+            }
+
+            pwdHistLst.add( pwdh );
+        }
+ 
+        Modification pwdRemHistMod = null;
+
+        if ( pwdHistLst.size() >= histSize && pwdHistLst.size() > 0 )
+        {
+            if ( pwdHistLiveAge == 0 )
+            {
+                // remove the oldest value
+                PasswordHistory remPwdHist = ( PasswordHistory ) pwdHistLst.toArray()[histSize - 1];
+                Attribute tempAt = new DefaultAttribute( pwdHistoryAT );
+                tempAt.add( remPwdHist.getHistoryValue() );
+                pwdRemHistMod = new DefaultModification( REMOVE_ATTRIBUTE, tempAt );
+            }
+
+        }
+
+        return pwdRemHistMod;
+    }
+
+
+ /**
+     * Build the list of passwordHistory
+     */
+    Modification buildPwdHistory( ModifyOperationContext modifyContext, Attribute pwdHistoryAt, 
+        int histSize, byte[] newPassword, boolean isPPolicyReqCtrlPresent ) throws LdapOperationException
+    {
+        List<PasswordHistory> pwdHistLst = new ArrayList<PasswordHistory>();
+
+        for ( Value<?> value : pwdHistoryAt )
+        {
+            PasswordHistory pwdh = new PasswordHistory( Strings.utf8ToString( value.getBytes() ) );
+
+            // Admin user is exempt from history check
+            // https://issues.apache.org/jira/browse/DIRSERVER-2084 
+            if ( !modifyContext.getSession().isAnAdministrator() )
+            {
+                boolean matched = Arrays.equals( newPassword, pwdh.getPassword() );
+
+                if ( matched )
+                {
+                    if ( isPPolicyReqCtrlPresent )
+                    {
+                        PasswordPolicyDecorator responseControl =
+                            new PasswordPolicyDecorator( directoryService.getLdapCodecService(), true );
+                        responseControl.getResponse().setPasswordPolicyError(
+                            PasswordPolicyErrorEnum.PASSWORD_IN_HISTORY );
+                        modifyContext.addResponseControl( responseControl );
+                    }
+
+                    throw new LdapOperationException( ResultCodeEnum.CONSTRAINT_VIOLATION,
+                        "invalid reuse of password present in password history" );
+                }
+            }
+
+            pwdHistLst.add( pwdh );
+        }
+ 
+        Modification pwdRemHistMod = null;
+        
+        if ( pwdHistLst.size() >= histSize )
+        {
+            // see the javadoc of PasswordHistory
+            Collections.sort( pwdHistLst );
+
+            // remove the oldest value
+            PasswordHistory remPwdHist = ( PasswordHistory ) pwdHistLst.toArray()[histSize - 1];
+            Attribute tempAt = new DefaultAttribute( pwdHistoryAT );
+            tempAt.add( remPwdHist.getHistoryValue() );
+            pwdRemHistMod = new DefaultModification( REMOVE_ATTRIBUTE, tempAt );
+        }
+
+        return pwdRemHistMod;
+    }
+
+shift+f6
+
+2.6
+
+golang
+语言变量
+初始化数组 var balance = [5]float32{1000.0 , 2.0 , 3.4 , 7.0 , 50.0}
+
+guardian->AWS 
+hyperbase->base
+inceptor->hive+mysql
+kundb->vitess
+ 
+go语言结构体
+结构体定义需要使用 type 和 struct 语句。struct 语句定义一个新的数据类型，结构体中有一个或多个成员。type 语句设定了结构体的名称。结构体的格式如下：
+type Books struct {
+title string
+author string
+subject string
+book_id int
+}
+
+Go 语言的 For 循环有 3 种形式，只有其中的一种使用分号。
+和 C 语言的 for 一样：
+for init; condition; post { }
+和 C 的 while 一样：
+for condition { }
+和 C 的 for(;;) 一样：
+for { }
+
+go语言切片 slice
+Go 语言切片是对数组的抽象。
+Go 数组的长度不可改变，在特定场景中这样的集合就不太适用，Go中提供了一种灵活，功能强悍的内置类型切片("动态数组"),与数组相比切片的长度是不固定的，可以追加元素，在追加时可能使切片的容量增大。
+var identifier []type
+var nums []int
+s := []
+package main
+
+import "fmt"
+
+func main() {
+   var numbers = make([]int,3,5)
+
+   printSlice(numbers)
+}
+
+func printSlice(x []int){
+   fmt.Printf("len=%d cap=%d slice=%v\n",len(x),cap(x),x)
+}
+
+Go 语言中 range 关键字用于 for 循环中迭代数组(array)、切片(slice)、通道(channel)或集合(map)的元素。在数组和切片中它返回元素的索引和索引对应的值，在集合中返回 key-value 对。
+package main
+import "fmt"
+func main(){
+   nums := []int{1,2,3,4}
+   for i,num := range nums {
+      fmt.Printf("索引是%d,长度是%d\n",i, num)
+   }
+}
+输出结果为：
+索引是0,长度是1
+索引是1,长度是2
+索引是2,长度是3
+索引是3,长度是4
+
+type Phone interface {
+    call()
+}
+
+type NokiaPhone struct {
+}
+
+func (nokiaPhone NokiaPhone) call() {
+    fmt.Println("I am Nokia, I can call you!")
+}
+
+2.7
+摩尔定律（英语：Moore's law）是由英特尔（Intel）创始人之一戈登·摩尔提出的。其内容为：集成电路上可容纳的晶体管数目，约每隔两年便会增加一倍；经常被引用的“18个月”，是由英特尔首席执行官大卫·豪斯（David House）提出：预计18个月会将芯片的性能提高一倍（即更多的晶体管使其更快），是一种以倍数增长的观测。
+
+摩尔定律的定义归纳起来，主要有以下三种版本：
+集成电路上可容纳的晶体管数目，约每隔18个月便增加一倍。
+微处理器的性能每隔18个月提高一倍，或价格下降一半。
+相同价格所买的电脑，性能每隔18个月增加一倍。
+
+因为在较小规模上一些量子特性开始出现导致漏电等一系列问题，并且精细晶体管成本增加，制造商开始着手从其他方面提高处理器的性能：
+1. 向处理器添加越来越多的内核
+2. 超线程技术
+3. 为处理器加入缓存
+
+Go语言的并发是基于 goroutine 的，goroutine 类似于线程，但并非线程。可以将 goroutine 理解为一种虚拟线程。Go 语言运行时会参与调度 goroutine，并将 goroutine 合理地分配到每个 CPU 中，最大限度地使用CPU性能。开启一个goroutine的消耗非常小（大约2KB的内存），你可以轻松创建数百万个goroutine。
+
+goroutine的特点：
+
+goroutine具有可增长的分段堆栈。这意味着它们只在需要时才会使用更多内存。
+goroutine的启动时间比线程快。
+goroutine原生支持利用channel安全地进行通信。
+goroutine共享数据结构时无需使用互斥锁。
+
+从性能上看，go的性能更接近于java（单核运行某些还是没有java强，但特点是多核处理），而又同C一样是编译型语言执行效率更高
+
+
+List<String> filterDatabaseByPrivileges(String username, List<String> dbs) throws HiveAuthzPluginException {
+    //prepare for filter
+    if (!guardianConf.getBoolean(GuardianVars.GUARDIAN_INCEPTOR_FILTER_SHOW_DESCS.varname, GuardianVars.GUARDIAN_INCEPTOR_FILTER_SHOW_DESCS.defaultBoolVal) || CollectionUtils.isEmpty(dbs)) {
+      return dbs;
+    }
+
+    try {
+      //check global privileges
+      List<String> dataSource = InceptorPermUtil.global();
+      List<PermissionVo> permVos = new ArrayList<>();
+      permVos.add(new PermissionVo(component, dataSource, ADMIN_PERM));
+      for (GuardianSQLPrivilegeType privilegeType : GuardianSQLPrivilegeType.ALL_ON_TABLE) {
+        permVos.add(new PermissionVo(component, dataSource, privilegeType.name()));
+      }
+      if (guardianClient.checkAnyAccess(username, permVos)) {
+        return dbs;
+      }
+
+      //filter database
+      List<String> dbPerms = guardianClient.userAuthorizedDataNodes(username, component, Collections.singletonList("TABLE_OR_VIEW"), null, null);
+      Set<String> dbsWithPrivsSet = new HashSet<>();
+      List<String> userOwnedDbs = metastoreClientFactory.getHiveMetastoreClient().getDatabasesWithUser(".*", username, true);
+      if (!CollectionUtils.isEmpty(userOwnedDbs)) {
+        dbsWithPrivsSet.addAll(userOwnedDbs);
+      }
+      if (dbPerms != null) {
+        for (String db : dbPerms) {
+          dbsWithPrivsSet.add(db.toLowerCase());
+        }
+      }
+      List<String> dbsWithPrivs = new ArrayList<>(dbsWithPrivsSet);
+      dbsWithPrivs.retainAll(dbs);
+      return dbsWithPrivs;
+    } catch (GuardianClientException | TException e) {
+      LOG.error("Fail to filter DBs by privileges. username: [{}]", username, e);
+      throw new HiveAuthzPluginException(e);
+    } catch (HiveAuthzPluginException ex) {
+      LOG.error("Fail to check if user [{}] is the owner of some database ", username, ex);
+      throw ex;
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+//////////
+
+
+package io.transwarp.guardian.plugins.inceptor;
+
+import io.transwarp.guardian.abac.core.engine.IPolicyEngine;
+import io.transwarp.guardian.abac.core.engine.PolicyEngineFactory;
+import io.transwarp.guardian.abac.core.expr.CurrentTimeExpr;
+import io.transwarp.guardian.abac.core.expr.ResourceExpr;
+import io.transwarp.guardian.abac.core.expr.SourceIpExpr;
+import io.transwarp.guardian.client.GuardianClient;
+import io.transwarp.guardian.client.GuardianClientFactory;
+import io.transwarp.guardian.common.conf.GuardianConfiguration;
+import io.transwarp.guardian.common.conf.GuardianConstants;
+import io.transwarp.guardian.common.conf.GuardianVars;
+import io.transwarp.guardian.common.exception.GuardianClientException;
+import io.transwarp.guardian.common.model.*;
+import io.transwarp.guardian.common.model.v2.EnvContextVo;
+import io.transwarp.guardian.common.model.v2.PolicyResult;
+import io.transwarp.guardian.common.model.v2.ResourceVo;
+import io.transwarp.guardian.common.util.StringUtils;
+import io.transwarp.guardian.plugins.common.constants.PluginConstants;
+import io.transwarp.guardian.plugins.common.utils.PermUtil;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.ErrorMsg;
+import org.apache.hadoop.hive.ql.security.authorization.plugin.*;
+import org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.RequiredPrivileges;
+import org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLAuthorizationUtils;
+import org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLPrivTypeGrant;
+import org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLPrivilegeType;
+import org.apache.hadoop.hive.ql.session.SessionState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+
+import static io.transwarp.guardian.plugins.inceptor.InceptorConstants.*;
+
+/**
+ * Created by zhaoliu on 16-8-15.
+ */
+public class GuardianAuthorizer {
+  private static final Logger LOG = LoggerFactory.getLogger(GuardianAuthorizer.class);
+
+  private static final String ADMIN_PERM = "ADMIN";
+  private static final String OWNER_PERM = "OWNER";
+
+  private GuardianConfiguration guardianConf;
+  private GuardianClient guardianClient;
+  private String component;
+  private Configuration hiveConf;
+  private IPolicyEngine policyEngine;
+  private boolean guardianAbacEnabled;
+
+  GuardianAuthorizer(HiveConf hiveConf, GuardianConfiguration guardianConf) throws HiveAuthzPluginException {
+    this.hiveConf = hiveConf;
+    this.guardianConf = new GuardianConfiguration(guardianConf);
+    // get dependent metastore id
+    String _component = hiveConf.get(PluginConstants.HIVE_METASTORE_SERVICE_ID);
+    if (StringUtils.isEmpty(_component)) {
+      _component = hiveConf.get(PluginConstants.HIVE_SERVICE_ID);
+      if (StringUtils.isEmpty(_component)) {
+        _component = this.guardianConf.get(GuardianVars.GUARDIAN_PERMISSION_COMPONENT.varname, GuardianVars.GUARDIAN_PERMISSION_COMPONENT.defaultVal);
+        if (StringUtils.isEmpty(_component)) {
+          LOG.error("Configuration {} or {} must be set when initializing GuardianAuthorizer",
+                  PluginConstants.HIVE_SERVICE_ID, GuardianVars.GUARDIAN_PERMISSION_COMPONENT.varname);
+          // TODO: deal with ErrorMsg
+          throw new HiveAuthzPluginException("Configuration guardian.permission.component must be set when initialize GuardianAuthorizer", ErrorMsg.GENERIC_ERROR);
+        }
+      }
+    }
+
+    this.component = _component;
+    try {
+      this.guardianConf.set(GuardianVars.GUARDIAN_PERMISSION_COMPONENT.varname, component);
+      this.guardianClient = GuardianClientFactory.getInstance(this.guardianConf);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to initialize Guardian Client when initializing Guardian Authorizer", e);
+      // TODO: deal with ErrorMsg
+      throw new HiveAuthzPluginException(e,
+              "Fail to initialize Guardian Client when initializing Guardian Authorizer", ErrorMsg.GENERIC_ERROR);
+    }
+
+    guardianAbacEnabled = this.guardianConf.getBoolean(GuardianVars.GUARDIAN_ABAC_AUTHORIZATION_ENABLED.varname,
+            GuardianVars.GUARDIAN_ABAC_AUTHORIZATION_ENABLED.defaultBoolVal);
+
+    if (guardianAbacEnabled) {
+      try {
+        policyEngine = PolicyEngineFactory.getInstance(this.guardianConf);
+        policyEngine.start();
+      } catch (GuardianClientException e) {
+        LOG.error("Fail to initialize Guardian policy engine when initializing Guardian AccessController", e);
+        // TODO: deal with ErrorMsg
+        throw new HiveAuthzPluginException(e,
+                "Fail to initialize Guardian policy engine when initializing Guardian AccessController", ErrorMsg.GENERIC_ERROR);
+      }
+    }
+  }
+
+  boolean checkAccessPermission(String username) {
+    if (guardianAbacEnabled) {
+      LOG.debug("Check guardian ABAC policies");
+      PolicyResult result = checkPolicy(username, ResourceVo.global(), GuardianConstants.GLOBAL, GuardianConstants.ACCESS_PERM);
+      // If the policy result is ALLOW or DENY, return directly. Otherwise check the RBAC
+      // TODO: Optimize check several actions for on resource
+      if (result == PolicyResult.ALLOW) {
+        LOG.debug("Check guardian ABAC policies result is ALLOW, return true");
+        return true;
+      } else if (result == PolicyResult.DENY) {
+        LOG.debug("Check guardian ABAC policies result is DENY, return false");
+        return false;
+      }
+      LOG.debug("Check guardian ABAC policies not applied check the following RBAC");
+    }
+    return PermUtil.checkGlobalAccess(guardianClient, username);
+  }
+
+  boolean checkGlobalPermission(String username, SQLPrivTypeGrant priv) {
+    if (guardianAbacEnabled) {
+      LOG.debug("Check guardian ABAC policies");
+      String action;
+      if (priv == SQLPrivTypeGrant.ADMIN_PRIV || priv == SQLPrivTypeGrant.OWNER_PRIV || priv.isWithGrant()) {
+        action = ADMIN_PERM;
+      } else {
+        action = priv.getPrivType().name();
+      }
+
+      PolicyResult result = checkPolicy(username, ResourceVo.global(), GuardianConstants.GLOBAL, action);
+      // If the policy result is ALLOW or DENY, return directly. Otherwise check the RBAC
+      // TODO: Optimize check several actions for on resource
+      if (result == PolicyResult.ALLOW) {
+        LOG.debug("Check guardian ABAC policies result is ALLOW, return true");
+        return true;
+      } else if (result == PolicyResult.DENY) {
+        LOG.debug("Check guardian ABAC policies result is DENY, return true");
+        return false;
+      }
+      LOG.debug("Check guardian ABAC policies not applied check the following RBAC");
+    }
+
+    List<String> global = InceptorPermUtil.global();
+    List<PermissionVo> permVos = SQLPrivTypeGrant2Perm(global, priv);
+    boolean hasAccess = false;
+    try {
+      hasAccess = guardianClient.checkAnyAccess(username, permVos);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to check permission {} of {} for user {}", permVos, global.toString(), username, e);
+    }
+    return hasAccess;
+  }
+
+  boolean checkPermission(String username, HivePrivilegeObject hiveObj, SQLPrivTypeGrant priv) {
+    if (guardianAbacEnabled) {
+      LOG.debug("Check guardian ABAC policies");
+      PolicyResult result = checkPolicy(username, hiveObj, priv);
+      // If the policy result is ALLOW or DENY, return directly. Otherwise check the RBAC
+      // TODO: Optimize check several actions for on resource
+      if (result == PolicyResult.ALLOW) {
+        LOG.debug("Check guardian ABAC policies result is ALLOW, return true");
+        return true;
+      } else if (result == PolicyResult.DENY) {
+        LOG.debug("Check guardian ABAC policies result is DENY, return true");
+        return false;
+      }
+      LOG.debug("Check guardian ABAC policies not applied check the following RBAC");
+    }
+
+    //type is of {GLOBAL, DATABASE, TABLE_OR_VIEW, APPLICATION, STREAMJOB}
+    HivePrivilegeObject.HivePrivilegeObjectType type = hiveObj.getType();
+    List<List<String>> dataSources = new ArrayList<>();
+    dataSources.add(InceptorPermUtil.global());
+    if (type != null) {
+      switch (type) {
+        case DATABASE:
+          dataSources.add(InceptorPermUtil.convertDatabase(hiveObj.getDbname()));
+          break;
+        case TABLE_OR_VIEW:
+          dataSources.add(InceptorPermUtil.convertDatabase(hiveObj.getDbname()));
+          dataSources.add(InceptorPermUtil.convertTable(hiveObj.getDbname(), hiveObj.getObjectName()));
+          break;
+        case APPLICATION:
+          dataSources.add(InceptorPermUtil.convertApplication(hiveObj.getDbname()));
+          break;
+        case STREAMJOB:
+          dataSources.add(InceptorPermUtil.convertApplication(hiveObj.getDbname()));
+          dataSources.add(InceptorPermUtil.convertStreamjob(hiveObj.getDbname(), hiveObj.getObjectName()));
+          break;
+        default:
+          break;
+      }
+    }
+    List<PermissionVo> permVos = new ArrayList<>();
+    for (List<String> dataSource : dataSources) {
+      permVos.addAll(SQLPrivTypeGrant2Perm(dataSource, priv));
+    }
+    boolean hasAccess = false;
+    try {
+      hasAccess = guardianClient.checkAnyAccess(username, permVos);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to check permission {} on {} for user {}", priv.toString(), hiveObj.toString(), username, e);
+    }
+    return hasAccess;
+  }
+
+  private PolicyResult checkPolicy(String username, HivePrivilegeObject hiveObj, SQLPrivTypeGrant priv) {
+    //type is of {GLOBAL, DATABASE, TABLE_OR_VIEW, APPLICATION, STREAMJOB}
+    HivePrivilegeObject.HivePrivilegeObjectType type = hiveObj.getType();
+
+    // 1. Get resourceVo
+    ResourceVo resourceVo = null;
+    String strResource = null;
+    if (type != null) {
+      switch (type) {
+        case DATABASE:
+          resourceVo = new ResourceVo.Builder().addNode(DATABASE, hiveObj.getDbname()).build();
+          strResource = hiveObj.getDbname();
+          break;
+        case TABLE_OR_VIEW:
+          resourceVo = new ResourceVo.Builder()
+                  .addNode(DATABASE, hiveObj.getDbname())
+                  .addNode(TABLE, hiveObj.getObjectName())
+                  .build();
+          strResource = hiveObj.getDbname() + "." + hiveObj.getObjectName();
+          break;
+        case APPLICATION:
+          resourceVo = new ResourceVo.Builder().addNode(APPLICATION, hiveObj.getDbname()).build();
+          strResource = hiveObj.getDbname();
+          break;
+        case STREAMJOB:
+          resourceVo = new ResourceVo.Builder()
+                  .addNode(APPLICATION, hiveObj.getDbname())
+                  .addNode(JOB, hiveObj.getObjectName())
+                  .build();
+          strResource = hiveObj.getDbname() + "." + hiveObj.getObjectName();
+          break;
+        default:
+          break;
+      }
+    }
+
+    // 2. Get the action
+    String action;
+    if (priv == SQLPrivTypeGrant.ADMIN_PRIV || priv == SQLPrivTypeGrant.OWNER_PRIV || priv.isWithGrant()) {
+      action = ADMIN_PERM;
+    } else {
+      action = priv.getPrivType().name();
+    }
+
+    if (resourceVo == null) {
+      resourceVo = ResourceVo.global();
+    }
+
+    // 3. check policy
+    return checkPolicy(username, resourceVo, strResource, action);
+
+  }
+
+  private PolicyResult checkPolicy(String username, ResourceVo resourceVo, String strResource, String action) {
+    // construct the context
+    SessionState sessionState = SessionState.get();
+    EnvContextVo contextVo = new EnvContextVo();
+    if (sessionState != null) {
+      contextVo.put(SourceIpExpr.CONTEXT_KEY, sessionState.getUserIpAddress());
+    }
+    contextVo.put(ResourceExpr.CONTEXT_KEY, strResource != null ? strResource : GuardianConstants.GLOBAL);
+    contextVo.put(CurrentTimeExpr.CONTEXT_KEY, new Date());
+
+    return policyEngine.checkPolicy(username, resourceVo, action, contextVo);
+  }
+
+  Collection<SQLPrivTypeGrant> findMissingPrivs(String username, HivePrivilegeObject hiveObj, RequiredPrivileges requiredPrivs, EnumSet<SQLPrivTypeGrant> ownerGrants)
+          throws HiveAuthzPluginException {
+    List<SQLPrivTypeGrant> missingPrivs = new ArrayList<>();
+
+    boolean isAdmin = ownerGrants.contains(SQLPrivTypeGrant.ADMIN_PRIV) || checkPermission(username, hiveObj, SQLPrivTypeGrant.ADMIN_PRIV);
+    if (isAdmin) {
+      return missingPrivs;
+    }
+
+    for (SQLPrivTypeGrant priv : requiredPrivs.getRequiredPrivilegeSet()) {
+      if (ownerGrants.contains(priv)) {
+        continue;
+      }
+      if (!checkPermission(username, hiveObj, priv)) {
+        missingPrivs.add(priv);
+      }
+    }
+    return missingPrivs;
+  }
+
+  RequiredPrivileges getPrivilegesFromFS(Path filePath, HiveConf conf, String userName)
+          throws HiveAuthzPluginException {
+    RequiredPrivileges fsPrivs = new RequiredPrivileges();
+
+    // HDFS posix acls
+    RequiredPrivileges posixAclPrivs = SQLAuthorizationUtils.getPrivilegesFromFS(filePath, conf, userName);
+    Set<SQLPrivTypeGrant> privsSet = posixAclPrivs.getRequiredPrivilegeSet();
+    fsPrivs.addAll(privsSet.toArray(new SQLPrivTypeGrant[0]));
+
+    // HDFS acls from guardian
+    RequiredPrivileges guardianPrivs = getHdfsPreviledgeFromGuardian(filePath, userName);
+    privsSet = guardianPrivs.getRequiredPrivilegeSet();
+    fsPrivs.addAll(privsSet.toArray(new SQLPrivTypeGrant[0]));
+    return fsPrivs;
+  }
+
+  private List<PermissionVo> SQLPrivTypeGrant2Perm(List<String> dataSource, SQLPrivTypeGrant priv) {
+    return SQLPrivTypeGrant2Perm(dataSource, priv, false);
+  }
+
+  private List<PermissionVo> SQLPrivTypeGrant2Perm(List<String> dataSource, SQLPrivTypeGrant priv, boolean heritable) {
+    if (priv == SQLPrivTypeGrant.ADMIN_PRIV || priv == SQLPrivTypeGrant.OWNER_PRIV) {
+      return Collections.singletonList(new PermissionVo(component, dataSource, ADMIN_PERM));
+    } else {
+      if (priv.isWithGrant()) {
+        return Arrays.asList(new PermissionVo(component, dataSource, priv.getPrivType().name(), heritable, priv.isWithGrant(), false),
+                new PermissionVo(component, dataSource, ADMIN_PERM));
+      } else {
+        return Collections.singletonList(new PermissionVo(component, dataSource, priv.getPrivType().name(), heritable, priv.isWithGrant(), false));
+      }
+    }
+  }
+
+  private SQLPrivTypeGrant[] Perm2SQLPrivTypeGrant(PermissionVo permVo) {
+    List<SQLPrivTypeGrant> privs = new ArrayList<>();
+    if (permVo.getAction().equalsIgnoreCase(FsAction.READ.name())) {
+      privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.SELECT, false));
+      if (permVo.isGrantable()) {
+        privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.SELECT, true));
+      }
+    } else if (permVo.getAction().equalsIgnoreCase(FsAction.WRITE.name())) {
+      privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.SELECT, false));
+      privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.DELETE, false));
+      privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.INSERT, false));
+      privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.CREATE, false));
+      if (permVo.isGrantable()) {
+        privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.SELECT, true));
+        privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.DELETE, true));
+        privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.INSERT, true));
+        privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(SQLPrivilegeType.CREATE, true));
+      }
+    } else if (permVo.getAction().equalsIgnoreCase(ADMIN_PERM)) {
+      privs.add(SQLPrivTypeGrant.ADMIN_PRIV);
+    } else if (permVo.getAction().equalsIgnoreCase(OWNER_PERM)) {
+      privs.add(SQLPrivTypeGrant.OWNER_PRIV);
+    } else {
+      try {
+        SQLPrivilegeType priv = Enum.valueOf(SQLPrivilegeType.class, permVo.getAction());
+        privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(priv, false));
+        if (permVo.isGrantable()) {
+          privs.add(SQLPrivTypeGrant.getSQLPrivTypeGrant(priv, true));
+        }
+      } catch (RuntimeException e) {
+        // ignore
+      }
+    }
+    return privs.toArray(new SQLPrivTypeGrant[0]);
+  }
+
+  RequiredPrivileges getPrivileges(HivePrivilegeObject obj, String username) throws HiveAuthzPluginException {
+    List<String> globalDS = InceptorPermUtil.global();
+    List<String> objDS = InceptorPermUtil.convert(obj);
+    RequiredPrivileges privs = new RequiredPrivileges();
+    List<List<String>> dataSources = new ArrayList<>();
+    dataSources.add(globalDS);
+    if (obj.getType() == HivePrivilegeObject.HivePrivilegeObjectType.TABLE_OR_VIEW) {
+      List<String> database = InceptorPermUtil.convertDatabase(obj.getDbname());
+      dataSources.add(database);
+    }
+    dataSources.add(objDS);
+    for (List<String> dataSource : dataSources) {
+      try {
+        List<PermissionVo> permVos = guardianClient.userPermissions(username, component, dataSource);
+        if (permVos != null) {
+          for (PermissionVo permVo : permVos) {
+            privs.addAll(Perm2SQLPrivTypeGrant(permVo));
+          }
+        }
+      } catch (GuardianClientException e) {
+        LOG.error("Fail to obtain permission for component: {}, dataSource: {} for user: {}",
+                component, dataSource, username, e);
+        throw new HiveAuthzPluginException(e);
+      }
+    }
+
+    // read owner information from metastore or its cache
+    // TODO: take roles into consideration, but current it is a time waste and unusual to use
+    long startTime = System.nanoTime();
+    if (SQLAuthorizationUtils.isOwner(username, Collections.EMPTY_LIST, obj)) {
+      privs.addPrivilege(SQLPrivTypeGrant.OWNER_PRIV);
+    }
+    long endTime = System.nanoTime();
+    LOG.debug("Time to check ownership cost " + (endTime - startTime) + " ns for " + obj.toString());
+
+    return privs;
+  }
+
+  /**
+   * In the path uri it has been normalized, and replace "//", ".", ".." with corresponding characters
+   * Guardian permission
+   * @param filePath
+   * @param userName
+   * @return
+   */
+  public RequiredPrivileges getHdfsPreviledgeFromGuardian(Path filePath, String userName) {
+    List<PermissionVo> permVos = new ArrayList<>();
+    String path = filePath.toUri().getPath();
+    while (path.length() > 1 && path.endsWith("/")) {
+      path = path.substring(0, path.length() - 1);
+    }
+    boolean atRoot = false;
+    while ((!StringUtils.isEmpty(path)) && (!atRoot)) {
+      if (path.equals("/")) atRoot = true;
+      // Try to get the dependent hdfs component
+      String component = hiveConf.get(PluginConstants.HDFS_SERVICE_ID);
+      List<String> dataSource = InceptorPermUtil.convertHdfsPath(path);
+      try {
+        permVos = guardianClient.userPermissions(userName, component, dataSource);
+      } catch (GuardianClientException e) {
+        LOG.error("Fail to obtain permission for {} in component {} of user {} in Guardian",
+               dataSource, component, userName, e);
+      }
+      if (permVos != null && permVos.size() > 0) break;
+      path = path.substring(0, path.lastIndexOf(Path.SEPARATOR_CHAR));
+      while (path.length() > 1 && path.endsWith("/")) {
+        path = path.substring(0, path.length() - 1);
+      }
+      if (StringUtils.isEmpty(path)) path = "/";
+    }
+    RequiredPrivileges privs = new RequiredPrivileges();
+    if (permVos != null) {
+      for (PermissionVo perm : permVos) {
+        privs.addAll(Perm2SQLPrivTypeGrant(perm));
+      }
+    }
+    return privs;
+  }
+
+  void authorizeGrant(String userName, List<HivePrivilege> hivePrivileges, HivePrivilegeObject hivePrivObject)
+          throws HiveAuthzPluginException, HiveAccessControlException {
+    // check whether user has global admin permission
+    if (checkGlobalPermission(userName, SQLPrivTypeGrant.ADMIN_PRIV)) {
+      return;
+    }
+
+    // check whether user has the permissions with grant option
+    RequiredPrivileges reqPrivs = new RequiredPrivileges();
+    for (HivePrivilege hivePriv : hivePrivileges) {
+      reqPrivs.addPrivilege(hivePriv.getName(), true /* grant priv required */);
+    }
+    RequiredPrivileges availPrivs = getPrivileges(hivePrivObject, userName);
+    List<String> deniedMessages = new ArrayList<>();
+    Collection<SQLPrivTypeGrant> missingPrivs = reqPrivs.findMissingPrivs(availPrivs, /*ownerAsAdmin*/ false);
+    SQLAuthorizationUtils.addMissingPrivMsg(missingPrivs, hivePrivObject, deniedMessages);
+    SQLAuthorizationUtils.assertNoDeniedPermissions(new HivePrincipal(userName,
+            HivePrincipal.HivePrincipalType.USER), HiveOperationType.GRANT_PRIVILEGE, deniedMessages);
+  }
+
+  boolean isUserAdmin(String userName) {
+    return checkGlobalPermission(userName, SQLPrivTypeGrant.ADMIN_PRIV);
+  }
+
+  List<String> showQuota(List<QuotaVo> quotaVos) throws HiveAuthzPluginException {
+    List<String> result = new ArrayList<>();
+    for (QuotaVo quotaVo : quotaVos) {
+      try {
+        quotaVo = guardianClient.readQuota(quotaVo);
+        if (quotaVo == null || quotaVo.getProperties().get("spaceQuota") == null) {
+          result.add("unlimited");
+        } else {
+          result.add(spaceQuotaToString(((Number)quotaVo.getProperties().get("spaceQuota")).longValue()));
+        }
+      } catch (GuardianClientException e) {
+        LOG.error("Failed to read quota {}", quotaVo);
+        throw new HiveAuthzPluginException(e);
+      }
+    }
+    return result;
+  }
+
+  List<String> getAllRoles() throws HiveAuthzPluginException {
+    List<String> roles = new ArrayList<>();
+    try {
+      List<RoleVo> roleVos = guardianClient.getRoles();
+      if (roleVos != null) {
+        for (RoleVo roleVo : roleVos) {
+          roles.add(roleVo.getRoleName());
+        }
+      }
+    } catch (GuardianClientException e) {
+      LOG.error("Failed to list all roles", e);
+      throw new HiveAuthzPluginException(e);
+    }
+    return roles;
+  }
+
+  // TODO: check hierarchy roles inherited
+  List<String> getRoles(String userName) throws HiveAuthzPluginException {
+    List<String> roles = new ArrayList<>();
+    try {
+      UserVo userVo = guardianClient.getUser(userName);
+      if (userVo != null) {
+        if (userVo.getRoles() != null) {
+          roles.addAll(userVo.getRoles());
+        }
+        if (hasAdminRole(userName)) {
+          roles.add("ADMIN");
+        }
+      }
+    } catch (GuardianClientException e) {
+      LOG.error("Failed to read user: {}", userName, e);
+      throw new HiveAuthzPluginException(e);
+    }
+    return roles;
+  }
+
+  boolean hasAdminRole(String userName) throws HiveAuthzPluginException {
+    try {
+      return guardianClient.checkAccess(userName, InceptorPermUtil.global(component, "ADMIN"));
+    } catch (GuardianClientException e) {
+      LOG.error("Failed to check access with Guardian", e);
+      throw new HiveAuthzPluginException(e);
+    }
+  }
+
+  List<HivePrivilegeInfo> listPrivilege(String principalName, HivePrincipal.HivePrincipalType principalType,
+                                          HivePrivilegeObject privObj) throws HiveAuthzPluginException {
+    List<HivePrivilegeInfo> privInfos = new ArrayList<HivePrivilegeInfo>();
+    List<String> dataSource = InceptorPermUtil.convert(privObj);
+    try {
+      List<EntityPermissionVo> epVos;
+      if ((principalName == null && privObj.getType() == null)
+        || privObj.getType() == HivePrivilegeObject.HivePrivilegeObjectType.GLOBAL) {
+        // if neither principal nor object is specified, show all GLOBAL privileges
+        epVos = guardianClient.searchPermissions(component, InceptorPermUtil.global());
+      } else if (privObj.getType() == null) {
+        // if object is not specified, filter all the permissions
+        epVos = guardianClient.searchPermissions(principalName, convert(principalType), component,
+                null, true);
+      } else {
+        epVos = guardianClient.searchPermissions(component, dataSource);
+      }
+      for (EntityPermissionVo epVo : epVos) {
+        if (StringUtils.isEmpty(principalName)
+                || (principalName.equals(epVo.getName()) && convert(epVo.getPrincipalType()) == principalType )) {
+          HivePrincipal principal = new HivePrincipal(epVo.getName(), convert(epVo.getPrincipalType()));
+          HivePrivilege priv = new HivePrivilege(epVo.getPermissionVo().getAction(), null);
+          HivePrivilegeObject targetObj = InceptorPermUtil.convertFromDataSource(epVo.getPermissionVo().getDataSource());
+          boolean grantOption = epVo.getPermissionVo().isGrantable();
+          HivePrivilegeInfo privInfo = new HivePrivilegeInfo(principal, priv, targetObj,
+                  new HivePrincipal("N/A", HivePrincipal.HivePrincipalType.USER), grantOption, 0);
+          privInfos.add(privInfo);
+        }
+      }
+    } catch (GuardianClientException e) {
+      LOG.error("Failed to search permissions for {} of {}: {}", dataSource, principalType.name(), principalName);
+      throw new HiveAuthzPluginException(e);
+    }
+    return privInfos;
+  }
+
+  List<HiveRoleGrant> getPrincipalGrantInfoForRole(String roleName) throws HiveAuthzPluginException {
+    List<HiveRoleGrant> roleGrants = new ArrayList<>();
+    try {
+      RoleVo roleVo = guardianClient.getRole(roleName);
+      if (roleVo.getUsers() != null) {
+        for (String user : roleVo.getUsers()) {
+          HiveRoleGrant roleGrant = getHiveRoleGrant(roleName, user, PrincipalType.USER.name());
+          roleGrants.add(roleGrant);
+        }
+      }
+      if (roleVo.getGroups() != null) {
+        for (String group : roleVo.getGroups()) {
+          HiveRoleGrant roleGrant = getHiveRoleGrant(roleName, group, PrincipalType.GROUP.name());
+          roleGrants.add(roleGrant);
+        }
+      }
+      if (roleVo.getChildren() != null) {
+        for (String role : roleVo.getChildren()) {
+          HiveRoleGrant roleGrant = getHiveRoleGrant(roleName, role, PrincipalType.ROLE.name());
+          roleGrants.add(roleGrant);
+        }
+      }
+    } catch (GuardianClientException e) {
+      LOG.error("Failed to get role for role {}", roleName, e);
+      throw new HiveAuthzPluginException(e);
+    }
+    return roleGrants;
+  }
+
+  List<HiveRoleGrant> getRoleGrantInfoForPrincipal(HivePrincipal principal) throws HiveAuthzPluginException {
+    List<HiveRoleGrant> roleGrants = new ArrayList<>();
+    if (principal == null) return roleGrants;
+    try {
+      switch (principal.getType()) {
+        case USER:
+          UserVo userVo = guardianClient.getUser(principal.getName());
+          if (userVo.getRoles() != null) {
+            for (String role : userVo.getRoles()) {
+              roleGrants.add(getHiveRoleGrant(role, userVo.getUserName(), PrincipalType.USER.name()));
+            }
+          }
+          break;
+        case GROUP:
+          GroupVo groupVo = guardianClient.getGroup(principal.getName());
+          if (groupVo.getRoles() != null) {
+            for (String role : groupVo.getRoles()) {
+              roleGrants.add(getHiveRoleGrant(role, groupVo.getGroupName(), PrincipalType.GROUP.name()));
+            }
+          }
+          break;
+        case ROLE:
+          RoleVo roleVo = guardianClient.getRole(principal.getName());
+          if (roleVo.getParents() != null) {
+            for (String role : roleVo.getParents()) {
+              roleGrants.add(getHiveRoleGrant(role, roleVo.getRoleName(), PrincipalType.ROLE.name()));
+            }
+          }
+      }
+    } catch (GuardianClientException e) {
+      LOG.error("Failed to get role for {}: {}", principal.getType().name(), principal.getName(), e);
+      throw new HiveAuthzPluginException(e);
+    }
+    return roleGrants;
+  }
+
+  List<String> filterDatabaseByPrivileges(String username, List<String> dbs) throws HiveAuthzPluginException {
+    try {
+      // check global privilege
+      // note: do not check GLOBAL ACCESS here since it has already been checked on SQL compiling stage
+      List<String> dataSourceOfGlobal = InceptorPermUtil.global();
+      List<PermissionVo> permVos = new ArrayList<>();
+      permVos.add(new PermissionVo(component, dataSourceOfGlobal, ADMIN_PERM));
+      // note: do not check GLOBAL CREATE here
+      for (GuardianSQLPrivilegeType privilegeType : GuardianSQLPrivilegeType.ALL_ON_TABLE) {
+        permVos.add(new PermissionVo(component, dataSourceOfGlobal, privilegeType.name()));
+      }
+      if (guardianClient.checkAnyAccess(username, permVos)) {
+        return dbs;
+      }
+
+      // filter databases
+      List<String> authorizedDbs = guardianClient.userAuthorizedDataNodes(username, component, Collections.singletonList("TABLE_OR_VIEW"), null, null);
+      Set<String> authorizedDbSet = new HashSet<>();
+      if (CollectionUtils.isNotEmpty(authorizedDbs)) {
+        for (String db : authorizedDbs) {
+          authorizedDbSet.add(db.toLowerCase());
+        }
+      }
+      return new ArrayList<>(authorizedDbSet);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to filter databases by privileges from Guardian with user: [{}] ", username, e);
+      throw new HiveAuthzPluginException(e);
+    }
+  }
+
+  List<String> filterTablesByPrivileges(String username, String dbName, List<String> tables) throws HiveAuthzPluginException {
+    try {
+      // check global and db privileges
+      // note: do not check GLOBAL ACCESS here since it has already been checked on SQL compiling stage
+      List<String> dataSourceOfGlobal = InceptorPermUtil.global();
+      List<String> dataSourceOfDb = InceptorPermUtil.convertDatabase(dbName);
+      List<PermissionVo> permVos = new ArrayList<>();
+      permVos.add(new PermissionVo(component, dataSourceOfGlobal, ADMIN_PERM));
+      permVos.add(new PermissionVo(component, dataSourceOfDb, ADMIN_PERM));
+      for (GuardianSQLPrivilegeType privilegeType : GuardianSQLPrivilegeType.ALL_ON_TABLE) {
+        permVos.add(new PermissionVo(component, dataSourceOfGlobal, privilegeType.name()));
+        permVos.add(new PermissionVo(component, dataSourceOfDb, privilegeType.name()));
+      }
+      if (guardianClient.checkAnyAccess(username, permVos)) {
+        return tables;
+      }
+
+      // filter tables
+      List<String> authorizedTables = guardianClient.userAuthorizedDataNodes(username, component, InceptorPermUtil.convertDatabase(dbName), null, null);
+      Set<String> authorizedTableSet = new HashSet<>();
+      if (CollectionUtils.isNotEmpty(authorizedTables)) {
+        for (String table : authorizedTables) {
+          authorizedTableSet.add(table.toLowerCase());
+        }
+      }
+      return new ArrayList<>(authorizedTableSet);
+    } catch (GuardianClientException e) {
+      LOG.error("Fail to filter tables by privileges from Guardian with user: [{}], dbName:[{}]", username, dbName, e);
+      throw new HiveAuthzPluginException(e);
+    }
+  }
+
+  private HivePrincipal.HivePrincipalType convert(PrincipalType princType) {
+    if (princType == null) return null;
+    switch (princType) {
+      case USER:
+        return HivePrincipal.HivePrincipalType.USER;
+      case GROUP:
+        return HivePrincipal.HivePrincipalType.GROUP;
+      case ROLE:
+        return HivePrincipal.HivePrincipalType.ROLE;
+      default:
+        return HivePrincipal.HivePrincipalType.UNKNOWN;
+    }
+  }
+
+  private PrincipalType convert(HivePrincipal.HivePrincipalType princType) {
+    if (princType == null) return null;
+    switch (princType) {
+      case USER:
+        return PrincipalType.USER;
+      case GROUP:
+        return PrincipalType.GROUP;
+      case ROLE:
+        return PrincipalType.ROLE;
+      default:
+        return null;
+    }
+  }
+
+当在一个函数执行过程中调用panic()函数时，正常的函数执行流程将立即终止，但函数中 之前使用defer关键字延迟执行的语句将正常展开执行，之后该函数将返回到调用函数，并导致 逐层向上执行panic流程，直至所属的goroutine中所有正在执行的函数被终止。错误信息将被报 告，包括在调用panic()函数时传入的参数，这个过程称为错误处理流程。
+////
+
+
+
+if(c<32) 控制字符
+else if(c>'0'&&c<'9') 数字
+else if(c>'a'&&c<'z') 小写字母
+else if(c>'A'&&c<'Z') 大写字母
+else 其它字母
+
+guardian-3.2发布模块
+manager上架 迁移代码要合进去
+tdc上架
+
+
+kunDB限制登陆ip地址
+openldap有 apacheds没有
+userugi
+拿到用户的ip
+ldap带到用户的ip vpget
+限制ip数据从哪里读-
+mysql用户ip创建一张表
+
+inceptor-plugin修改
+kunDB代码 
+限制策略怎么存储 怎么vpget曾 资源动态加载在哪边实现
+
+////////
+
+工作周报 - 李镇邦 20200203 ~ 20200207
+工作周报 - 李镇邦 20200203 ~ 20200207
+
+完成：
+1. WARP-41400：审核提交完成
+2. 了解kunDB项目架构，跟踪权限审核模块，了解golang的基础
+3. WARP-41627：之前WARP-27294在getAuthorizedDatanode的改动新创建jira，并更改逻辑和需求相左的代码
+
+本周：
+1. WARP-41627：等待提交，有必要的话修改底层接口
+2. 开始解决kunDB的权限相关工作，并把相关工作积累到wiki上
+
+
+完成：
+1. WARP-41400：审核提交完成
+调用密码策略代码易读性
+2. 了解kunDB项目架构，跟踪权限审核模块，了解golang的基础
+guardian/kunDB权限管制各一套 guardian-apacheds-用户密码 
+kunDB-kungate 限制ip mysql acl ldap
+产品手册和wiki
+- 读代码
+- 编译
+
+3. WARP-27294：修改相应逻辑不对的地方，等待提交
+
+
+本周：
+1. WARP-27294：等待提交，有必要的话修改底层接口
+2. 开始解决kunDB的权限相关工作
+
+
+/////
+tls-grpc-ldap
+通过gRPC
+通信层提供tls认证方式
+服务接口认证
+注册中心认证
+
+
+
+
+通过grpc框架
+mysql-ldapauthserver-auth_server_通过ldap存储
+
+apacheds主要特性：
+-支持ldap，kerberos和change pwd protocol
+-基于java实现，支持多平台
+-支持分区，多实例，多虚拟服务器
+
+一个Keyspace即指一个逻辑数据库，它可以对应一个或多个MySQL数据库，而对上层应用则呈现为一个数据库。
+
+对一个Keyspace执行查询时，vtGate会根据路由从正确的MySQL数据库里读取数据，从而使应用层像是在对一个数据库操作。
+
+
+http://www.warpcloud.cn/#/documents-support/docs-detail/document/KUNDB-PLATFORM/1.2/000KunDBManual?docType=docs%3Fcategory%3DKUNDB&docName=KunDB使用手册
+
+KunDB增强了安全机制，支持通过Guardian使用LDAP方式来控制访问权限。如果您的集群启用了Guardian服务，在使用KunDB之前，所有要用到的账户都需要在Guardian里先创建。
+
+
+工信部测试
+kunDB登陆限制
+- 限制登陆ip地址
+- 限制登陆时间
+- 限制登陆失败次数
+
+MySQL RBAC 角色权限控制
+开发guardian插件，支持guardian进行管理
+
+框架结构和搭建环境
+
+
+WARP-41682:[KunDB]需要支持show privileges或相关语句
+
+
+export MYSQL_FLAVOR="MySQL56"
+export VT_MYSQL_ROOT="/usr/local/mysql57"
+export VT_MARIA_ROOT="/usr/local/mariadb"
+export kunDataRoot="$GOPATH/vtdataroot"
+export kunRoot="$GOPATH/src/github.com/youtube"
+export kunHome="$kunRoot/vitess"
+alias gk="[ -d $kunHome ] && cd $kunHome || echo 'no kundb src directory'"
+alias gkd="[ -d $kunDataRoot ] && cd $kunDataRoot || echo 'no kundb data directory'"
+
+
+
+https://www.cnblogs.com/EasonJim/p/6283190.html
+mac让.bashrc生效
+https://www.jianshu.com/p/263b9107a047
+mac下载pip
+
+https://newsn.net/say/pip-six-error.html
+pip install 时，报错 Cannot uninstall 'six' 的解决方案
+
+sudo yum install unixODBC-devel.x86_64(centos) sudo apt-get install unixodbc-dev(ubuntu)
+
+192.168.30.10 lishinhodeMacBook-Air.local 192.168.30.10
+
+下载brew
+brew install unixodbc
+
+
+BREW_REPO = “https://mirrors.ustc.edu.cn/brew.git “.freeze 
+CORE_TAP_REPO = “https://mirrors.ustc.edu.cn/homebrew-core.git“.freeze
+
+
+1. 问舒锦sql怎么存priviledge
+2. 问圣哥装没装kundb
+
+s舒锦
+
+fatal: remote error: access denied or repository not exported:
+
+git clone https://mirrors.ustc.edu.cn/homebrew-core.git//usr/local/Homebrew/Library/Taps/homebrew/homebrew-core --depth=1
+
+mac增加path的方法
+https://www.jianshu.com/p/2d7a2c705b4a
+
+挂外网
+https://zhuanlan.zhihu.com/p/59805070
+装brew
+
+安装pkg-config
+https://blog.csdn.net/sojlu/article/details/70229848
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig/:/usr/local/lib/pkgconfig/
+
+mysql启动
+https://stackoverflow.com/questions/32234142/error-the-server-quit-without-updating-pid-file-usr-local-mysql-data-mac-local
+kundb集群启动出错
+没有读到host ip E0212 19:37:25.643640    5077 zkctl.go:87] failed start: dial tcp :21811: connect: connection refused
+bison语法
+
+问舒锦
+sql.go是什么意思
+_mfed是什么
+
+https://www.jianshu.com/p/fe78d2036192
+关闭系统完整性保护
+
+case sqlparser.ShowPrivilegesStr:
+		res, err := e.shardExec(ctx, session, sqlparser.String(show), bindVars, target)
+		if err != nil {
+			return nil, err
+		}
+		rowLen := len(res.Rows)
+		rows := make([][]sqltypes.Value, rowLen)
+		return &sqltypes.Result{
+			Fields:       buildVarCharFields("Privilege", "Context", "Comment"),
+			Rows:         rows,
+			RowsAffected: uint64(len(rows)),
+		}, nil
+
+
+goimports -w /Users/sd/go/src/github.com/youtube/vitess/.git/../misc/git/hooks/goimports
+
+vtgate
+配置文件/动态语法
+
+PRIVILEGES
+
+http://172.16.1.41:10080/lishinho/kundb/-/jobs/329632/raw
+报错
+
+0217
+1. 本地安装kundb和其他在家工作工具
+2. WARP-41682: [KunDB]需要支持show privileges或相关语句 review中
+3. kundb代码架构学习
+
+本周：
+1. 完成WARP-41682
+2. 完成WARP-41400：密码一段时间不可修改的测试并merge
+3.工作环境安装kundb并测试两个项目
+4. 支持新网权限metastore启动不了问题
+5. 编写kundb支持ip限制的功能建立jira
+
+ImportError: No module named zipp+--out of VPN
+
+root@172.26.0.93 1234
+
+怎么用docker拉去文件并编译
+
+
+sudo apt-get install unixodbc-dev
+
+transwarp@transwarp-Latitude-5480:~/go/src/github.com/youtube/vitess$ hostname -f
+transwarp-Latitude-5480
+transwarp@transwarp-Latitude-5480:~/go/src/github.com/youtube/vitess$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s31f6: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast state DOWN group default qlen 1000
+    link/ether 10:65:30:ea:b8:7e brd ff:ff:ff:ff:ff:ff
+3: wlp2s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 3c:6a:a7:71:34:5f brd ff:ff:ff:ff:ff:ff
+    inet 172.16.203.45/23 brd 172.16.203.255 scope global dynamic wlp2s0
+       valid_lft 79630sec preferred_lft 79630sec
+    inet6 fe80::221b:e4a:8b8:1e60/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:5d:02:e4:b7 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+
+
+export MYSQL_FLAVOR="MariaDB"
+export VT_MYSQL_ROOT="/usr/local/mariadb"
+export VT_MARIA_ROOT="/usr/local/mariadb"
+
+
+panic: interface conversion: sqlparser.Privilege is not sqlparser.SQLNode: missing method Format [recovered]
+	panic: interface conversion: sqlparser.Privilege is not sqlparser.SQLNode: missing method Format
+
+
+2020-02-17 15:33:41 0 [Warning] No argument was provided to --log-bin and neither --log-basename or --log-bin-index where used;  This may cause repliction to break when this server acts as a master and has its hostname changed! Please use '--log-basename=transwarp-Latitude-5480' or '--log-bin=mysql-bin' to avoid this problem.
+2020-02-17 15:33:41 0 [ERROR] mysqld: Can't open shared library '/usr/local/mariadb/lib/plugin/semisync_master.so' (errno: 22, cannot open shared object file: No such file or directory)
+2020-02-17 15:33:41 0 [ERROR] Couldn't load plugin 'rpl_semi_sync_master' from 'semisync_master.so'.
+2020-02-17 15:33:41 0 [Note] InnoDB: Mutexes and rw_locks use GCC atomic builtins
+2020-02-17 15:33:41 0 [Note] InnoDB: Uses event mutexes
+2020-02-17 15:33:41 0 [Note] InnoDB: Compressed tables use zlib 1.2.3
+2020-02-17 15:33:42 0 [Note] InnoDB: Number of pools: 1
+2020-02-17 15:33:42 0 [Note] InnoDB: Using SSE2 crc32 instructions
+2020-02-17 15:33:42 0 [Note] InnoDB: Initializing buffer pool, total size = 32M, instances = 1, chunk size = 32M
+2020-02-17 15:33:42 0 [Note] InnoDB: Completed initialization of buffer pool
+2020-02-17 15:33:42 0 [Note] InnoDB: If the mysqld execution user is authorized, page cleaner thread priority can be changed. See the man page of setpriority().
+2020-02-17 15:33:42 0 [Note] InnoDB: 128 out of 128 rollback segments are active.
+2020-02-17 15:33:42 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2020-02-17 15:33:42 0 [Note] InnoDB: Setting file '/home/transwarp/go/vtdataroot/vt_0000000101/innodb/data/ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2020-02-17 15:33:42 0 [Note] InnoDB: File '/home/transwarp/go/vtdataroot/vt_0000000101/innodb/data/ibtmp1' size is now 12 MB.
+2020-02-17 15:33:42 0 [Note] InnoDB: Waiting for purge to start
+2020-02-17 15:33:42 0 [Note] InnoDB: 10.3.7 started; log sequence number 1603984; transaction id 9
+2020-02-17 15:33:42 0 [Note] InnoDB: Loading buffer pool(s) from /home/transwarp/go/vtdataroot/vt_0000000101/innodb/data/ib_buffer_pool
+2020-02-17 15:33:42 0 [Note] Plugin 'FEEDBACK' is disabled.
+2020-02-17 15:33:42 0 [ERROR] Could not open mysql.plugin table. Some plugins may be not loaded
+2020-02-17 15:33:42 0 [ERROR] /usr/local/mariadb/bin/mysqld: unknown variable 'gtid_mode=ON'
+2020-02-17 15:33:42 0 [ERROR] Aborting
+
+docker run -it --privileged --rm -v /home/transwarp/Downloads/work/mariadb:/root/ mariadb_src 172.16.1.99/kundb/x86_64/mysql-compiler:v1 bash
+
+
+docker run -it --privileged --rm -v /home/transwarp/Downloads/work/mysql:/root/mysql_src 172.16.1.99/kundb/x86_64/mysql-compiler:v1 bash
+
+
+172.16.1.99/postcommit/x86_64/kundb:kundb-1.3
+
+cd /root && tar czvf mariadb.tar.gz mariadb
+git submodule
+
+mkdir ~/tmp; docker cp $ containerID：/root/mariadb.tar.gz〜/ tmp
+
+docker pull 172.16.1.99/kundb/x86_64/mysql-compiler
+
+cmake ../mysql_src -DCMAKE_INSTALL_PREFIX=/root/mysql -DDOWNLOAD_BOOST=1 -DWITH_BOOST=/root/boost/ -DBUILD_CONFIG=mysql_release -DWITH_EMBEDDED_SERVER=false -DWITH_EMBEDDED_SHARED_LIBRARY=false -DWITH_UNIT_TESTS=OFF -DWITHOUT_TOKUDB=1 -DWITH_JEMALLOC=no
+($uname -i)
+$括号里的是指令
+make的含义？
+
+cd /root && tar czvf mysql.tar.gz mysql
+
+sudo tar xzvf mysql57.tar.gz -C /usr/local
+
+
+
+文档： http://172.16.1.168:8090/display/TRAN/KunDB+First+Day
+编译mysql/mariadb：http://172.16.1.168:8090/display/TRAN/Compile+Mariadb+or+MySQL
+x86_64 mariadbjar包：172.26.0.93：~/mariadb_0217_ok.tar.gz 1234
+
+基于tag:transwarp-6.2.1-final新创立分支XWBank_guardian_show_privilege
+
+https://gitbook.tw/chapters/faq/stash.html
+git stash pop和git stash apply
+
+测试
+1. 只开histduration 设为60
+建立用户user1 初始密码123
+123改为1234 成功
+1234改为123 间隔23秒 报错
+2020-02-19 10:34:53,572 INFO ApachedsAuditLogger: 2020-02-19 10:34:53,053, operation='LDAP_AUTH', principal='uid=user1,ou=People,dc=tdh', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 10:34:53,575 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 23 take check been reached.
+2020-02-19 10:34:53,579 INFO ApachedsAuditLogger: 2020-02-19 10:34:53,053, operation='LDAP_AUTH', principal='uid=admin,ou=system', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 10:34:53,580 INFO io.transwarp.guardian.core.manager.UserManager: Password policy violation: {}
+org.apache.directory.fortress.core.PasswordException: org.apache.directory.fortress.core.model.User.changePassword user [user1]  constraint violation, ldap rc=CONSTRAINT_VIOLATION: failed for MessageType : MODIFY_REQUEST
+Message ID : 17
+    Modify Request
+        Object : 'uid=user1,ou=People,dc=tdh'
+            Modification[0]
+                Operation :  replace
+                Modification
+userPassword: 0x31 0x32 0x33 org.apache.directory.api.ldap.model.message.ModifyRequestImpl@3adb19ee: invalid reuse of password present in password history Fortress rc=4024
+间隔142秒成功
+2020-02-19 10:37:22,191 INFO ApachedsAuditLogger: 2020-02-19 10:37:22,022, operation='LDAP_AUTH', principal='uid=user1,ou=People,dc=tdh', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 10:37:22,194 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 142 it has been reached.
+2020-02-19 10:37:22,194 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: break
+2020-02-19 10:37:22,251 INFO ApachedsAuditLogger: 2020-02-19 10:37:22,022, operation='LDAP_AUTH', principal='uid=admin,ou=system', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+
+换密码多次可行
+
+swagger的接口是updatepwd 当curpwd=null时会走resetpwd，在reset中会把ldap的reset位置1,让user在下次登陆改密码，所以设计修改时会通过admin身份创建连接绕过pwdpolicy直接改密码，导致无效 好像前端不能没有curpwd，这一接口也没暴露给用户，在swagger可以用
+
+改完密码策略用户没有权限更改密码
+没有权限读角色和组
+
+inceptor-metastore-8.0.1.jar
+
+
+测试2\
+新建用户user
+密码策略设置pwdhistsize为3
+pwdduration为60
+初始密码12345
+123456过
+12345没过 userPassword: 0x31 0x32 0x33 0x34 0x35 org.apache.directory.api.ldap.model.message.ModifyRequestImpl@55a4beb8: invalid reuse of password present in password history Fortress rc=4024
+1236
+123
+12345
+123456
+1236没过
+userPassword: 0x31 0x32 0x33 0x36 org.apache.directory.api.ldap.model.message.ModifyRequestImpl@55a6182a: invalid reuse of password present in password history Fortress rc=4024
+	at org.apache.directory.fortress.core.impl.UserDAO.changePassword(UserDAO.java:1824)
+	at org.apache.directory.fortress.core.impl.UserP.changePassword(UserP.java:589)
+	at org.apache.directory.fortress.core.impl.AdminMgrImpl.changePassword(AdminMgrImpl.java:182)
+	at io.transwarp.guardian.core.manager.UserManager.updatePasswordInApacheDs(UserManager.java:396)
+	... 96 more
+2020-02-19 16:15:52,599 INFO io.transwarp.guardian.resource.HeartbeatProcessor: Delete 0 service(s) staying OFFLINE since 1582100147389
+2020-02-19 16:15:52,616 INFO ApachedsAuditLogger: 2020-02-19 16:15:52,052, operation='LDAP_AUTH', principal='uid=user,ou=People,dc=tdh', serverName='null', clientIp='127.0.0.1', result=SUCCESS
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 7 take check been reached.
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 21 take check been reached.
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 31 take check been reached.
+2020-02-19 16:15:52,618 INFO org.apache.directory.server.core.authn.AuthenticationInterceptor: histDuration is 60 time minus = 58 take check been reached.
+2020-02-19 16:15:52,622 INFO io.transwarp.guardian.core.manager.UserManager: Password policy violation: {}
+
+总结： pwdhistsize和pwdduration功能单独和合并在简单测试中都是好的
+3
+
+关于出现perious password false的情况：
+定位在修改密码策略时的操作有误。如果按swagger默认的put密码策略就会让几个参数变化，其中包含  "pwdAllowUserChange": true ,会改为false，改的策略只影响user所以之前的错误现象就很好说明了，关于一闪出现的那种错估计是读密码策略时apacheds反应的时间差？不过从我看来应该可以确定代码不存在问题 不需要修改代码
+
+
+mysql> show privileges;
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: target: _mfed.0.master, used tablet: test-800 (transwarp-Latitude-5480), vttablet: rpc error: code = Unknown desc = syntax error at position 11 near 'privileges', CallerID: vt_app
+
+
+
+    在夲机启动一个KunDB的伪分布式集群
+cd $kunHome
+source dev.env
+cd examples/local_mfed
+./startKunDB all
+
+    使用mac的同学请注意，因为脚本中使用getopt是GNU getopt，而mac中自带BSD getopt，因此需要安装gnu版本
+    brew install gnu-getopt
+    然后将其加入到PATH中，一般的bin目录为/usr/local/opt/gnu-getopt/bin，source后再执行上述脚本即可
+
+    如何清除集群？
+    可以使用startKunDB同目录下的tearDownForce脚本。如果需要清除数据库中的数据，添加rmdata参数
+
+    更多使用方法可执行./startKunDB -h查看。与startKunDB对应的是stopKunDB脚本，也可以使用./stopKunDB -h查看用法
+
+    使用mysql连接到KunDB
+mysql -h127.0.0.1 -uvt_app -p123 -P15307
+172.16.203.45
+mysql -h172.16.203.45 -uvt_app -p123 -P15307
+
+    如果你的系统中没有安装mysql客户端，那么可以使用自己编译的mysql。
+    sudo ln -s /usr/local/mysql57/bin/mysql /usr/local/bin/mysql
+
+
+drop table if exists customer;
+drop table if exists item;
+drop table if exists buy;
+drop table if exists expensive_item;
+drop table if exists cheap_item;
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+
+
+create table buy (custid int, itemid int) partition by HASH(custid) using binary_md5;
+insert into buy (custid, itemid) values (1, 1), (1, 2), (2, 1), (2, 3), (3, 1), (3, 2), (4, 3);
+
+
+create table expensive_item (itemid int primary key) partition by HASH(itemid) using binary_md5;
+create table cheap_item(itemid int, itemname varchar(100), price decimal) partition by HASH(itemid) using binary_md5;
+
+
+drop table if exists `_kundb_sequence_metadata`;
+CREATE TABLE `_kundb_sequence_metadata` (
+ `sequence_name` varchar(200) NOT NULL PRIMARY KEY,
+ `next_not_cached_value` bigint(21) NOT NULL DEFAULT 1,
+ `minimum_value` bigint(21) NOT NULL DEFAULT 1,
+ `maximum_value` bigint(21) NOT NULL DEFAULT 9223372036854775806,
+ `start_value` bigint(21) NOT NULL DEFAULT 1 COMMENT 'start value when sequences is created or value if RESTART is used',
+ `increment` bigint(21) NOT NULL DEFAULT 1 COMMENT 'increment value',
+ `cache_size` bigint(21) unsigned NOT NULL DEFAULT 100,
+ `cycle_option` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '0 if no cycles are allowed, 1 if the sequence should begin a new cycle when maximum_value is passed',
+ `cycle_count` bigint(21) NOT NULL DEFAULT 0 COMMENT 'How many cycles have been done',
+ `_next_n_values` bigint(21) NOT NULL DEFAULT 0 COMMENT 'Special flag for kundb',
+ `_next_n_values_param` bigint(21) NOT NULL DEFAULT 0 COMMENT 'Special param for kundb'
+) partition by hash(sequence_name) using binary_md5;
+
+
+kundb可以use一个不存在的数据库？
+kundb的安全管控机制
+http://172.16.1.168:8090/pages/viewpage.action?pageId=18681869
+
+
+func (c tLSWithPasswordAuthCred) blockIP(conn net.Conn) error {
+	if *ipBlocked == "" {
+		return nil
+	}
+	remoteAddr := conn.RemoteAddr().String()
+	bannedAddrs := []string{"127.0.0.1"}
+	for _, bannedAddr := range bannedAddrs {
+		if remoteAddr == bannedAddr {
+			return vterrors.Errorf(vtrpcpb.Code_FAILED_PRECONDITION, "disallowed to connect due to get blocked")
+		}
+	}
+	return nil
+}
+
+func (c tLSWithPasswordAuthCred) blockIP(conn net.Conn) error {
+	qr := rules.NewQueryRule("Blacklisted IP", "blacklisted_table", rules.QRFailRetry)
+	remoteAddr := conn.RemoteAddr().String()
+	bannedAddr := "127.0.0.1"
+	qr.SetIPCond(bannedAddr)
+	action := qr.GetAction(remoteAddr, "ddd", make(map[string]*querypb.BindVariable))
+	switch action {
+	case rules.QRFail :
+		return vterrors.Errorf(vtrpcpb.Code_INVALID_ARGUMENT, "disallowed to connect due to get blocked")
+	case rules.QRFailRetry:
+		return vterrors.Errorf(vtrpcpb.Code_FAILED_PRECONDITION, "disallowed to connect due to get blocked")
+	}
+	return nil
+}
+
+
+type BlockedIP struct {
+	BannedAddrs string 
+}
+
+
+
+type BlockIPList struct {
+	BannedAddrs []string `json:"bannedAddrs"`
+}
+
+
+E0221 12:03:18.858495    7146 main.go:55] remote error: rpc error: code = Unknown desc = tablet test-0000000102 ResetReplication failed (either fix it, or Scrap it): rpc error: code = Unavailable desc = all SubConns are in TransientFailure, latest connection error: connection error: desc = "transport: Error while dialing failed to do connect handshake, response: \"HTTP/1.1 403 Forbidden\\r\\nContent-Length: 337\\r\\nCache-Control: no-cache\\r\\nConnection: keep-alive\\r\\nContent-Type: text/html\\r\\nPragma: no-cache\\r\\n\\r\\n<!DOCTYPE html>\\n<html>\\n\\t<head> <title>COW Proxy</title> </head>\\n\\t<body>\\n\\t\\t<h1>[Error] Forbidden tunnel port</h1>\\n\\t\\t<p>HTTP Request <strong>CONNECT :16102</strong></p> <p>Please contact proxy admin.</p>\\n\\t\\t<hr />\\n\\t\\tGenerated by <i>COW 0.9.8</i> <br />\\n\\t\\tHost <i>localhost.localdomain</i> <br />\\n\\t\\tFri Feb 21 12:03:18 2020\\n\\t</body>\\n</html>\\n\""
+
+
+gkd/public/audit
+{"Action":"Login","AuthResult":"Success","ConnectionID":1,"RemoteAddr":{"IP":"127.0.0.1","Port":49808,"Zone":""},"Time":"Friday, 21-Feb-20 12:17:21 CST","User":"vt_app","level":"info","msg":"Auth","time":"2020-02-21T12:17:21+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"3.20","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":1,"SQL":"select @@version_comment limit 1","SQLType":"DML","Session":"a8969ccf-46d8-4c21-9dd2-a939b9f937b7","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-02-21T12:17:21+08:00"}
+{"BindVars":{},"Cost":"6.11","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":32,"SQL":"show privileges","SQLType":"SHOW","Session":"a8969ccf-46d8-4c21-9dd2-a939b9f937b7","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-02-21T12:17:26+08:00"}
+
+
+
+51874
+
+
+
+type BlockIPList struct {
+	BannedAddrs []string `json:"bannedAddrs"`
+}
+
+func (c *tLSWithPasswordAuthCred) blockIP(rawConn net.Conn) error {
+	tlsConn, _, err := c.tlsCred.ServerHandshake(rawConn)
+	if err != nil {
+		return err
+	}
+	data := []byte(*ipBlocked)
+	if *ipBlocked != "" {
+		var err error
+		data, err = ioutil.ReadFile(*ipBlocked)
+		if err != nil {
+			log.Fatalf("Failed to read ip_blocked_file: %v", err)
+		}
+	}
+
+	var ipList BlockIPList
+	if err := json.Unmarshal(data, &ipList); err != nil {
+		log.Fatalf("Error parsing ip_blocked_file config: %v", err)
+	}
+	remoteAddr := tlsConn.RemoteAddr().String()
+	log.Infof("remoteAddr is %s", remoteAddr)
+	for _, bannedAddr := range ipList.BannedAddrs {
+		i := strings.LastIndex(remoteAddr, ":")
+		if remoteAddr[:i] == bannedAddr {
+			return vterrors.Errorf(vtrpcpb.Code_FAILED_PRECONDITION, "disallowed to connect due to get blocked")
+		}
+	}
+	return nil
+}
+
+select insert update
+
+transwarp@transwarp-Latitude-5480:~/go/vtdataroot/public/audit$ mysql -h127.0.0.1 -uvt_app -p123 -P15307
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 2059 (HY000): Authentication plugin 'mysql_clear_password' cannot be loaded: plugin not enabled
+
+mysql -h172.16.132.31 -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
+开启安全模式
+
+
+就2个grpc和mysql是分开的
+go/mysql/server.go, 这是mysql的接口
+
+
+transwarp@transwarp-Latitude-5480:~/go/src/github.com/youtube/vitess$ mysql -h127.0.0.1 -P15307 -uvt_app -p123 
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 13
+E0221 20:04:01.830966    6406 server.go:234] Error parsing ip_blocked_file config: unexpected end of JSON input
+
+
+	//First check it if the ip is in the blacklist
+	//BlockIPList is used to make blacklist ip
+	type BlockIPList struct {
+		BannedAddrs []string `json:"bannedAddrs"`
+	}
+
+	data := []byte(*ipBlocked)
+	if *ipBlocked != "" {
+		var err error
+		data, err = ioutil.ReadFile(*ipBlocked)
+		if err != nil {
+			log.Errorf("Failed to read ip_blocked_file: %v", err)
+			return
+		}
+	}
+
+	var ipList BlockIPList
+	if err := json.Unmarshal(data, &ipList); err != nil {
+		log.Errorf("Error parsing ip_blocked_file config: %v", err)
+		return
+	}
+	remoteAddr := conn.RemoteAddr().String()
+	bannedAddr := "172.26.0.93"
+
+	if audit.IsAuditLoggerExisted() {
+		audit.AuditLogger.WithFields(logrus.Fields{
+			"Time":       time.Now().Format(time.RFC850),
+			"AuthResult": "haha",
+			"RemoteAddr": remoteAddr,
+			"bannedAddr": "172.26.0.93",
+		}).Info("Auth")
+	}
+
+	for _, bannedAddr := range ipList.BannedAddrs {
+		i := strings.LastIndex(remoteAddr, ":")
+		if i == -1 {
+			i = len(remoteAddr)
+		}
+		if remoteAddr[:i] == bannedAddr {
+			log.Errorf("disallowed to connect due to get blocked")
+			return
+		}
+	}
+
+	// Tell the handler about the connection coming and going.
+	l.handler.NewConnection(c)
+	defer func() {
+		if audit.IsAuditLoggerExisted() {
+			audit.AuditLogger.WithFields(logrus.Fields{
+				"Time":         time.Now().Format(time.RFC850),
+				"Action":       actionQuit,
+				"RemoteAddr":   conn.RemoteAddr(),
+				"ConnectionID": c.ConnectionID,
+				"User":         c.User,
+			}).Info("Auth")
+		}
+		l.handler.ConnectionClosed(c)
+	}()
+
+	ipBlocked  = flag.String("ip_blocked_file", "", "kundb ip blocked management file")
+
+
+
+m := make(map[string]interface{})
+
+http://172.16.1.97:8080/index.php/apps/files/?dir=/TRANSWARP_RELEASES/OFFICIAL&fileid=18123
+owncloud
+
+
+create global unique index ry_zzbdxx_bdbh_rybh_idx on ry_zzbdxx(BDBH);
+
+data := []byte(*ipConfig)
+
+
+
+	/*check the if secondary vindex exist */
+	indexName, tableName, _ := e.getSecondaryVindex(keyspace, tableName)
+	if len(indexName) != 0 {
+		for _, indexID := range indexName {
+			_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+
+
+			// WARP-41393: check if the secondary vindex exist and we will grant the same privilege to the vindex table
+			indexName, tableName, _ := e.getSecondaryVindex(strings.ToLower(grant.GrantIdent.Keyspace.String()), strings.ToLower(grant.GrantIdent.Table.String()))
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					// GRANT <PRIVILEGES> ON <table> TO user_name -> GRANT <PRIVILEGES> ON <vindex> TO user_name
+					i := strings.Index(strings.ToLower(sql), tableName)
+					newSQL := fmt.Sprintf(sql[0:i]+"%s"+sql[i+1:], indexID)
+					if grant.GrantOption {
+						newSQL += " with grant option"
+					}
+					_, err := e.handleDCL(ctx, session, newSQL, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+
+工作周报 - 李镇邦 20200217 ~ 20200221
+
+完成：
+1. WARP-41682: [KunDB]需要支持show privileges或相关语句完成测试并提交
+2. WARP-41400：密码一段时间不可修改的本地mock测试并merge
+3. WARP-42080：[KunDB]需要ip限制访问功能代码编写 支持静态读json文件 有效实现黑白名单 本地mock测试
+
+
+其他：
+1. 解决sla2-5502 新网权限metastore问题重新出包 更新wiki
+
+本周：
+1. WARP-42080： 找人review并merge
+2. 支持kundb的权限工作
+
+
+"blackListIP":["172.16.1.236","172.16.1.235","127.0.0.1"],
+"whiteListIP":["172.26.0.93"]
+
+type IPList struct {
+    BlackListIP []string 
+    WhiteListIP []string 
+}
+
+
+    ipList := IPList{}
+    err := json.Unmarshal(data, &ipList)
+    if err != nil {
+        log.Errorf("Error parsing ip_blocked_file config: %v", err)
+	return
+    }
+
+if len(m.WhiteListIP) != 0 {
+for _, ip := range ipList.WhiteListIP {
+			log.Errorf("disallowed to connect due to get blocked")
+			return
+		}
+	} else {
+for _, ip := range ipList.BlackListIP {
+			log.Errorf("disallowed to connect due to get blocked")
+			return
+		}
+		
+	}
+
+
+{
+  "BlackListIP": ["172.16.1.236","172.16.1.235","172.16.1.238"],
+  "WhiteListIP": ["172.26.0.93", "127.0.0.1"]
+}
+
+
+1. Warp-41393
+2. 设置登陆时间
+
+*\[0-9]?+-+[0-9]?\]*+$/
+ 
+func reParse(strs string[]) {
+for m, _ := range strs {
+regexStr = ".*\[.*"
+regexp.Match(regexStr, str)
+reg := regexp.MustCompile(regexStr)
+start := reg.FindStringIndex(str))
+i,err:=strconv.Atoi(str[start+1])
+j,err:=strconv.Atoi(str[start+3])
+for ; i < j; i = i+1	 {
+
+strs =append(strs, str[:start-1]+i+str[start
+}
+}
+}
+
+
+// SetIPCond adds a regular expression condition for the client IP.
+// It has to be a full match (not substring).
+func SetIPCond(pattern string) (err error) {
+	regexp, err = regexp.Compile(makeExact(pattern))
+	return err
+}
+
+func reMatch(re *regexp.Regexp, val string) bool {
+	return re == nil || re.MatchString(val)
+}
+
+func makeExact(pattern string) string {
+	return fmt.Sprintf("^%s$", pattern)
+}
+
+if !reMatch(regexp, ip) {
+	}
+
+
+263
+				var regex *regexp.Regexp
+				regex, err = regexp.Compile(makeExact(ip))
+				if err != nil {
+					log.Errorf("Error parsing ipConfig file config: %v", err)
+					return
+				}
+				if reMatch(regex, ip) {
+					outofWhiteListCheck = false
+					break
+				}
+
+WARP-42080:解决regex匹配问题
+WARP-41393：目标在executor上 找出grant for user时候的赋权行为，加上secondary index表的权限；创建secodary index表的时候把相应表的权限赋权在index表上
+WARp-xxxx：创建用户时间匹配问题
+
+
+Oracle数据库当中至少会有一个Profie文件，它可以限制口令和资源。建立oracle数据库时候，oracle会自动建立命名为default的profile，初始化的default有默认值，下面可以查看默认的profile的资源和口令限制的详细信息
+Oracle会话达到一定连接时间自动断开的方法
+
+IDLE_TIME：限制每个会话所允许的最长连续空闲时间，超过这个时间会话将自动断开。参数值是一个整数，单位是分钟。
+
+在大而复杂的用户数据库环境中，因为用户众多，系统资源可能会成为影响性能的瓶颈，为了有效利用系统资源，应该根据用户承担责任的不同而为其合理分配资源，所以有了profile
+
+mysqlSlowConnectWarnThreshold = flag.Duration("mysql_slow_connect_warn_threshold", 0, "Warn if it takes more than the given threshold for a mysql connection to establish")
+
+
+258
+		if len(ipList.WhiteListIP) != 0 {
+			outofWhiteListCheck := true
+			for _, ip := range ipList.WhiteListIP {
+				if MatchIP(remoteAddr, ip) {
+					outofWhiteListCheck = false
+					break
+				}
+			}
+			if outOfWhiteListCheck {
+				if audit.IsAuditLoggerExisted() {
+					audit.AuditLogger.WithFields(logrus.Fields{
+						"Time":         time.Now().Format(time.RFC850),
+						"AuthResult":   "Fail",
+						"RemoteAddr":   remoteAddr,
+						"ConnectionID": c.ConnectionID,
+						"User":         c.User,
+					}).Info("Auth")
+				}
+				return
+			}
+		} else if len(ipList.BlackListIP) != 0 {
+			for _, ip := range ipList.BlackListIP {
+				if MatchIP(remoteAddr, ip) {
+					if audit.IsAuditLoggerExisted() {
+						audit.AuditLogger.WithFields(logrus.Fields{
+							"Time":         time.Now().Format(time.RFC850),
+							"AuthResult":   "Fail",
+							"RemoteAddr":   remoteAddr,
+							"ConnectionID": c.ConnectionID,
+							"User":         c.User,
+						}).Info("Auth")
+					}
+					return
+				}
+			}
+		}
+
+
+ERAccessDeniedError, SSHandshakeError
+golang -%d -string
+-%v -int32/int64
+
+预提交不能设黑白名单
+mysql_slow_connect_warn_threshold
+
+bool: %t
+int, int8 etc.: %d
+uint, uint8 etc.: %d, %#x if printed with %#v
+float32, complex64, etc: %g
+string: %s
+chan: %p
+pointer: %p
+
+
+http://172.16.1.41:10080/OLTP/kundb/merge_requests/431/diffs
+
+把ip加测试
+找到conn的方法-> 
+
+
+c := time.Tick(5 * time.Second)
+for {
+	<- c
+	go f()
+}
+
+
+http://172.16.1.41:10080/OLTP/kundb/merge_requests/431/diffs
+
+func (axp *TxPool) transactionKiller() {c
+	defer tabletenv.LogError()
+	now := time.Now()
+	for _, v := range axp.activePool.GetOutdated(time.Duration(0), "for rollback") {
+		conn := v.(*TxConnection)
+		txTimeout := conn.TransactionTimeout
+		var effectiveTimeout time.Duration
+		if txTimeout.Get() > 0 {
+			effectiveTimeout = txTimeout.Get()
+		} else {
+			effectiveTimeout = axp.timeout.Get()
+		}
+		if conn.StartTime.Add(effectiveTimeout).Sub(now) <= 0 {
+			log.Warningf("killing transaction (exceeded effectiveTimeout: %v): %s", effectiveTimeout, conn.Format(nil))
+			tabletenv.KillStats.Add("Transactions", 1)
+			conn.Close()
+			conn.conclude(TxKill)
+		} else {
+			axp.activePool.Put(conn.TransactionID)
+		}
+	}
+}
+
+l.SlowConnectWarnThreshold != 0 && connectTime > l.SlowConnectWarnThreshold
+
+
+connectTime.Add(effectiveTimeout).Sub(now) <= 0
+
+/ Open makes the TxPool operational. This also starts the transaction killer that will kill long-running transactions.
+
+err:
+Grant Create temporary tables ON *.* TO <username>
+REVOKE Create temporary tables ON *.* TO <username>
+Grant Event ON *.* TO <username>
+REVOKE Event ON *.* TO <username>	
+
+
+GRANT
+    priv_type [(column_list)]
+      [, priv_type [(column_list)]] ...
+    ON [object_type] priv_level
+    TO user [auth_option] [, user [auth_option]] ...
+    [REQUIRE {NONE | tls_option [[AND] tls_option] ...}]
+    [WITH {GRANT OPTION | resource_option} ...]
+
+GRANT PROXY ON user
+    TO user [, user] ...
+    [WITH GRANT OPTION]
+
+object_type: {
+    TABLE
+  | FUNCTION
+  | PROCEDURE
+}
+
+priv_level: {
+    *
+  | *.*
+  | db_name.*
+  | db_name.tbl_name
+  | tbl_name
+  | db_name.routine_name
+}
+
+user:
+    (see Section 6.2.3, “Specifying Account Names”)
+
+auth_option: {
+    IDENTIFIED BY 'auth_string'
+  | IDENTIFIED WITH auth_plugin
+  | IDENTIFIED WITH auth_plugin BY 'auth_string'
+  | IDENTIFIED WITH auth_plugin AS 'hash_string'
+  | IDENTIFIED BY PASSWORD 'hash_string'
+}
+
+tls_option: {
+    SSL
+  | X509
+  | CIPHER 'cipher'
+  | ISSUER 'issuer'
+  | SUBJECT 'subject'
+}
+
+resource_option: {
+  | MAX_QUERIES_PER_HOUR count
+  | MAX_UPDATES_PER_HOUR count
+  | MAX_CONNECTIONS_PER_HOUR count
+  | MAX_USER_CONNECTIONS count
+}
+
+
+
+REVOKE
+    priv_type [(column_list)]
+      [, priv_type [(column_list)]] ...
+    ON [object_type] priv_level
+    FROM user [, user] ...
+
+REVOKE ALL [PRIVILEGES], GRANT OPTION
+    FROM user [, user] ...
+
+REVOKE PROXY ON user
+    FROM user [, user] ...
+
+
+根据waterdroop的操作不可行命令列表 又按照本地kundb和mysql5.7分别重试一遍
+1. 所有revoke命令不符合语法规则 "TO <username>"应该改为"FROM <username>"
+2. proxy 是设代理用户 不可用*.* 正确语法为 Grant Proxy ON <username> TO <username>
+REVOKE Proxy ON <username> FROM <username>
+3. Grant Select ON *.* TO <username> 和 REVOKE Select ON *.* FROM <username>这两条本地有效可识别
+具体grant/revoke语句用法见 http://www.searchdoc.cn/rdbms/mysql/dev.mysql.com/doc/refman/5.7/en/grant.com.coder114.cn.html
+priv_level
+
+listener close禁掉端口
+connection close禁掉连接 会重连
+
+	// This will start the connection killer which will kill long-running idle connection.
+	l.ticks.Start(func() {
+		log.Errorf("killing connection (exceeded idleTimeout: %v) ", l.ticks.Interval())
+		c.writeErrorPacket(ERAccessDeniedError, SSHandshakeError, "idle-time error")
+		l.Close()
+	})
+
+timer计时器没有重置的接口
+waterdrop
+
+jdbc:kundb://172.16.203.45:15991
+https://pandolia.net/tinyc/ch13_bison.html
+
+
+-queryserver-config-transaction-timeout 90"
+
+1.如何读到配置
+2.定时器重启
+
+ip读json文件时不该return
+二级索引表
+
+http://172.16.1.97:8080/index.php/apps/files/?dir=/TRANSWARP_RELEASES/OFFICIAL&fileid=18123
+owncloud
+
+
+create global unique index ry_zzbdxx_bdbh_rybh_idx on ry_zzbdxx(BDBH);
+
+data := []byte(*ipConfig)
+
+
+
+	/*check the if secondary vindex exist */
+	indexName, tableName, _ := e.getSecondaryVindex(keyspace, tableName)
+	if len(indexName) != 0 {
+		for _, indexID := range indexName {
+			_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+
+
+			// WARP-41393: check if the secondary vindex exist and we will grant the same privilege to the vindex table
+			indexName, tableName, _ := e.getSecondaryVindex(strings.ToLower(grant.GrantIdent.Keyspace.String()), strings.ToLower(grant.GrantIdent.Table.String()))
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					// GRANT <PRIVILEGES> ON <table> TO user_name -> GRANT <PRIVILEGES> ON <vindex> TO user_name
+					i := strings.Index(strings.ToLower(sql), tableName)
+					newSQL := fmt.Sprintf(sql[0:i]+"%s"+sql[i+1:], indexID)
+					if grant.GrantOption {
+						newSQL += " with grant option"
+					}
+					_, err := e.handleDCL(ctx, session, newSQL, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+if len(table.ColumnVindexes) > 1 {
+			var indexName []string
+			for index, value := range table.ColumnVindexes {
+				if index > 0 {
+					indexName = append(indexName, value.Name)
+				}
+			}
+			return indexName, tableName, nil
+		}
+
+conn.RemoteAddr().String()
+
+metainfo
+
+20200302
+
+工作周报 - 李镇邦 20200224 ~ 20200228
+
+完成：
+1. WARP-42080: 加入ip名单支持正则表达式写入，并增加单元测试
+2. WARP-42233: 加入用户连接登陆空闲时间限制，默认30min长时间不操作会自动断开连接 
+3. WARP-41393: 增加赋权主表时，附在主表上的global索引表会赋同样的权限
+
+其他：
+1. 检测kundb不支持的mysql语法类型，并作统计开jira，WARP-42290
+
+本周：
+1. 支持kundb权限方面的问题，增加JDBC接口验证用户限制单元
+2. global索引表重构，或增加拉取表权限的接口
+
+
+#!/bin/bash
+echo "Hello World !"
+
+metainfo
+
+
+1.这个函数调用的时候就是不走正常流程关闭，具体效果可以看jira，因为这个条件没有外部触发的条件，只是开了goroutine到时去执行.执行的时候没有固定的地方可以return，调用的时候只是起点，终点只能结束在函数里
+
+2. 不走case我测过行不通，估计因为不是所有的mysql报文都由客户发起，连接断开时也要进行mysql通讯报文传递，server还会接收一些处理结束的保文，之前已经关闭计时器这里的setinterval打不开会一直锁住资源，不让处理，就导致用户不能正常退出客户端，卡在界面不动
+![Screenshot_from_2020-03-02_20-22-42](/uploads/ebe9f16b79ca3fa803dc5007b108ff61/Screenshot_from_2020-03-02_20-22-42.png)
+
+
+// connectionKiller is a process to kill connection
+func (l *Listener) connectionKiller(c *Conn) {
+	connCount.Add(-1)
+	servenv.CurrentConns.Add(-1)
+	log.Warningf("killing connection (exceeded idleTimeout: %v) ", c.ticks.Interval())
+	l.handler.ConnectionClosed(c)
+	c.Close()
+	if audit.IsAuditLoggerExisted() {
+		audit.AuditLogger.WithFields(logrus.Fields{
+			"Time":         time.Now().Format(time.RFC850),
+			"Action":       actionQuit,
+			"RemoteAddr":   c.RemoteAddr(),
+			"ConnectionID": c.ConnectionID,
+			"User":         c.User,
+		}).Info("Server")
+	}
+	c.ticks.Stop()
+	if x := recover(); x != nil {
+		log.Errorf("mysql_server caught panic:\n%v\n%s", x, tb.Stack(4))
+	}
+}
+
+
+c.ticks.Start(func() { l.connectionKiller(c) })
+
+
+mysql -h -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
+
+
+{
+  "BlackListIP": ["172.16.1.236","172.16.1.235","172.16.1.238"],
+  "WhiteListIP": ["172.26.0.93", "127.0.0.1"]
+}
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
+
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+E0303 13:45:06.153791    9876 server.go:321] Cannot read post-SSL client handshake response from client 1 (127.0.0.1:47812): io.ReadFull(header size) failed: tls: client didn't provide a certificate
+E0303 13:46:09.623856    9876 server.go:321] Cannot read post-SSL client handshake response from client 2 (127.0.0.1:47822): io.ReadFull(header size) failed: tls: client didn't provide a certificate
+
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-key=kungate-client-key.pem --ssl-cert=kungate-client-cert.pem --ssl-ca=ca-cert.pem --ssl-mode=VERIFY_CA
+
+var effectiveTimeout time.Duration
+if conn.StartTime.Add(effectiveTimeout).Sub(now) <= 0 {
+			log.Warningf("killing transaction (exceeded effectiveTimeout: %v): %s", effectiveTimeout, conn.Format(nil))
+			tabletenv.KillStats.Add("Transactions", 1)
+			conn.Close()
+			conn.conclude(TxKill)
+		} else {
+			axp.activePool.Put(conn.TransactionID)
+		}
+
+
+
+
+			/*check the if secondary vindex exist */
+			indexName, tableName, _ := e.getSecondaryVindex(ksName, tableName)
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+修改manager的metainfo
+metainfo->configuration.yaml->kundb-env.sh.ftl->oltp-kungate.up.sh.raw
+
+I0304 19:24:45.181839   25929 service_map.go:65] Registering vtgateservice for grpc, disable it with -grpc-vtgateservice service_map parameter
+
+
+gRPC默认基于HTTP/2的TLS 对客户端和服务端交换的所有数据进行加密传输GRPC使用HTTP/2作为应用层的传输协议
+重连机制通过启动一个Goroutine异步的去建立连接实现的，可以避免服务器因为连接空闲时间过长关闭连接、服务器重启等造成的客户端连接失效问题。也就是说通过GRPC的重连机制可以完美的解决连接池设计原则中的空闲连接的超时与保活问题。
+
+netstat -antp
+connectivity 模块很短，只有常量定义、String() 方法，和一个 Reporter 接口
+
+在这种状态下，由于缺少新的或待处理的RPC，channel没有尝试创建连接。在这种状态下可以创建新的RPC。任何在通道上启动RPC的尝试都会使该通道退出此状态以进行连接。当通道上没有可配置IDLE_TIMEOUT的RPC活动时，即在此期间没有新的或挂起的（活动的）RPC，则READY或CONNECTING的通道会切换到IDLE。另外，当没有活动或暂挂的RPC时收到GOAWAY的通道也应切换到IDLE，以避免试图断开连接的服务器上的连接过载。
+
+selectNode, ok := sqlInfo.stmt.(*sqlparser.Select)
+			if ok {
+				if e.contains(selectNode.Comments, "/*!99999 select for mfed ddl*/") {
+					return e.handleOther(ctx, session, sql, bindVars, target)
+				}
+				return e.handleExec(ctx, session, sqlInfo, bindVars, target)
+			}
+
+
+	/*check the if secondary vindex exist */
+			indexName, tableName, _ := e.getSecondaryVindex(ksName, tableName)
+			if len(indexName) != 0 {
+				for _, indexID := range indexName {
+					_, err := e.handleDDL(ctx, session, "drop index "+indexID+" on "+tableName, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+直连
+ps -ef |grep mysql
+mysql --socket=/home/transwarp/go/vtdataroot/vt_0000000110/mysql.sock -uroot
+
+mysql> select * from TABLE_PRIVILEGES
+    -> where TABLE_NAME = 'customer'
+    -> and PRIVILEGE_TYPE in ('select','insert','update','delete');
++-----------+---------------+--------------+------------+----------------+--------------+
+| GRANTEE   | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME | PRIVILEGE_TYPE | IS_GRANTABLE |
++-----------+---------------+--------------+------------+----------------+--------------+
+| 'lzb'@'%' | def           | kundb1       | customer   | SELECT         | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | INSERT         | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | UPDATE         | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DELETE         | NO           |
++-----------+---------------+--------------+------------+----------------+--------------+
+
+
+/*check the same name if exists in mysql*/
+			indexRes, err := e.handleShow(ctx, session, "show index from "+tableName, false, make(map[string]*querypb.BindVariable), target)
+			if err != nil {
+				return "", "", nil, err
+			}
+			for _, v := range indexRes.Rows {
+				if strings.ToLower(v[2].ToString()) == indexName {
+					return "", "", nil, fmt.Errorf("index %s already exists", indexName)
+				}
+			}
+			/*show columns first */
+			columnRes, err := e.handleShow(ctx, session, "show full columns from "+tableName, false, make(map[string]*querypb.BindVariable), target)
+			if err != nil {
+				return "", "", nil, err
+			}
+			for _, v := range columnRes.Rows {
+				if v[0].ToString() == column {
+				}
+			}
+
+
+			//for pull privileges in table
+			privRes, err = e.handleMfedAnyShard(ctx, session, "select * from TABLE_PRIVILEGES where TABLE_NAME = "+tableName, make(map[string]*querypb.BindVariable), target)
+			if err != nil {
+				return "", "", nil, err
+			}
+
+
+indexName := strings.ToLower(ddlNode.IndexSpec.IndexName.Name.String())
+
+			if privRes != nil {
+				for _, v := range privRes.Rows {
+					grantee := v[0].ToString()
+					priv := v[4].ToString()
+					e.handleDCL(ctx, session, "grant "+priv+" on "+indexName+" to "+grantee, make(map[string]*querypb.BindVariable), target)
+				}
+			}
+
+mysql> select * from TABLE_PRIVILEGES;
++-----------+---------------+--------------+------------+------------------------+--------------+
+| GRANTEE   | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME | PRIVILEGE_TYPE         | IS_GRANTABLE |
++-----------+---------------+--------------+------------+------------------------+--------------+
+| 'lzb'@'%' | def           | kundb1       | customer   | SELECT                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | INSERT                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | UPDATE                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DELETE                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | CREATE                 | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DROP                   | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | REFERENCES             | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | INDEX                  | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | ALTER                  | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | CREATE VIEW            | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | SHOW VIEW              | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | TRIGGER                | NO           |
+| 'lzb'@'%' | def           | kundb1       | customer   | DELETE VERSIONING ROWS | NO           |
+| 'lzb'@'%' | def           | kundb1       | item1      | TRIGGER                | NO           |
+| 'lzb'@'%' | def           | kundb1       | id1        | TRIGGER                | NO           |
++-----------+---------------+--------------+------------+------------------------+--------------+
+15 rows in set (0.00 sec)
+
+%s string
+create global unique index ry_zzbdxx_bdbh_rybh_idx on ry_zzbdxx(BDBH);
+
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: target: kundb1..master, no valid tablet
+
+	if privRes != nil {
+		for _, v := range privRes.Rows {
+			grantee := v[0].ToString()
+			log.Infof("have grantee: %s", grantee)
+			priv := v[4].ToString()
+			e.handleDDL(ctx, session, "grant "+priv+" on "+indexName+" to "+grantee, bindVars, target)
+		}
+	}
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+show tables;
+create user lzb;
+grant all on item1 to lzb;
+show grants for lzb;
+create global unique index id1 on item1(price);
+show grants for lzb;
+
+mysql> grant INSERT on id1 to 'lzb'@'%';
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: syntax error at position 30 near '@'
+mysql> grant INSERT on id1 to 'lzb';
+Query OK, 0 rows affected (0.04 sec)
+
+DDL:Create drop
+DCL:grant/revoke
+資料定義語言：
+DDL(Data Definition Language)
+
+用來定義資料庫、資料表、檢視表、索引、預存程序、觸發程序、函數等資料庫物件。
+可以用來建立、更新、刪除 table,schema,domain,index,view
+
+常見的指令有：
+CREATE 建立資料庫的物件
+ALTER 變更資料庫的物件
+DROP 刪除資料庫的物件
+
+ 
+
+資料操作語言：
+DML(Data Manipulation Language)
+
+用來處理資料表裡的資料。
+
+常見的指令有：
+INSERT 新增資料到資料表中
+UPDATE 更改資料表中的資料
+DELETE 刪除資料表中的資料
+
+ 
+
+資料控制語言：
+DCL(Data Control Language)
+
+用來控制資料表、檢視表之存取權限，提供資料庫的安全性。
+
+常見的指令有：
+GRANT 賦予使用者使用權限
+REVOKE 取消使用者的使用權限
+COMMIT 完成交易作業
+ROLLBACK 交易作業異常，將已變動的資料回復到交易開始的狀態
+
+ 
+
+資料查詢語言：
+DQL(Data Query Language)
+
+負責進行資料查詢，不會對資料本身進行修改的語句
+
+用來查詢資料表裡的資料。
+
+指令只有一個：
+SELECT 選取資料庫中的資料
+
+各類輔助指令：SELECT,FROM,WHERE,GROUP BY,ORDER BY
+
+indexName := strings.ToLower(ddl.IndexSpec.IndexName.Name.String())
+	if privRes != nil {
+		for _, v := range privRes.Rows {
+			grantee := v[0].ToString()[:len(v[0].ToString())-4]
+			log.Infof("have grantee: %s", grantee)
+			priv := v[4].ToString()
+			grantSQL := "grant "+priv+" on "+indexName+" to "+grantee
+			log.Infof("grantSQL: %s", grantSQL)
+			e.handleDCL(ctx, session, grantSQL, make(map[string]*querypb.BindVariable), target)
+		}
+	}
+
+
+remoteAddr := conn.RemoteAddr().String()
+		i := strings.LastIndex(remoteAddr, ":")
+		if i != -1 {
+			remoteAddr = remoteAddr[:i]
+		}
+
+
+/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts
+
+1.yaml文件
+2. 整理近3周资料 审查brpc
+
+grpc/keepalive
+这个包分别为client和server定义了测试传输路径是否work的参数来协调池中的连接数
+client端：
+当一段时间（10s）客户端没有请求发送，客户端就会向server发送ping消息，等待一段时间看传输是否受损，来检测server的状态
+server端：维护最大空闲连接时间，最大空闲连接数，默认值最大，我们可以调用这个来完成对用户连接的空闲时间管理
+我们可以通过grpc_connection_idle_time参数来配置
+			MaxConnectionIdle: *GRPCConnectionIdleTime,
+MaxConnectionIdle
+
+30 * 1e9
+
+/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+ mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA --enable-cleartext-plugin
+0309
+1. WARP-42233: 解决计时器非正常返回问题，维护连接断开后正常审计和计数
+2. 在manager为参数所做加上meta-info
+3. WARP-42372: JDBC的gRPC路径加上IP限制
+4. 查gRPC关于连接断活时间的原理，整理jira记录：http://172.16.1.168:8090/pages/viewpage.action?pageId=23485673
+5. WARP-41393：完成拉取一个表上的所有权限并 赋权在另一张表上的功能
+
+
+private List<PermissionVo> findPrincPermissions(SessionVo sessionVo, PrincipalVo principalVo,
+                                                  String component, List<String> dataSource,
+                                                  String substring, String action, boolean subtree, Boolean inheritance) throws GuardianException {
+    if (CollectionUtils.isEmpty(dataSource) && StringUtils.isEmpty(component) && subtree) {
+      GenericFilterParams filterParams = new GenericFilterParams.Builder().searchValue(substring).build();
+      return PermUtil.of(permManager.getPrincPerms(sessionVo, principalVo, filterParams, inheritance).getBody());
+    }
+
+    if (StringUtils.isNotEmpty(component) && (CollectionUtils.isNotEmpty(dataSource) || subtree)) {
+      ResourceVo resourceVo = new ResourceVo.Builder().serviceName(component).dataSource(DataSourceUtil.toV2(dataSource)).build();
+      if (CollectionUtils.isNotEmpty(dataSource)) {
+        Assert.assertLegal(resourceVo);
+      }
+      PermFilterParams filterParams = new PermFilterParams.Builder()
+          .resourceVo(resourceVo)
+          .scope(subtree ? Scope.SUB_TREE : Scope.ONE_LEVEL)
+          .action(action)
+          .searchValue(substring)
+          .build();
+      return PermUtil.of(permManager.getPrincPerms(sessionVo, principalVo, filterParams, inheritance).getBody());
+    }
+    return Collections.emptyList();
+  }
+
+
+kerberos不标准 ldap标准 开安全一些web类的语言不一定work
+622  ResourceStorage.getChildNodes(resourceServiceMapper, resourceMapper, parentResourceVo).forEach(resourceNode -> resourceIds.add(resourceNode.getResourceId()));
+
+  <select id="selectUserAuthorizedResources" resultMap="ResourceMap">
+        SELECT DISTINCT
+            R.resource_id,
+            R.path,
+            R.external_id,
+            R.service_id
+        FROM gs_resources R LEFT JOIN gs_perm P ON R.resource_id = P.resource_id
+            LEFT JOIN gs_user_perm UP ON P.perm_id = UP.perm_id
+        WHERE R.service_id = (SELECT service_id FROM gs_resource_services WHERE service_name = #{serviceName})
+              AND UP.user_id = (SELECT user_id FROM gs_user WHERE username = #{username})
+        <if test="action != null">
+            AND P.action = #{action}
+        </if>
+    </select>
+
+ <select id="selectGroupAuthorizedResources" resultMap="ResourceMap">
+        SELECT DISTINCT
+            R.resource_id,
+            R.path,
+            R.external_id,
+            R.service_id
+        FROM gs_resources R LEFT JOIN gs_perm P ON R.resource_id = P.resource_id
+            LEFT JOIN gs_group_perm GP ON P.perm_id = GP.perm_id
+        WHERE R.service_id = (SELECT service_id FROM gs_resource_services WHERE service_name = #{serviceName})
+              AND GP.group_id = (SELECT group_id FROM gs_group WHERE group_name = #{groupName})
+        <if test="action != null">
+            AND P.action = #{action}
+        </if>
+    </select>
+
+ allUserPerms.values().forEach(userPerm -> {
+            List<NodeVo> ds = userPerm.getDataSource();
+            if (StringUtils.containsKeyword(ds, filterParams.getSearchValue())) {
+              result.add(PrincPermVo.userPerm(princ, new PermVo(new ResourceVo.Builder().serviceName(userPerm.getServiceName())
+                  .serviceType(userPerm.getServiceType()).dataSource(ds).build(),
+                  new PermActionVo(userPerm.getAction())), userPerm.getGrantOption()));
+            }
+          });
+
+// keyword matching can only be done in memory
+      Map<Long, ResourceVo> resources = getRequestedResourcesMap(resourceServiceMapper, resourceMapper, filterParams).entrySet()
+          .stream().filter(e -> StringUtils.containsKeyword(e.getValue().getDataSource(), filterParams.getSearchValue()))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      if (MapUtils.isEmpty(resources)) {
+        return EMPTY_PRINC_SEARCH_RESULT;
+      }
+      List<Long> resourceIds = new ArrayList<>(resources.keySet());
+
+allUserPerms.values().forEach(userPerm -> {
+            List<NodeVo> ds = userPerm.getDataSource();
+            if (StringUtils.containsKeyword(ds, filterParams.getSearchValue())) {
+              result.add(PrincPermVo.userPerm(princ, new PermVo(new ResourceVo.Builder().serviceName(userPerm.getServiceName())
+                  .serviceType(userPerm.getServiceType()).dataSource(ds).build(),
+                  new PermActionVo(userPerm.getAction())), userPerm.getGrantOption()));
+            }
+          });
+
+if(CollectionUtils.isNotEmpty(userResources)) {
+            userResources.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                userAuthorizedNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+
+
+if(CollectionUtils.isNotEmpty(groupDataNodes)) {
+            groupDataNodes.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+
+             if (CollectionUtils.isNotEmpty(groupDataNodes)) {
+              groupDataNodes.forEach(resource -> groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1)));
+            }
+
+getAuthorizedDataNodes
+
+
+
+mysql> status;
+--------------
+mysql  Ver 14.14 Distrib 5.7.28, for Linux (x86_64) using  EditLine wrapper
+
+Connection id:		444
+Current database:	
+Current user:		root@localhost
+SSL:			Not in use
+Current pager:		stdout
+Using outfile:		''
+Using delimiter:	;
+Server version:		5.7.28-log MySQL Community Server (GPL)
+Protocol version:	10
+Connection:		Localhost via UNIX socket
+Server characterset:	utf8
+Db     characterset:	utf8
+Client characterset:	utf8
+Conn.  characterset:	utf8
+UNIX socket:		/home/transwarp/go/vtdataroot/vt_0000000101/mysql.sock
+Uptime:			34 min 30 sec
+
+Threads: 42  Questions: 907  Slow queries: 0  Opens: 146  Flush tables: 1  Open tables: 140  Queries per second avg: 0.438
+--------------
+
+
+mysql> status;
+--------------
+mysql  Ver 14.14 Distrib 5.7.28, for Linux (x86_64) using  EditLine wrapper
+
+Connection id:		1
+Current database:	kundb1
+Current user:		vt_app@localhost
+SSL:			Not in use
+Current pager:		stdout
+Using outfile:		''
+Using delimiter:	;
+Server version:		KunDB-1.3.0 MariaDB Server
+Protocol version:	10
+Connection:		127.0.0.1 via TCP/IP
+Server characterset:	utf8
+Db     characterset:	utf8
+Client characterset:	utf8
+Conn.  characterset:	utf8
+TCP port:		15307
+--------------
+
+Some commands are issued as exec'd tools, some are handled by connecting via the mysql protocol.
+
+
+mysqld
+
+SQL后台程序(即MySQL服务器)。要想使用客户端程序，该程序必须运行，因为客户端通过连接服务器来访问数据库。参见5.3节，“mysqld：MySQL服务器”。
+mysqld意思是mysql daemon，在后台运行，监听3306端口
+
+· mysql
+
+交互式输入SQL语句或从文件以批处理模式执行它们的命令行工具。参见8.3节，“mysql：MySQL命令行工具”。
+
+
+vtgate.INFO
+I0310 10:13:07.167117    3266 file.go:38] Root for cell[global] is /kundb/global
+I0310 10:13:07.167137    3266 file.go:43] Will create /kundb/global/keyspaces/kundb1/VSchema
+I0310 10:13:07.176878    3266 conn.go:323] zk conn: session for addr localhost:21811,localhost:21812,localhost:21813 event: {EventNodeDataChanged Unknown /kundb/test/SrvVSchema <nil> }
+I0310 10:13:07.177019    3266 auth_server_ldap.go:62] Not configuring AuthServerLdap because mysql_ldap_auth_config_file and mysql_ldap_auth_config_string are empty
+I0310 10:13:07.177144    3266 service_map.go:65] Registering vtgateservice for grpc, disable it with -grpc-vtgateservice service_map parameter
+I0310 10:13:07.180138    3266 grpc_server.go:158] Listening for gRPC calls on port 15991
+I0310 10:13:07.180187    3266 unix_socket.go:36] Not listening on socket file
+I0310 10:13:18.719353    3266 vtgate.go:443] SQLLog: Session Info: 1d5607d3-1460-422c-9f16-1d0a9f28638a , Executed sql: select @@version_comment limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 8.305971ms
+I0310 10:13:22.995313    3266 vtgate.go:443] SQLLog: Session Info: 1d5607d3-1460-422c-9f16-1d0a9f28638a , Executed sql: select DATABASE(), USER() limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 9.793193ms
+I0310 10:13:23.029424    3266 vtgate.go:443] SQLLog: Session Info: 1d5607d3-1460-422c-9f16-1d0a9f28638a , Executed sql: select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 32.886266ms
+E0310 10:13:23.029895    3266 server.go:796] Got unhandled packet from client 1 (127.0.0.1:37976), returning error: [9]
+
+
+audit
+{"Action":"Login","AuthResult":"Success","ConnectionID":1,"RemoteAddr":{"IP":"127.0.0.1","Port":37976,"Zone":""},"Time":"Tuesday, 10-Mar-20 10:13:18 CST","User":"vt_app","level":"info","msg":"Auth","time":"2020-03-10T10:13:18+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"7.87","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":0,"SQL":"select @@version_comment limit 1","SQLType":"DML","Session":"1d5607d3-1460-422c-9f16-1d0a9f28638a","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-03-10T10:13:18+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"9.15","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":0,"SQL":"select database(), user() limit 1","SQLType":"DML","Session":"1d5607d3-1460-422c-9f16-1d0a9f28638a","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-03-10T10:13:22+08:00"}
+{"BindVars":{"vtg1":{"type":265,"value":"MQ=="}},"Cost":"32.50","CostUnit":"ms","Database":"","Error":null,"Program":"vtgate","RowsAffected":0,"SQL":"select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database limit 1","SQLType":"DML","Session":"1d5607d3-1460-422c-9f16-1d0a9f28638a","Transactions":null,"User":"vt_app","level":"info","msg":"Execute Query","time":"2020-03-10T10:13:23+08:00"}
+
+
+https://172.26.5.95:8380/swagger-ui.html
+
+mysql -h172.26.5.94 -P15307 -uvt_app -p123 --enable-cleartext-plugin
+
+mysql> select user, host from mysql.user;
++-----------------+------------+
+| user            | host       |
++-----------------+------------+
+| lzb             | %          |
+| orc_client_user | %          |
+| root            | %          |
+| vt_repl         | %          |
+| zjj             | %          |
+| root            | 127.0.0.1  |
+| root            | ::1        |
+| root            | localhost  |
+| vt_allprivs     | localhost  |
+| vt_app          | localhost  |
+| vt_appdebug     | localhost  |
+| vt_dba          | localhost  |
+| vt_filtered     | localhost  |
+| root            | tw-node595 |
++-----------------+------------+
+14 rows in set (0.01 sec)
+
+current_user: The authenticated user name and host name
+user: 	The user name and host name provided by the client
+mysql在登陆时会用最精确匹配user表中的帐户，host来作为当前的用户
+
+Try the the CURRENT_USER() function. This returns the username that MySQL used to authenticate your client connection. It is this username that determines your privileges.
+
+This may be different from the username that was sent to MySQL by the client (for example, MySQL might use an anonymous account to authenticate your client, even though you sent a username). If you want the username the client sent to MySQL when connecting use the USER() function instead.
+
+The value indicates the user name you specified when connecting to the server, and the client host from which you connected. The value can be different from that of CURRENT_USER().
+
+mysql> select user, host from mysql.user;
+ERROR 1045 (HY000): vtgate: http://tw-node594:15001/: target: _mfed.0.master, used tablet: transwarp-800 (tw-node595), vttablet: rpc error: code = Unknown desc = Target User Not Found (errno 1045) (sqlstate HY000) during query: change user to 'lzb', CallerID: lzb
+mysql> show grants;
+ERROR 1045 (HY000): vtgate: http://tw-node594:15001/: target: _mfed.0.master, used tablet: transwarp-800 (tw-node595), vttablet: rpc error: code = Unknown desc = Target User Not Found (errno 1045) (sqlstate HY000) during query: change user to 'lzb', CallerID: lzb
+
+一个用户名需要在Guardian和KunDB里（使用 CREATE USER 命令）都成功创建，才能保证该用户能够访问KunDB并对数据进行操作。
+
+transwarp@transwarp-Latitude-5480:~/go/vtdataroot$ mysql -h172.26.5.94 -P15307 -ulzb -p --enable-cleartext-plugin
+Enter password: 
+ERROR 2003 (HY000): Can't connect to MySQL server on '172.26.5.94' (111)
+
+transwarp@transwarp-Latitude-5480:~/go/vtdataroot$ mysql -h172.26.5.94 -P15307 -ulzb -p --enable-cleartext-plugin
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 35
+Server version: KunDB-1.3.0 MariaDB Server
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> select user from mysql.user;
++-----------------+
+| user            |
++-----------------+
+| lzb             |
+| orc_client_user |
+| root            |
+| vt_repl         |
+| zjj             |
+| root            |
+| root            |
+| root            |
+| vt_allprivs     |
+| vt_app          |
+| vt_appdebug     |
+| vt_dba          |
+| vt_filtered     |
+| root            |
++-----------------+
+14 rows in set (0.06 sec)
+
+vtGate框架图
+
+gRPC
+一个连接上可以多路复用，并发处理多个请求和响应
+
+MySQL has many built-in functions.
+
+This reference contains string, numeric, date, and some advanced functions in MySQL.
+
+解决“一个用户名需要在Guardian和KunDB里（使用 CREATE USER 命令）都成功创建，才能保证该用户能够访问KunDB并对数据进行操作。”这一操作，在guardian注册之后可以在mysql中认证注册,设立账户，也通过mysql的认证，这样我们不需要在kunDB create user。那边也可以正常的设定user了
+
+ gofmt -s -w \
+    /home/transwarp/go/src/github.com/youtube/vitess/go/mysql/server.go
+dbconfigs
+
+CURRENT_USER
+
+在为可能输入较多的语句，且语句中包含有分号。所以我们用delimiter，也叫定界符/分号
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+create definer=lzb trigger q before delete on customer for each row begin insert into item1 values(6, 'baby', 35); end;//
+
+kundb中：
+mysql> create definer=lzb trigger q before delete on customer for each row begin insert into item1 values(6, 'baby', 35); end;//
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: syntax error at position 27 near 'trigger'
+mysql中：
+Database changed
+mysql> create definer=lzb trigger q before delete on customer for each row begin insert into item1 values(6, 'baby', 35); end;//
+Query OK, 0 rows affected (0.02 sec)
+
+1015 // 3809
+
+delimiter $$
+  
+CREATE  DEFINER=`vt_app`@`localhost` TRIGGER Tri_Item_Insert BEFORE INSERT ON item1
+FOR EACH ROW
+BEGIN
+        insert into item1 values(6, 'baby', 35)
+END; $$
+
+=============
+如果在GRANT 语句中指定的帐户不存在， GRANT可以在稍后讨论NO_AUTO_CREATE_USERSQL模式的条件下创建它 。还可以使用它 GRANT来指定非特权帐户特征，例如是否使用安全连接和限制访问服务器资源。
+
+但是，GRANT从MySQL 5.7.6起，不建议使用创建帐户或定义非特权特性。相反，使用CREATE USER或 执行这些任务 ALTER USER。
+
+You should use FLUSH PRIVILEGES; only if you modify the grant tables directly using statements such as INSERT, UPDATE, or DELETE.
+
+
+// WARP-41393: check if the secondary vindex exist, we will grant the same privilege to the vindex table
+			indexName, tableName, _ := e.getSecondaryVindex(strings.ToLower(grant.GrantIdent.Schema.String()), strings.ToLower(grant.GrantIdent.Table.String()))
+			if len(indexName) != 0 {
+				for _, index := range indexName {
+					// GRANT <PRIVILEGES> ON <table> TO user_name -> GRANT <PRIVILEGES> ON <vindex> TO user_name
+					i := strings.Index(strings.ToLower(sql), tableName)
+					newSQL := fmt.Sprintf(sql[0:i] + index + sql[i+len(tableName):])
+					if grant.GrantOption {
+						newSQL += " with grant option"
+					}
+					_, err := e.handleDCL(ctx, session, newSQL, bindVars, target)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+
+The USER(), CURRENT_USER() (or CURRENT_USER), UUID(), VERSION(), and LOAD_FILE() functions are replicated without change and thus do not work reliably on the slave unless row-based replication is enabled. (See Section 17.2.1, “Replication Formats”.)
+
+USER() and CURRENT_USER() are automatically replicated using row-based replication when using MIXED mode, and generate a warning in STATEMENT mode. (See also Section 17.5.1.8, “Replication of CURRENT_USER()”.) This is also true for VERSION() and RAND().
+
+
+// This method COULD transfer privileges from one table to another and grantee with '@%'
+// It is now just for secondary vindex table, but we should restrict the privileges for it
+func (e *Executor) genPrivileges(ctx context.Context, session *vtgatepb.Session, ddlNode *sqlparser.DDL, target querypb.Target) (*sqltypes.Result, error) {
+	indexName := strings.ToLower(ddlNode.IndexSpec.IndexName.Name.String())
+	tableName := "'" + strings.ToLower(ddlNode.Table.Name.String()) + "'"
+	privRes, err := e.handleMfedAnyShard(ctx, session, "select * from information_schema.TABLE_PRIVILEGES where TABLE_NAME = "+tableName, make(map[string]*querypb.BindVariable), target, true)
+	if err != nil {
+		return nil, err
+	}
+	if privRes != nil {
+		for _, v := range privRes.Rows {
+			grantee := v[0].ToString()
+			commaLoc := strings.LastIndex(grantee, "@")
+			if commaLoc > 0 {
+				grantee = grantee[:commaLoc]
+			}
+			priv := v[4].ToString()
+			grantSQL := "grant " + priv + " on " + indexName + " to " + grantee
+			log.Infof("grantSQL: %s", grantSQL)
+			e.handleDCL(ctx, session, grantSQL, make(map[string]*querypb.BindVariable), target)
+		}
+	}
+	return privRes, nil
+}
+
+1.我之前写的ip限制那部分，读mysql/server的时候比较烦 不易读，我重新在conn封装成函数。至于单元测试当时没做现在也没做 是因为如果加了测试那部分配置文件就要往外提或者另写一个解码配置文件的函数，这样的话剩下的函数部分就只剩审计了，很别扭，当时时间紧也没想出好的办法，现在把处理ip那部分写成私有，就没加单元测试。已经测试过功能ok，如果有必要的话我提mr给你改一下
+2.WARP-41406 mysql提交给你的mr是因为user()对于kundb 没用，改很少 你有时间看可以改你就改 感觉不需要就关了
+
+socket不能直连
+mysql到vtgate这一段也需要认证，重用vt_app连接
+
+## Issues
+If vindexes are seen as tables, there are issues about name collisions. This can be resolved a few ways:
+1. Make the vindex names be part of the table name space in a keyspace. This will allow the application to address a vindex as `keyspace.my_vdx`. However, we still have a problem if a table of that same name exists. In such situations, the table will hide the vindex. This is not a big issue because a vindex is easy to rename because it does not affect anything beyond the vschema itself.
+2. Make vindexes part of a special keyspce `vindexes`. The problem with this approach is that there can be name collisions between vindexes of different keyspaces. This is a problem that's harder to address.
+3. Provide a special syntax like `vindex(keyspace.my_vdx)`. This feels like overkill and aesthetically unpleasing.
+
+
+flag.Duration("grpc_connection_idle_time", time.Duration(math.MaxInt64), "It is a duration for the amount of time after which an idle connection would be closed by sending a GoAway ")
+
+http://172.16.0.244:8080/browse/WARP-31236
+
+http://172.16.1.41:10080/managability/application-metainfo/blob/dev/TDH%205.0%20service%20standard.md
+
+COM_STATISTICS
+
+linux添加源
+mv /etc/apt/sources.list /etc/apt/sources.list.bakup
+sudo vim /etc/apt/sources.list
+
+#deb cdrom:[Ubuntu 16.04 LTS _Xenial Xerus_ - Release amd64 (20160420.1)]/ xenial main restricted 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial main restricted 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-updates main restricted 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial universe 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-updates universe 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial multiverse 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-updates multiverse 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-backports main restricted universe multiverse 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-security main restricted deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-security universe 
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ xenial-security multiverse
+deb http://mirrors.aliyun.com/ubuntu/ xenial-backports main restricted universe multiverse 
+
+
+transwarp@transwarp-Latitude-5480:~$ sudo su - postgres
+postgres@transwarp-Latitude-5480:~$ psql
+psql (9.5.19)
+Type "help" for help.
+
+postgres=# \password postgres
+Enter new password: 
+Enter it again: 
+postgres=# create user pguser with password Warp1234
+postgres-# ;
+ERROR:  syntax error at or near "Warp1234"
+LINE 1: create user pguser with password Warp1234
+                                         ^
+postgres=# create user pguser with password 'Warp1234';
+CREATE ROLE
+postgres=# create database db1 owner pguser;
+CREATE DATABASE
+postgres=# grant all privileges on database db1 to pguser;
+GRANT
+postgres=# \q
+postgres@transwarp-Latitude-5480:~$ 
+
+
+ public final S withDeadlineAfter(long duration, TimeUnit unit) {
+    return this.build(this.channel, this.callOptions.withDeadlineAfter(duration, unit));
+  }
+
+
+////
+
+
+
+package io.transwarp.kundb.jdbc;
+
+import java.sql.SQLException;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class ReschedulableTimer extends Timer
+{
+  private TimerTask timerTask;
+  private KundbConnection kundbConnection;
+
+  public ReschedulableTimer(TimerTask timerTask, KundbConnection kundbConnection) {
+    this.timerTask = timerTask;
+    this.kundbConnection = kundbConnection;
+  }
+
+  public void schedule(long delay)
+  {
+    timerTask = new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          kundbConnection.close();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    this.schedule(timerTask, delay);
+  }
+
+  public void reschedule(long delay)
+  {
+    timerTask.cancel();
+    timerTask = new TimerTask()
+    {
+      @Override
+      public void run()
+      {
+        try {
+          kundbConnection.close();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    this.schedule(timerTask, delay);
+  }
+}
+
+timerTask = new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          kundbConnection.close();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+
+
+20200316
+D00F1BDTGF-eyJsaWNlbnNlSWQiOiJEMDBGMUJEVEdGIiwibGljZW5zZWVOYW1lIjoiaHR0cHM6Ly96aGlsZS5pbyIsImFzc2lnbmVlTmFtZSI6IiIsImFzc2lnbmVlRW1haWwiOiIiLCJsaWNlbnNlUmVzdHJpY3Rpb24iOiJVbmxpbWl0ZWQgbGljZW5zZSB0aWxsIGVuZCBvZiB0aGUgY2VudHVyeS4iLCJjaGVja0NvbmN1cnJlbnRVc2UiOmZhbHNlLCJwcm9kdWN0cyI6W3siY29kZSI6IklJIiwicGFpZFVwVG8iOiIyMDg5LTA3LTA3In0seyJjb2RlIjoiUlMwIiwicGFpZFVwVG8iOiIyMDg5LTA3LTA3In0seyJjb2RlIjoiV1MiLCJwYWlkVXBUbyI6IjIwODktMDctMDcifSx7ImNvZGUiOiJSRCIsInBhaWRVcFRvIjoiMjA4OS0wNy0wNyJ9LHsiY29kZSI6IlJDIiwicGFpZFVwVG8iOiIyMDg5LTA3LTA3In0seyJjb2RlIjoiREMiLCJwYWlkVXBUbyI6IjIwODktMDctMDcifSx7ImNvZGUiOiJEQiIsInBhaWRVcFRvIjoiMjA4OS0wNy0wNyJ9LHsiY29kZSI6IlJNIiwicGFpZFVwVG8iOiIyMDg5LTA3LTA3In0seyJjb2RlIjoiRE0iLCJwYWlkVXBUbyI6IjIwODktMDctMDcifSx7ImNvZGUiOiJBQyIsInBhaWRVcFRvIjoiMjA4OS0wNy0wNyJ9LHsiY29kZSI6IkRQTiIsInBhaWRVcFRvIjoiMjA4OS0wNy0wNyJ9LHsiY29kZSI6IkdPIiwicGFpZFVwVG8iOiIyMDg5LTA3LTA3In0seyJjb2RlIjoiUFMiLCJwYWlkVXBUbyI6IjIwODktMDctMDcifSx7ImNvZGUiOiJDTCIsInBhaWRVcFRvIjoiMjA4OS0wNy0wNyJ9LHsiY29kZSI6IlBDIiwicGFpZFVwVG8iOiIyMDg5LTA3LTA3In0seyJjb2RlIjoiUlNVIiwicGFpZFVwVG8iOiIyMDg5LTA3LTA3In1dLCJoYXNoIjoiODkwNzA3MC8wIiwiZ3JhY2VQZXJpb2REYXlzIjowLCJhdXRvUHJvbG9uZ2F0ZWQiOmZhbHNlLCJpc0F1dG9Qcm9sb25nYXRlZCI6ZmFsc2V9-3OPFIX9/KSL76ctAKOwpBPCCAfUhUbucdNbtqMaTqRryvKEvrFqCKncE0eMHA2YkrcP2CtV9LKjlIXhJMqp0N821Qv1AhuIJrDMBubqiEtiqnGkcGV35DF0GzyUQaUdN6fTbZna05riHzR6yzgEzo9R3RIzCTDMQdB/0EojWM0nCBkPsLdncZeDv3+Y+VA8ZH3/BBvzwR1e0gWsT3mfT9tIvwxPuEhNrQFNOP1PZOjC8nX9h/J7ag5X3JQL1CQVi4TnEipdy0fxKbDPKTloM3Y/bA23uaW+Q/JQFBRKRR0q3FYJ1DQuSc7YmeJ7Q2IHq7u5QYz8jPZJtP6PKs6g/tQ==-MIIECDCCAfCgAwIBAgIJAI5/xwNtz47cMA0GCSqGSIb3DQEBCwUAMBgxFjAUBgNVBAMMDUpldFByb2ZpbGUgQ0EwIBcNMTgwODIzMDcwNDA3WhgPMjExODA3MzAwNzA0MDdaMBExDzANBgNVBAMMBnByb2QzeTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOZ3WopNRg9J8k3apGYFEUGRlvkRsQnQSEz1yMKY4YWg9ElxmuF0mQRAaIj3WOl1eqTn1CXsn4vXV7GODJk9A/rCqEk960sPesWn/RVz7zo5+KazE3Y9yYtwskKxlnkFNp82Kha6dUGDSwG2lYh0Sria2ByOhgr6gmyXtC0PKqlIlTAPcBvz0MEnKTZkxfSqdiHo/meTlMRd9885vr4P52Fd9Ryxe3yVAKZSP9ZzPmRvCvgF1oGCgobZJ5d7FvTwkGt2t4pjy/RlU6FDcXNMHLk4pfJqr3lnEkAh2MbCGlGo1i6Rc6DtgISuJn2AUkrQKhI6F0U7o9e5qPEOjNkhznMCAwEAAaNaMFgwCQYDVR0TBAIwADALBgNVHQ8EBAMCBaAwHQYDVR0OBBYEFJDgSMx4XrLktYOG827wP7VULTnJMB8GA1UdIwQYMBaAFDAS51akWaJlzxC2x4yP3iAYbqtxMA0GCSqGSIb3DQEBCwUAA4ICAQBxRyfCpL7q2VurGfh9XqaC4GsGp6ut3l/rOEyc6DP148A69DRmZ7saqfZW87DcLkmcynPhyBOxdcGwtwKlR9E/+X923JeL6VPQCTY5WyJKib36vQCnoC4ELTnw1yc51v2j+MaZXjrlzBIcCUocWK14WS4iBycUwLuMszz6rJ8xluuYDKDeNcS/AjQf+yTUfDXjktHLgcE27sSEQUQ+7bpbKHkJ5xBvaupJEPX+ndj7V2eD+/sO03jgnsWVa2nky7yDXX/5KCqzL5kAA1n2t2dWSJXxpac8O2bPyRhk6dUSwzNr+IjCjHqUKIouB0nosi85Q5MaIE0pwOOSggnawpnjmL3qDnsS/n7NUcX/mF4eiNQ8cMJmKIgfS6rntKuQY2zSod+4+G0AFbiihVTnKsRf7CiJa/VniZdaGdbclT8KzRnNKJ1TrPO8rVPjg+SpvqTq75xynS08/OXCpoJ3aVeBWZJYJmheHhvJw2RiNW2P2GSIw+m6HIIsthUtvvHqdKpIaThFHAOKmw0LpPO7uGs/z/Q3un7+lqSlW7akUoSCHdiAJ4wWv+qFEgE4mq8bKtHoa9yy6FZBoORbbRTj8WkS+UvCLN5p7kZenmKYnWCzBf02O1ULpMsR5WvKCGCekSwWf3lAF9lYTL12JaFTw9iH1nSkyvcu7AoXlWI50hOhmA==
+
+DEADLINE_EXCEEDED
+clientDeadline := time.Now().Add(time.Duration(*deadlineMs) * time.Millisecond)
+ctx, cancel := context.WithDeadline(ctx, clientDeadline)
+
+工作周报 - 李镇邦 20200309 ~ 20200313
+
+完成：
+1. WARP-41394/WARP-41542:复现确定现有状态已解决
+2. WARP-41406: mysql语句status显示user不正确，wiki: http://172.16.1.168:8090/pages/viewpage.action?pageId=23486935
+3. WARP-41389: 不存在的用户赋权隐式创建，mysql8.0功能，暂时提交review
+4. WARP-42372: ip功能修理产品化，merge
+5. WARP-41627： guardian在v1和v2创建获取下一层/所有子层的接口
+
+进行中：
+1. WARP-42372: grpc idletime部分需要功能确定，ip部分配置文件配到manager-info上
+超时时间
+
+本周：
+1. 完成WARP-42372的工作，及WARP-41406的方案确定
+
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin
+-audit_log_dir $logDir/kungate/public/audit \
+
+-ip_config "$KUNDB_CONF_DIR/ip_config.json" \
+-grpc_ip_config "./ip_config.json" \
+
+-mysql_ldap_auth_config_file "$KUNDB_CONF_DIR/guardian.json" \
+
+autoReconnect
+
+重连时用户名，密码在buffer持续多久问题
+--skip-reconnect
+
+user() 内置函数在哪里实现 库中的元信息？
+vtgate里面已经转化成sql语句了
+
+meta-info:http://172.16.1.41:10080/lishinho/application-metainfo/blob/dev/TDH%205.0%20service%20standard.md
+/var/lib/transwarp-manager/master/content/meta/services/KUNDB
+
+scp -r file path
+
+-ip_config "$KUNDB_CONF_DIR/ip_config.json"
+
+service transwarp-manager restart 服务重启
+
+
+1.关于grpc的idletime，在WARP-42372，和宾哥开会讨论后是因为waterdrop的密码写在配置里，导致重连时用户没有感应，本身goaway报文断开了grpc的channel连接，这部分安全方面应该做在waterdrop的重连密码设置上，已开jira。关于原生mysql的wait-timeout对应这方面功能 不过测过由于tablet分布没法设置全局，所以讨论后目前还是我提交的方案。
+2. mysql的idletime本身也有一段缓存重连的时间，这段时间断开用户不需提供密码重连，我会调查下缓存重连持续的时间，到时候提交给你们和宾哥。
+3. ip文件已写在metainfo上 jiraWARP-42372提交给你了，本地测过可以生成配置服务表，功能work，你再看一下
+
+0317
+1. mysql缓存机制密码存留多久->没有时间限制，只有数据库切换或关闭服务时断开 满足数据库wait-wimeout的时候也会重连 关闭重连开关的是--skip-reconnect 例如mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --skip-reconnect
+waterdrop--有缓存机制？show可以，grpc执行修改不行 
+  -grpc_connection_idle_time 20s \
+  -grpc_max_connection_age 10s \
+channel置为idle->发送goaway包->等待10s没有重连->关闭channel
+2. mysql内置函数改动
+
+【docker安装】
+2004  docker images;l
+ 2005  docker run -it 9b5 bash
+ 2006  docker run -itd --name mysql-test -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql 9b5 
+ 2007  docker ps
+ 2008  docker exec -it mysql bash
+ 2009  docker exec -it mysql-test bash
+ 2010  docker run -itd --name mysql- -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql 9b5
+ 2011  docker ps
+ 2012  docker exec -it mysql bash
+ 2013  cd /opt
+ 2014  mkdir -p docker_v/mysql/conf
+ 2015  sudo mkdir -p docker_v/mysql/conf
+ 2016  cd docker_v/mysql/conf/
+ 2017  touch my.cnf
+ 2018  sudo touch my.cnf
+ 2019  docker run -p 3306:3306 --name mysql -v /opt/docker_v/mysql/conf:/etc/mysql/conf.d -e MYSQL_ROOT_PASSWORD=123456 -d 9b5
+ 2020  docker ps
+ 2021  mysql -hlocalhost -uroot -p
+ 2022  docker exec -it mysql bash
+ 2023  history 20
+
+【kundb 证书】
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+ mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA --enable-cleartext-plugin
+mysql采用host来区分用户，所以有user()和currentuser()的概念，而kunDB由于架构上的不同，不需要再重复认证user，并且没有host在mysql中的区分（比如172.%.%.%)导致user()在kundb没用，成为bug
+
+ComStatistics:
+【COM_STATISTICS】
+
+E0317 13:37:32.776510   26649 vtgate.go:1470] Execute: target: _mfed.0.master, used tablet: test-800 (transwarp-Latitude-5480), vttablet: rpc error: code = Unknown desc = Unknown system variable 'user' (errno 1193) (sqlstate HY000) during query: select @@user from dual where 1 != 1, CallerID: vt_app, request: map[Session:autocommit:true options:<included_fields:ALL > session_id:"\242x\202\250vfI\364\220\332\374\302]\263\241\222"  Sql:select @@user BindVariables:map[]]
+E0317 13:37:32.776816   26649 vtgate.go:448] SQLLog: Session Info: a27882a8-7666-49f4-90da-fcc25db3a192 , Executed sql: select @@user, BindVariables: map[], Cost: 8.668729ms, Error: vtgate: http://transwarp-Latitude-5480:15001/: target: _mfed.0.master, used tablet: test-800 (transwarp-Latitude-5480), vttablet: rpc error: code = Unknown desc = Unknown system variable 'user' (errno 1193) (sqlstate HY000) during query: select @@user from dual where 1 != 1, CallerID: vt_app
+W0317 13:38:02.768334   26649 server.go:411] killing connection (exceeded idleTimeout: 30s)
+I0317 17:41:22.070091   26649 plugin_mysql_server.go:98] rollback because of ongoing transaction
+I0317 17:41:22.071409   26649 vtgate.go:445] SQLLog: Session Info: a27882a8-7666-49f4-90da-fcc25db3a192 , Executed sql: rollback, BindVariables: map[], Cost: 963.81µs
+I0317 17:41:24.171028   26649 vtgate.go:445] SQLLog: Session Info: 3e2a024f-5641-43c8-a78b-1fc44a527281 , Executed sql: show databases, BindVariables: map[], Cost: 4.56031ms
+W0317 17:41:54.166648   26649 server.go:411] killing connection (exceeded idleTimeout: 30s)
+
+
+I0318 10:01:34.741908   15178 conn.go:323] zk conn: session for addr localhost:21811,localhost:21812,localhost:21813 event: {EventNodeDataChanged Unknown /kundb/test/SrvVSchema <nil> }
+I0318 10:01:34.763192   15178 conn.go:323] zk conn: session for addr localhost:21811,localhost:21812,localhost:21813 event: {EventNodeDataChanged Unknown /kundb/test/SrvVSchema <nil> }
+I0318 10:01:34.764279   15178 auth_server_ldap.go:62] Not configuring AuthServerLdap because mysql_ldap_auth_config_file and mysql_ldap_auth_config_string are empty
+I0318 10:01:34.765174   15178 service_map.go:65] Registering vtgateservice for grpc, disable it with -grpc-vtgateservice service_map parameter
+I0318 10:01:34.782715   15178 grpc_server.go:164] Listening for gRPC calls on port 15991
+I0318 10:01:34.782936   15178 unix_socket.go:36] Not listening on socket file
+I0318 10:03:33.652183   15178 vtgate.go:465] here2 is select @@version_comment limit 1
+I0318 10:03:33.653172   15178 executor.go:377] It is select @@version_comment limit 1
+I0318 10:03:33.661826   15178 vtgate.go:448] SQLLog: Session Info: 67b6dc77-a7cf-4205-8411-e55c9b2c81cc , Executed sql: select @@version_comment limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 9.465047ms
+I0318 10:03:40.552823   15178 vtgate.go:465] here2 is show databases
+I0318 10:03:40.555739   15178 vtgate.go:448] SQLLog: Session Info: 67b6dc77-a7cf-4205-8411-e55c9b2c81cc , Executed sql: show databases, BindVariables: map[], Cost: 2.874968ms
+
+mysql/server->plugin_mysql_server->vtgate.go->executor.go
+
+分支WARP-41406-a：jdbc加计时器+comstatistics报文处理+mysql端idletime日志修改+status user()替换
+
+select DATABASE(), USER()
+
+select DATABASE(), USER() limit 1
+
+
+mysql> select @@session.wait_timeout;
++------------------------+
+| @@session.wait_timeout |
++------------------------+
+|                  28800 |
++------------------------+
+1 row in set (0.01 sec)
+
+mysql> set @@session.interactive_timeout = 20;
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: unsupported construct: set @@session.interactive_timeout = 20
+mysql> set @@session.wait_timeout = 20;
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: unsupported construct: set @@session.wait_timeout = 20
+
+1. waterdrop有鬼。连接上执行不了命令
+2. 本身mysql支持这一功能 kungate语法不支持，idletime是vtgate之前的一段，mysql是连接数据库之后的一段
+3. grpc的功能是work的，无法验证复现
+
+【登镜像mysql】：
+transwarp@transwarp-Latitude-5480:~$ mysql -h127.0.0.1 -P3306 -uroot -p123456
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 11
+Server version: 8.0.19 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.01 sec)
+
+mysql/server->plugin_mysql_server->vtgate.go->executor.go->mysql
+
+
+[postgreSQL]
+
+    <property>
+        <name>guardian.txsql.connection.username</name>
+        <value>pguser</value>
+    </property>
+    <property>
+        <name>guardian.txsql.connection.password</name>
+        <value>Warp1234</value>
+    </property>
+
+
+//第一步
+            Statement stat = conn.createStatement();
+            String command = "select * from orders";
+            ResultSet result =  stat.executeQuery(command);
+
+            //按行读取查询结果当中的数据
+            while(result.next()) {
+                //使用访问器方法获取信息
+                System.out.println(result.getString(1) + " " +  result.getString(2) + " " + result.getString(3) );
+            }
+            result.close();
+            return conn;
+        }
+        catch(Exception e) {
+            e.printStackTrace();//异常处理
+            return null;
+        }
+
+
+transwarp@transwarp-Latitude-5480:~/workHub$ mysql -h172.26.5.94 -P15307 -ulzb -p --enable-cleartext-plugin
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 4
+Server version: KunDB-1.3.0 MariaDB Server
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++-----------+
+| Databases |
++-----------+
+| _mfed     |
+| kundb1    |
++-----------+
+2 rows in set (0.01 sec)
+
+mysql> use kundb1;
+Database changed
+mysql> show databases;
++-----------+
+| Databases |
++-----------+
+| _mfed     |
+| kundb1    |
++-----------+
+2 rows in set (0.00 sec)
+
+mysql> show tables;
+ERROR 1044 (42000): vtgate: http://tw-node594:15001/: target: _mfed.0.master, used tablet: transwarp-800 (tw-node595), vttablet: rpc error: code = Unknown desc = Access denied for user 'lzb'@'%' to database 'kundb1' (errno 1044) (sqlstate 42000) during query: USE kundb1, CallerID: lzb
+
+【grpc keepalive无效】
+1. goaway包只通知对方不要在已有连接上新建流，client端不作处理就无效
+2. goaway包本身不限制对方重连
+
+
+	
+	// InitUser is for creating user
+	InitUser(user string) error
+
+create user/role是dcl语句
+

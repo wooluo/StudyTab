@@ -36,6 +36,7 @@ autoReconnect
 --skip-reconnect
 
 user() 内置函数在哪里实现 库中的元信息？
+vtgate里面已经转化成sql语句了
 
 meta-info:http://172.16.1.41:10080/lishinho/application-metainfo/blob/dev/TDH%205.0%20service%20standard.md
 /var/lib/transwarp-manager/master/content/meta/services/KUNDB
@@ -51,5 +52,309 @@ service transwarp-manager restart 服务重启
 2. mysql的idletime本身也有一段缓存重连的时间，这段时间断开用户不需提供密码重连，我会调查下缓存重连持续的时间，到时候提交给你们和宾哥。
 3. ip文件已写在metainfo上 jiraWARP-42372提交给你了，本地测过可以生成配置服务表，功能work，你再看一下
 
+0317
+1. mysql缓存机制密码存留多久->没有时间限制，只有数据库切换或关闭服务时断开 满足数据库wait-wimeout的时候也会重连 关闭重连开关的是--skip-reconnect 例如mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --skip-reconnect
+waterdrop--有缓存机制？show可以，grpc执行修改不行 
+  -grpc_connection_idle_time 20s \
+  -grpc_max_connection_age 10s \
+channel置为idle->发送goaway包->等待10s没有重连->关闭channel
+2. mysql内置函数改动
+
+【docker安装】
+2004  docker images;l
+ 2005  docker run -it 9b5 bash
+ 2006  docker run -itd --name mysql-test -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql 9b5 
+ 2007  docker ps
+ 2008  docker exec -it mysql bash
+ 2009  docker exec -it mysql-test bash
+ 2010  docker run -itd --name mysql- -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql 9b5
+ 2011  docker ps
+ 2012  docker exec -it mysql bash
+ 2013  cd /opt
+ 2014  mkdir -p docker_v/mysql/conf
+ 2015  sudo mkdir -p docker_v/mysql/conf
+ 2016  cd docker_v/mysql/conf/
+ 2017  touch my.cnf
+ 2018  sudo touch my.cnf
+ 2019  docker run -p 3306:3306 --name mysql -v /opt/docker_v/mysql/conf:/etc/mysql/conf.d -e MYSQL_ROOT_PASSWORD=123456 -d 9b5
+ 2020  docker ps
+ 2021  mysql -hlocalhost -uroot -p
+ 2022  docker exec -it mysql bash
+ 2023  history 20
+
+【kundb 证书】
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+ mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA --enable-cleartext-plugin
+mysql采用host来区分用户，所以有user()和currentuser()的概念，而kunDB由于架构上的不同，不需要再重复认证user，并且没有host在mysql中的区分（比如172.%.%.%)导致user()在kundb没用，成为bug
+
+ComStatistics:
+【COM_STATISTICS】
+
+E0317 13:37:32.776510   26649 vtgate.go:1470] Execute: target: _mfed.0.master, used tablet: test-800 (transwarp-Latitude-5480), vttablet: rpc error: code = Unknown desc = Unknown system variable 'user' (errno 1193) (sqlstate HY000) during query: select @@user from dual where 1 != 1, CallerID: vt_app, request: map[Session:autocommit:true options:<included_fields:ALL > session_id:"\242x\202\250vfI\364\220\332\374\302]\263\241\222"  Sql:select @@user BindVariables:map[]]
+E0317 13:37:32.776816   26649 vtgate.go:448] SQLLog: Session Info: a27882a8-7666-49f4-90da-fcc25db3a192 , Executed sql: select @@user, BindVariables: map[], Cost: 8.668729ms, Error: vtgate: http://transwarp-Latitude-5480:15001/: target: _mfed.0.master, used tablet: test-800 (transwarp-Latitude-5480), vttablet: rpc error: code = Unknown desc = Unknown system variable 'user' (errno 1193) (sqlstate HY000) during query: select @@user from dual where 1 != 1, CallerID: vt_app
+W0317 13:38:02.768334   26649 server.go:411] killing connection (exceeded idleTimeout: 30s)
+I0317 17:41:22.070091   26649 plugin_mysql_server.go:98] rollback because of ongoing transaction
+I0317 17:41:22.071409   26649 vtgate.go:445] SQLLog: Session Info: a27882a8-7666-49f4-90da-fcc25db3a192 , Executed sql: rollback, BindVariables: map[], Cost: 963.81µs
+I0317 17:41:24.171028   26649 vtgate.go:445] SQLLog: Session Info: 3e2a024f-5641-43c8-a78b-1fc44a527281 , Executed sql: show databases, BindVariables: map[], Cost: 4.56031ms
+W0317 17:41:54.166648   26649 server.go:411] killing connection (exceeded idleTimeout: 30s)
 
 
+I0318 10:01:34.741908   15178 conn.go:323] zk conn: session for addr localhost:21811,localhost:21812,localhost:21813 event: {EventNodeDataChanged Unknown /kundb/test/SrvVSchema <nil> }
+I0318 10:01:34.763192   15178 conn.go:323] zk conn: session for addr localhost:21811,localhost:21812,localhost:21813 event: {EventNodeDataChanged Unknown /kundb/test/SrvVSchema <nil> }
+I0318 10:01:34.764279   15178 auth_server_ldap.go:62] Not configuring AuthServerLdap because mysql_ldap_auth_config_file and mysql_ldap_auth_config_string are empty
+I0318 10:01:34.765174   15178 service_map.go:65] Registering vtgateservice for grpc, disable it with -grpc-vtgateservice service_map parameter
+I0318 10:01:34.782715   15178 grpc_server.go:164] Listening for gRPC calls on port 15991
+I0318 10:01:34.782936   15178 unix_socket.go:36] Not listening on socket file
+I0318 10:03:33.652183   15178 vtgate.go:465] here2 is select @@version_comment limit 1
+I0318 10:03:33.653172   15178 executor.go:377] It is select @@version_comment limit 1
+I0318 10:03:33.661826   15178 vtgate.go:448] SQLLog: Session Info: 67b6dc77-a7cf-4205-8411-e55c9b2c81cc , Executed sql: select @@version_comment limit 1, BindVariables: map[vtg1:type:INT64 value:"1" ], Cost: 9.465047ms
+I0318 10:03:40.552823   15178 vtgate.go:465] here2 is show databases
+I0318 10:03:40.555739   15178 vtgate.go:448] SQLLog: Session Info: 67b6dc77-a7cf-4205-8411-e55c9b2c81cc , Executed sql: show databases, BindVariables: map[], Cost: 2.874968ms
+
+mysql/server->plugin_mysql_server->vtgate.go->executor.go
+
+分支WARP-41406-a：jdbc加计时器+comstatistics报文处理+mysql端idletime日志修改+status user()替换
+
+select DATABASE(), USER()
+
+select DATABASE(), USER() limit 1
+
+
+mysql> select @@session.wait_timeout;
++------------------------+
+| @@session.wait_timeout |
++------------------------+
+|                  28800 |
++------------------------+
+1 row in set (0.01 sec)
+
+mysql> set @@session.interactive_timeout = 20;
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: unsupported construct: set @@session.interactive_timeout = 20
+mysql> set @@session.wait_timeout = 20;
+ERROR 1105 (HY000): vtgate: http://transwarp-Latitude-5480:15001/: unsupported construct: set @@session.wait_timeout = 20
+
+1. waterdrop有鬼。连接上执行不了命令
+2. 本身mysql支持这一功能 kungate语法不支持，idletime是vtgate之前的一段，mysql是连接数据库之后的一段
+3. grpc的功能是work的，无法验证复现
+
+【登镜像mysql】：
+transwarp@transwarp-Latitude-5480:~$ mysql -h127.0.0.1 -P3306 -uroot -p123456
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 11
+Server version: 8.0.19 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.01 sec)
+
+mysql/server->plugin_mysql_server->vtgate.go->executor.go->mysql
+
+
+[postgreSQL]
+
+    <property>
+        <name>guardian.txsql.connection.username</name>
+        <value>pguser</value>
+    </property>
+    <property>
+        <name>guardian.txsql.connection.password</name>
+        <value>Warp1234</value>
+    </property>
+
+
+//第一步
+            Statement stat = conn.createStatement();
+            String command = "select * from orders";
+            ResultSet result =  stat.executeQuery(command);
+
+            //按行读取查询结果当中的数据
+            while(result.next()) {
+                //使用访问器方法获取信息
+                System.out.println(result.getString(1) + " " +  result.getString(2) + " " + result.getString(3) );
+            }
+            result.close();
+            return conn;
+        }
+        catch(Exception e) {
+            e.printStackTrace();//异常处理
+            return null;
+        }
+
+
+transwarp@transwarp-Latitude-5480:~/workHub$ mysql -h172.26.5.94 -P15307 -ulzb -p --enable-cleartext-plugin
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 4
+Server version: KunDB-1.3.0 MariaDB Server
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++-----------+
+| Databases |
++-----------+
+| _mfed     |
+| kundb1    |
++-----------+
+2 rows in set (0.01 sec)
+
+mysql> use kundb1;
+Database changed
+mysql> show databases;
++-----------+
+| Databases |
++-----------+
+| _mfed     |
+| kundb1    |
++-----------+
+2 rows in set (0.00 sec)
+
+mysql> show tables;
+ERROR 1044 (42000): vtgate: http://tw-node594:15001/: target: _mfed.0.master, used tablet: transwarp-800 (tw-node595), vttablet: rpc error: code = Unknown desc = Access denied for user 'lzb'@'%' to database 'kundb1' (errno 1044) (sqlstate 42000) during query: USE kundb1, CallerID: lzb
+
+【grpc keepalive无效】
+1. goaway包只通知对方不要在已有连接上新建流，client端不作处理就无效
+2. goaway包本身不限制对方重连
+
+
+	
+	// InitUser is for creating user
+	InitUser(user string) error
+
+create user/role是dcl语句
+
+1.空闲时间部分grpc的参数不生效 大概是因为client部分没有接受goaway包的设置 / 为了适配功能在jdbc写了定时器，jdbc连接和waterdrop连接都work，可配置
+2.新jira WARP-41378未经授权查看database：
+这个问题其实已经解决了的，现在kundb初始时看不到数据库，就不需要授权了；
+关于ldap认证后可进入mysql客户端没什么问题，所有用户都有public的usage权限，初始化没可见库就没有权限需要做的事了；
+关于连接认证后要重新create user才能使用，觉得这个是产品使用方式的问题，也不需要改，我在本地写了个demo，以后如果需要的话可以提交
+
+
+HDFS 透明加密算法支持SM4商密算法
+现在很多涉密客户需要用国产加密算法
+SM4算法本身应该是实现好的
+
+hdfs kms
+kms key management server
+guardian-utils provides common utilities for guardian projects
+
+/usr/lib/guardian/lib/guardian-utils-guardian-3.1.2.jar
+
+<dependency>
+        <groupId>jdk.tools</groupId>
+        <artifactId>jdk.tools</artifactId>
+        <version>1.8</version>
+        <scope>system</scope>
+        <systemPath>${JAVA_HOME}/lib/tools.jar</systemPath>
+    </dependency>
+
+/usr/lib/jvm/jdk1.7.0_71
+jdk1.7.0_71
+
+export JAVA_HOME_7=/usr/lib/jvm/jdk1.7.0_71
+
+export JAVA_HOME_8=/usr/lib/jvm/default-java
+
+alias jdk1.7="export JAVA_HOME=$JAVA_HOME_7 && JAVA_HOME = /usr/lib/jvm/jdk1.7.0_71 && source /etc/profile"
+
+alias jdk1.8="export JAVA_HOME=$JAVA_HOME_8 && JAVA_HOME = /usr/lib/jvm/default-java && source /etc/profile"
+
+transwarp@transwarp-Latitude-5480:~/Downloads/work/hadoop-2.7.2-transwarp$ source /etc/profile
+transwarp@transwarp-Latitude-5480:~/Downloads/work/hadoop-2.7.2-transwarp$ mvn -version
+OpenJDK 64-Bit Server VM warning: ignoring option MaxPermSize=2048m; support was removed in 8.0
+Apache Maven 3.6.2 (40f52333136460af0dc0d7232c0dc0bcf0d9e117; 2019-08-27T23:06:16+08:00)
+Maven home: /home/transwarp/Downloads/apache-maven-3.6.2
+Java version: 1.8.0_242, vendor: Private Build, runtime: /usr/lib/jvm/java-8-openjdk-amd64/jre
+Default locale: en_US, platform encoding: UTF-8
+OS name: "linux", version: "4.15.0-88-generic", arch: "amd64", family: "unix"
+transwarp@transwarp-Latitude-5480:~/Downloads/work/hadoop-2.7.2-transwarp$ JAVA_HOME=$JAVA_HOME_
+$
+
+hdfs需要jdk7+protobuf
+2020-03-19 20:08:17,443 WARN org.apache.hadoop.hdfs.server.namenode.ha.EditLogTailer: Unable to trigger a roll of the active NN
+org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.ipc.StandbyException): Operation category JOURNAL is not supported in state standby
+        at org.apache.hadoop.hdfs.server.namenode.ha.StandbyState.checkOperation(StandbyState.java:87)
+        at org.apache.hadoop.hdfs.server.namenode.NameNode$NameNodeHAContext.checkOperation(NameNode.java:1785)
+        at org.apache.hadoop.hdfs.server.namenode.FSNamesystem.checkOperation(FSNamesystem.java:1409)
+        at org.apache.hadoop.hdfs.server.namenode.FSNamesystem.rollEditLog(FSNamesystem.java:6196)
+        at org.apache.hadoop.hdfs.server.namenode.NameNodeRpcServer.rollEditLog(NameNodeRpcServer.java:1119)
+        at org.apache.hadoop.hdfs.protocolPB.NamenodeProtocolServerSideTranslatorPB.rollEditLog(NamenodeProtocolServerSideTranslatorPB.java:142)
+        at org.apache.hadoop.hdfs.protocol.proto.NamenodeProtocolProtos$NamenodeProtocolService$2.callBlockingMethod(NamenodeProtocolProtos.java:12025)
+        at org.apache.hadoop.ipc.ProtobufRpcEngine$Server$ProtoBufRpcInvoker.call(ProtobufRpcEngine.java:616)
+        at org.apache.hadoop.ipc.RPC$Server.call(RPC.java:969)
+        at org.apache.hadoop.ipc.Server$Handler$1.run(Server.java:2225)
+        at org.apache.hadoop.ipc.Server$Handler$1.run(Server.java:2221)
+        at java.security.AccessController.doPrivileged(Native Method)
+        at javax.security.auth.Subject.doAs(Subject.java:415)
+        at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:2197)
+        at org.apache.hadoop.ipc.Server$Handler.run(Server.java:2219)
+
+        at org.apache.hadoop.ipc.Client.call(Client.java:1485)
+        at org.apache.hadoop.ipc.Client.call(Client.java:1422)
+        at org.apache.hadoop.ipc.ProtobufRpcEngine$Invoker.invoke(ProtobufRpcEngine.java:229)
+        at com.sun.proxy.$Proxy20.rollEditLog(Unknown Source)
+        at org.apache.hadoop.hdfs.protocolPB.NamenodeProtocolTranslatorPB.rollEditLog(NamenodeProtocolTranslatorPB.java:148)
+        at org.apache.hadoop.hdfs.server.namenode.ha.EditLogTailer.triggerActiveLogRoll(EditLogTailer.java:273)
+        at org.apache.hadoop.hdfs.server.namenode.ha.EditLogTailer.access$600(EditLogTailer.java:61)
+        at org.apache.hadoop.hdfs.server.namenode.ha.EditLogTailer$EditLogTailerThread.doWork(EditLogTailer.java:315)
+        at org.apache.hadoop.hdfs.server.namenode.ha.EditLogTailer$EditLogTailerThread.access$200(EditLogTailer.java:284)
+        at org.apache.hadoop.hdfs.server.namenode.ha.EditLogTailer$EditLogTailerThread$1.run(EditLogTailer.java:301)
+        at java.security.AccessController.doPrivileged(Native Method)
+        at javax.security.auth.Subject.doAs(Subject.java:356)
+        at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:2177)
+        at org.apache.hadoop.security.SecurityUtil.doAsLoginUserOrFatal(SecurityUtil.java:436)
+        at org.apache.hadoop.hdfs.server.namenode.ha.EditLogTailer$EditLogTailerThread.run(EditLogTailer.java:297)
+2020-03-19 20:08:33,529 WARN org.apache.hadoop.hdfs.server.namenode.FSNamesystem: Get corrupt file blocks returned error: Operation category READ is not supported in state standby
+2020-03-19 20:08:35,736 INFO io.transwarp.guardian.client.cache.PeriodCacheUpdater: Fetch change version: 6
+2020-03-19 20:08:45,035 INFO org.apache.hadoop.ipc.Server: Socket Reader #1 for port 8020: readAndProcess from client 172.16.1.238 threw exception [org.apache.hadoop.security.AccessControlException: SIMPLE authentication is not enabled.  Available:[TOKEN, OAUTHBEARER, KERBEROS]]
+org.apache.hadoop.security.AccessControlException: SIMPLE authentication is not enabled.  Available:[TOKEN, OAUTHBEARER, KERBEROS]
+        at org.apache.hadoop.ipc.Server$Connection.initializeAuthContext(Server.java:1705)
+        at org.apache.hadoop.ipc.Server$Connection.readAndProcess(Server.java:1661)
+        at org.apache.hadoop.ipc.Server$Listener.doRead(Server.java:897)
+        at org.apache.hadoop.ipc.Server$Listener$Reader.doRunLoop(Server.java:753)
+        at org.apache.hadoop.ipc.Server$Listener$Reader.run(Server.java:724)
+2020-03-19 20:08:47,875 INFO SecurityLogger.org.apache.hadoop.ipc.Server: Auth successful for hdfs/tw-node1237@TDH (auth:KERBEROS)
+2020-03-19 20:08:47,886 INFO SecurityLogger.org.apache.hadoop.security.authorize.ServiceAuthorizationManager: Authorization successful for hdfs/tw-node1237@TDH (auth:KERBEROS) for protocol=interface org.apache.hadoop.hdfs.server.protocol.NamenodeProtocol
+2020-03-19 20:08:47,887 INFO org.apache.hadoop.ipc.Server: IPC Server handler 42 on 8020, call org.apache.hadoop.hdfs.server.protocol.NamenodeProtocol.rollEditLog from 172.16.1.237:36430 Call#33 Retry#0: org.apache.hadoop.ipc.StandbyException: Operation category JOURNAL is not supported in state standby
+2020-03-19 20:08:50,798 WARN org.apache.hadoop.hdfs.server.namenode.FSNamesystem: Get corrupt file blocks returned error: Operation category READ is not supported in state standby
+
+[root@tw-node1238 log]# kubectl logs hadoop-hdfs-namenode-hdfs1-69ff856999-9q6sf -c hadoop-hdfs-namenode-hdfs1
+
+
+	<dependency>
+      <groupId>io.transwarp.guardian.common</groupId>
+      <artifactId>gm-crypto</artifactId>
+      <version>guardian-3.2.0</version>
+    </dependency>
+
+
+明加密技术是近年来针对企业文件保密需求应运而生的一种文件加密技术。它是指对使用者来说是无感知的。当使用者在打开或编辑指定文件时，系统将自动对未加密的文件进行加密，对已加密的文件自动解密。文件在硬盘上是密文，在内存中是明文。一旦离开使用环境，由于应用程序无法得到自动解密的服务而无法打开，从而起来保护文件内容的效果。
+
+jce-aes
+算法/模式/填充         16字节加密后数据长度         不满16字节加密后长度
+AES/CBC/NoPadding              16                         不支持
+AES/CBC/PKCS5Padding           32                         16
+AES/CBC/ISO10126Padding        32                         16

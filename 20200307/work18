@@ -319,3 +319,11 @@ server端：维护最大空闲连接时间，最大空闲连接数，默认值�
 MaxConnectionIdle
 
 30 * 1e9
+
+/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+ mysql -h127.0.0.1 -P15307 -uvt_app -p123 --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA --enable-cleartext-plugin
+
+

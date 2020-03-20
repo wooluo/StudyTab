@@ -498,3 +498,14 @@ public class ReschedulableTimer extends Timer
   }
 }
 
+timerTask = new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          kundbConnection.close();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+
