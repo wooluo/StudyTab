@@ -1,0 +1,761 @@
+20200323
+
+工作周报 - 李镇邦 20200316 ~ 20200320
+
+完成：
+1. WARP-42372: ip部分配置文件配到manager-info上， idletime功能在JDBC客户端上重写并测试提交
+2. WARP-41406: bug修复在KunDB vtgate重写，添加mysql协议com_statistics报文的路径
+3. WARP-43034: guardian-util部分 SM4算法补充/学习hdfs透明加密部分确定实现方案
+4. 验证KunDB几个jira的重复提交
+
+
+进行中：
+1. WARP-43034: hadoop-common部分透明加密对SM4算法的支持
+
+本周：
+1. 继续WARP-43034的工作并完成集群上验证
+
+
+
+    ByteBuffer encryptedBuf = ByteBuffer.allocate(160);
+    ByteBuffer decryptedBuf = ByteBuffer.allocate(160);
+    ByteBuffer tmp = ByteBuffer.allocate(160);
+
+  // byte[]转化成ByteBuffer
+  public ByteBuffer encodeValue(byte[] value) {
+    ByteBuffer byteBuffer = ByteBuffer.wrap(value);
+    return byteBuffer;
+  }
+ 
+  // ByteBuffer转化成byte[]
+  public byte[] decodeValue(ByteBuffer bytes) {
+    int len = bytes.limit() - bytes.position();
+    byte[] bytes1 = new byte[len];
+    bytes.get(bytes1);
+    return bytes1;
+  }
+
+
+      encryptedBuf = ByteBuffer.allocate(64);
+      decryptedBuf = ByteBuffer.allocate(64);
+      cipher.init(GMCipher.Mode.ENCRYPT, TestConstants.KEY_SPEC, spec);
+      cipher.doFinal(ByteBuffer.wrap(TestConstants.PLAIN_32), encryptedBuf);
+      encryptedBuf.flip();
+      cipher.init(GMCipher.Mode.DECRYPT, TestConstants.KEY_SPEC, spec);
+      cipher.doFinal(encryptedBuf, decryptedBuf);
+      decryptedBuf.flip();
+      Assert.assertArrayEquals(TestConstants.PLAIN_32, decodeValue(decryptedBuf));
+
+
+将目前目录下的所有档案与子目录的拥有者皆设为 users 群体的使用者 lamport :
+chmod -R lamport:users *
+-rw------- (600) – 只有属主有读写权限。
+-rw-r–r-- (644) – 只有属主有读写权限；而属组用户和其他用户只有读权限。
+-rwx------ (700) – 只有属主有读、写、执行权限。
+-rwxr-xr-x (755) – 属主有读、写、执行权限；而属组用户和其他用户只有读、执行权限。
+-rwx–x--x (711) – 属主有读、写、执行权限；而属组用户和其他用户只有执行权限。
+-rw-rw-rw- (666) – 所有用户都有文件读、写权限。这种做法不可取。
+-rwxrwxrwx (777) – 所有用户都有读、写、执行权限。更不可取的做法。
+以下是对目录的两个普通设定:
+
+drwx------ (700) - 只有属主可在目录中读、写。
+drwxr-xr-x (755) - 所有用户可读该目录，但只有属主才能改变目录中的内容。
+
+将目前目录下的所有档案与子目录皆设为任何人可读取 :
+chmod -R a+r *
+
+txsql lost connection 在同步配置文件删除重新安装
+=====================================================
+About to bootstrap Standby ID nn2 from:
+           Nameservice ID: nameservice1
+        Other Namenode ID: nn1
+  Other NN's HTTP address: http://tw-node1237:50070
+  Other NN's IPC  address: tw-node1237/172.16.1.237:8020
+             Namespace ID: 1901437855
+            Block pool ID: BP-1305439193-172.16.1.237-1584964775894
+               Cluster ID: hdfs1
+           Layout version: -63
+       isUpgradeFinalized: true
+=====================================================
+2020-03-23 19:59:48,606 INFO common.Storage: Storage directory /vdir/hadoop/hadoop_image has been successfully formatted.
+2020-03-23 19:59:48,614 INFO common.Storage: Storage directory /vdir/hadoop/namenode_dir has been successfully formatted.
+2020-03-23 19:59:48,671 WARN common.Util: Path /vdir/hadoop/hadoop_image should be specified as a URI in configuration files. Please update hdfs configuration.
+2020-03-23 19:59:48,672 WARN common.Util: Path /vdir/hadoop/namenode_dir should be specified as a URI in configuration files. Please update hdfs configuration.
+2020-03-23 19:59:48,672 WARN common.Util: Path /vdir/hadoop/hadoop_image should be specified as a URI in configuration files. Please update hdfs configuration.
+2020-03-23 19:59:48,673 WARN common.Util: Path /vdir/hadoop/namenode_dir should be specified as a URI in configuration files. Please update hdfs configuration.
+2020-03-23 19:59:49,111 INFO namenode.TransferFsImage: Opening connection to http://tw-node1237:50070/imagetransfer?getimage=1&txid=0&storageInfo=-63:1901437855:0:hdfs1
+2020-03-23 19:59:49,246 INFO namenode.TransferFsImage: Image Transfer timeout configured to 60000 milliseconds
+2020-03-23 19:59:49,339 INFO namenode.TransferFsImage: Transfer took 0.00s at 0.00 KB/s
+2020-03-23 19:59:49,340 INFO namenode.TransferFsImage: Downloaded file fsimage.ckpt_0000000000000000000 size 316 bytes.
+2020-03-23 19:59:49,353 INFO util.ExitUtil: Exiting with status 0
+2020-03-23 19:59:49,355 INFO namenode.NameNode: SHUTDOWN_MSG: 
+/************************************************************
+SHUTDOWN_MSG: Shutting down NameNode at tw-node1238/172.16.1.238
+************************************************************/
+++ date
++ echo 'Format Standby Namenode in HA mode on Mon' Mar 23 19:59:49 CST 2020
++ '[' true == false ']'
++ '[' false = true ']'
++ '[' false = true ']'
++ sudo -u hdfs /bin/bash -c 'cd /home/hdfs; /bin/transwarp/namenode.sh'
+-Dproc_namenode -Xmx5927m -Dsun.net.inetaddr.ttl=60 -Djava.net.preferIPv4Stack=true -Dhadoop.log.dir=/var/log/hdfs1 -Dhadoop.log.file=hadoop-hdfs-namenode-tw-node1238.log -Dhadoop.home.dir=/usr/lib/hadoop/ -Dhadoop.root.logger=INFO,RFA -Djava.library.path=/usr/lib/hadoop/lib/native -Dhadoop.policy.file=hadoop-policy.xml -Dhadoop.id.str=hdfs -Dhadoop.security.logger=INFO,RFAS -Dcom.sun.management.jmxremote -XX:+UseConcMarkSweepGC -XX:+ExplicitGCInvokesConcurrent -Dhdfs.audit.logger=INFO,NullAppender -Djava.net.preferIPv4Stack=true -Djava.library.path=/lib/native -Dtranswarp.maintenance.only.mode=true
+[root@tw-node1236 conf]# ls
+
+transwarp@transwarp-Latitude-5480:~/Downloads/work/hadoop-2.7.2-transwarp/hadoop-common-project$ mvn -version
+OpenJDK 64-Bit Server VM warning: ignoring option MaxPermSize=2048m; support was removed in 8.0
+Apache Maven 3.6.2 (40f52333136460af0dc0d7232c0dc0bcf0d9e117; 2019-08-27T23:06:16+08:00)
+Maven home: /home/transwarp/Downloads/apache-maven-3.6.2
+Java version: 1.8.0_242, vendor: Private Build, runtime: /usr/lib/jvm/java-8-openjdk-amd64/jre
+Default locale: en_US, platform encoding: UTF-8
+OS name: "linux", version: "4.15.0-88-generic", arch: "amd64", family: "unix"
+transwarp@transwarp-Latitude-5480:~/Downloads/work/hadoop-2.7.2-transwarp/hadoop-common-project$ source /etc/profile
+transwarp@transwarp-Latitude-5480:~/Downloads/work/hadoop-2.7.2-transwarp/hadoop-common-project$ JAVA_HOME=$JAVA_HOME_7
+transwarp@transwarp-Latitude-5480:~/Downloads/work/hadoop-2.7.2-transwarp/hadoop-common-project$ mvn -version
+Apache Maven 3.6.2 (40f52333136460af0dc0d7232c0dc0bcf0d9e117; 2019-08-27T23:06:16+08:00)
+Maven home: /home/transwarp/Downloads/apache-maven-3.6.2
+Java version: 1.7.0_71, vendor: Oracle Corporation, runtime: /usr/java/jdk1.7.0_71/jre
+Default locale: en_US, platform encoding: UTF-8
+OS name: "linux", version: "4.15.0-88-generic", arch: "amd64", family: "unix"
+
+kubectl logs//
+
+我猜可能是hdfs初始化创建znode失败，不过我有个事情要处理下，你可以先看下 boot.sh 中有关 format zk的部分
+
+kinit xxx
+klist
+gaurdain预制用户密码随机 要自己重置
+
+hdfs的ha模式开安全前zookeeper要先开安全 否则znode就会创建失败
+
+ 1008  kubectl cp hadoop-hdfs-datanode-hdfs1-655bf86b76-mc8zh:tmp/hive/hive/dc4726a1-f2ab-425e-88ff-ea27490f9f1e data2
+1005  kubectl cp hadoop-hdfs-datanode-hdfs1-655bf86b76-mc8zh:/root/hive/hive/dc4726a1-f2ab-425e-88ff-ea27490f9f1e data1
+
+0000
+[root@tw-node1237 usr]# kubectl exec -it hadoop-hdfs-datanode-hdfs1-655bf86b76-mc8zh bash
+[root@tw-node1238 ~]# kinit keyadmin
+Password for keyadmin@TDH: 
+[root@tw-node1238 ~]# hadoop key create inceptor1-key
+2020-03-24 16:18:45,385 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+inceptor1-key has not been created. java.io.IOException: Key inceptor1-key already exists
+java.io.IOException: Key inceptor1-key already exists
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:57)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:526)
+	at org.apache.hadoop.util.HttpExceptionUtils.validateResponse(HttpExceptionUtils.java:157)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.call(KMSClientProvider.java:546)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.call(KMSClientProvider.java:504)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.createKeyInternal(KMSClientProvider.java:677)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.createKey(KMSClientProvider.java:685)
+	at org.apache.hadoop.crypto.key.KeyShell$CreateCommand.execute(KeyShell.java:483)
+	at org.apache.hadoop.crypto.key.KeyShell.run(KeyShell.java:79)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:70)
+	at org.apache.hadoop.crypto.key.KeyShell.main(KeyShell.java:515)
+[root@tw-node1238 ~]# kinit hdfs
+Password for hdfs@TDH: 
+[root@tw-node1238 ~]# klist
+Ticket cache: FILE:/tmp/krb5cc_0
+Default principal: hdfs@TDH
+
+Valid starting       Expires              Service principal
+03/24/2020 16:18:54  03/25/2020 16:18:54  krbtgt/TDH@TDH
+	renew until 03/31/2020 16:18:54
+[root@tw-node1238 ~]# hadoop fs -mkdir /inceptor1-encrypt
+2020-03-24 16:19:26,315 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+[root@tw-node1238 ~]# ls
+anaconda-ks.cfg
+[root@tw-node1238 ~]# cd /
+[root@tw-node1238 /]# ls
+anaconda-post.log  dev   lib         media  proc  sbin  tmp  vdir
+bin                etc   lib64       mnt    root  srv   usr
+data               home  lost+found  opt    run   sys   var
+[root@tw-node1238 /]# hadoop fs -chown hive:hive /inceptor-encrypt
+2020-03-24 16:20:21,332 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+chown: `/inceptor-encrypt': No such file or directory
+[root@tw-node1238 /]# hadoop fs -chown hive:hive /inceptor1-encrypt
+2020-03-24 16:20:36,401 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+ptor1-encrypt
+2020-03-24 16:21:32,991 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+Added encryption zone /inceptor1-encrypt
+[root@tw-node1238 /]# kinit hive
+Password for hive@TDH: 
+[root@tw-node1238 /]# ls
+anaconda-post.log  dev   lib         media  proc  sbin  tmp  vdir
+bin                etc   lib64       mnt    root  srv   usr
+data               home  lost+found  opt    run   sys   var
+[root@tw-node1238 /]# hdfs dfs -lsr /
+lsr: DEPRECATED: Please use 'ls -R' instead.
+2020-03-24 16:23:28,999 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+drwx--x--x   - hive hive            0 2020-03-24 15:20 /inceptor1
+drwxr-xr-x   - hive hive            0 2020-03-24 15:20 /inceptor1/tmp
+drwxrwxrwx   - hive hive            0 2020-03-24 15:20 /inceptor1/tmp/hive
+drwxr-xr-x   - hive hive            0 2020-03-24 16:14 /inceptor1/tmp/hive/hive
+drwxr-xr-x   - hive hive            0 2020-03-24 16:14 /inceptor1/tmp/hive/hive/dc4726a1-f2ab-425e-88ff-ea27490f9f1e
+drwxr-xr-x   - hive hive            0 2020-03-24 16:14 /inceptor1/tmp/hive/hive/dc4726a1-f2ab-425e-88ff-ea27490f9f1e/_tmp_space.db
+drwxr-xr-x   - hive hive            0 2020-03-24 15:20 /inceptor1/tmp/hive/hive/e7ce6137-6f65-42ee-8a27-ee3dfffbbd04
+drwxr-xr-x   - hive hive            0 2020-03-24 15:20 /inceptor1/tmp/hive/hive/e7ce6137-6f65-42ee-8a27-ee3dfffbbd04/_tmp_space.db
+drwxr-xr-x   - hive hive            0 2020-03-24 16:19 /inceptor1-encrypt
+drwxrwxrwt   - hdfs hadoop          0 2020-03-24 15:15 /tmp
+drwxrwxrwt   - hdfs hadoop          0 2020-03-24 15:15 /user
+drwxr-xr-x   - hdfs hbase           0 2020-03-24 15:17 /yarn1
+drwxrwxrwt   - yarn hadoop          0 2020-03-24 15:17 /yarn1/user
+drwxrwxrwt   - yarn hadoop          0 2020-03-24 15:17 /yarn1/user/history
+drwxrwx---   - yarn hadoop          0 2020-03-24 15:17 /yarn1/user/history/done
+drwxrwxrwt   - yarn hadoop          0 2020-03-24 15:17 /yarn1/user/history/done_intermediate
+drwxr-xr-x   - hdfs hbase           0 2020-03-24 15:17 /yarn1/var
+drwxr-xr-x   - hdfs hbase           0 2020-03-24 15:17 /yarn1/var/log
+drwxr-xr-x   - hdfs hbase           0 2020-03-24 15:17 /yarn1/var/log/hadoop-yarn
+drwxrwxrwt   - yarn hadoop          0 2020-03-24 15:17 /yarn1/var/log/hadoop-yarn/apps
+[root@tw-node1238 /]# hdfs dfs -get /inceptor1/tmp/* ~/
+2020-03-24 16:24:56,380 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+[root@tw-node1238 /]# cd ~
+[root@tw-node1238 ~]# ls
+anaconda-ks.cfg  hive
+[root@tw-node1238 ~]# hadoop fs -cp /inceptor1/* /inceptor1-encrypt
+2020-03-24 16:25:48,564 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+[root@tw-node1238 ~]# hadoop fs -mv /inceptor1 /inceptor1-bak
+2020-03-24 16:26:26,080 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+mv: Permission denied: user=hive, access=WRITE, inode="/":hdfs:hbase:drwxr-xr-x in the default POSIX ACLs, nor is granted permission in Guardian service
+[root@tw-node1238 ~]# hadoop fs -mv /inceptor1 /inceptor1-bak
+2020-03-24 16:28:00,548 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+mv: Permission denied: user=hive, access=WRITE, inode="/":hdfs:hbase:drwxr-xr-x in the default POSIX ACLs, nor is granted permission in Guardian service
+[root@tw-node1238 ~]# hadoop fs -mv /inceptor1 /inceptor1-bak
+2020-03-24 16:28:54,602 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+[root@tw-node1238 ~]# hadoop fs -mv /inceptor1-encrypt /inceptor1
+2020-03-24 16:30:01,481 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+[root@tw-node1238 ~]# hdfs dfs -get /inceptor1/tmp/* /tmp/
+2020-03-24 16:30:51,067 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+[root@tw-node1238 ~]# ls
+anaconda-ks.cfg  hive
+[root@tw-node1238 ~]# cd hive/
+[root@tw-node1238 hive]# ls
+hive
+[root@tw-node1238 hive]# cd hive/
+[root@tw-node1238 hive]# ls
+dc4726a1-f2ab-425e-88ff-ea27490f9f1e  e7ce6137-6f65-42ee-8a27-ee3dfffbbd04
+[root@tw-node1238 hive]# pwd
+/root/hive/hive
+[root@tw-node1238 hive]# cd ..
+[root@tw-node1238 hive]# 
+[root@tw-node1238 hive]# pwd
+/root/hive
+[root@tw-node1238 hive]# cd /tmp
+[root@tw-node1238 tmp]# ls
+hive  hsperfdata_hdfs  hsperfdata_root  Jetty_localhost_57424_datanode____.v0ko79  krb5cc_0  ks-script-HVSw8G
+[root@tw-node1238 tmp]# cd hive
+[root@tw-node1238 hive]# ls
+hive
+[root@tw-node1238 hive]# cd hive/
+[root@tw-node1238 hive]# ls
+dc4726a1-f2ab-425e-88ff-ea27490f9f1e  e7ce6137-6f65-42ee-8a27-ee3dfffbbd04
+[root@tw-node1238 hive]# pwd
+/tmp/hive/hive
+
+. 以 keyadmin 身份登录，执行以下命令创建 inceptor 加密秘钥
+
+   hadoop key create inceptor1-key
+. 以 hdfs 身份登录，执行以下命令创建加密区
+
+  hadoop fs -mkdir /inceptor1-encrypt
+
+  hadoop fs -chown hive:hive /inceptor1-encrypt
+
+  hdfs crypto -createZone -keyName inceptor1-key -path /inceptor1-encrypt
+
+4. 停止 inceptor 服务或者确保 inceptor 没有新的数据写入
+
+5. 以 hive 身份登录，将 Inceptor 数据拷贝到加密区
+
+  hadoop fs -cp /inceptor1/* /inceptor1-encrypt
+
+[root@tw-node1238 /]# hdfs dfs -get /inceptor1/tmp/* ~/
+2020-03-24 16:24:56,380 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+
+6. 备份原始数据，并将加密数据目录移动到加密区
+
+  hadoop fs -mv /inceptor1 /inceptor1-bak
+
+  hadoop fs -mv /inceptor1-encrypt /inceptor1
+
+7. 测试 Inceptor 数据是否完整能访问，确认后删除备份的Inceptor数据 (/inceptor1-bak)
+
+
+[root@tw-node1236 ~]# kinit admin
+Password for admin@TDH: 
+=hive/tw-node1236@TDH"eeline -u "jdbc:hive2://localhost:10000/default;principal 
+Java HotSpot(TM) 64-Bit Server VM warning: Using the ParNew young collector with the Serial old collector is deprecated and will likely be removed in a future release
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/usr/lib/inceptor/lib/graphsearch-hive-2.0.0.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/lib/inceptor/lib/shiva-client-shade-1.3.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/lib/inceptor/lib/slf4j-log4j12-1.6.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+scan complete in 5ms
+Connecting to jdbc:hive2://localhost:10000/default;principal=hive/tw-node1236@TDH
+
+
+2020-03-24 17:59:25,677 INFO  [Thread-1] util.KerberosUtil (KerberosUtil.java:getDefaultPrincipalPattern(81)) - Using principal pattern: HTTP/_HOST
+Error: java.sql.SQLException: Failed to open new session: java.lang.RuntimeException: java.lang.RuntimeException: The root scratch dir: hdfs://nameservice1/inceptor1/tmp/hive on HDFS should be writable. Current permissions are: rwxr-xr-x (state=,code=0)
+2020-03-24 17:59:26,590 INFO  [main] jdbc.Utils (Utils.java:parseURL(304)) - Supplied authorities: tw-node1237:10000
+2020-03-24 17:59:26,591 INFO  [main] jdbc.Utils (Utils.java:parseURL(391)) - Resolved authority: tw-node1237:10000
+Error: java.sql.SQLException: Failed to open new session: java.lang.RuntimeException: java.lang.RuntimeException: The root scratch dir: hdfs://nameservice1/inceptor1/tmp/hive on HDFS should be writable. Current permissions are: rwxr-xr-x (state=,code=0)
+[root@tw-node1236 ~]# 
+
+hadoop fs -chown hive:hive /inceptor1-encrypt
+
+验证文件加密：
+1. hdfs fsck / -files -block  
+[root@tw-node1237 ~]# hdfs fsck /inceptor1/IamTest -files -blocks -locations
+
+2. find /data/0 -name blk_xxxx
+[root@tw-node1236 ~]# cd /hadoop/data
+[root@tw-node1236 data]# find ./ -name blk_1073741827_1003*
+./current/BP-1730406967-172.16.1.237-1585034092308/current/finalized/subdir0/subdir0/blk_1073741827_1003.meta
+[root@tw-node1236 data]# mv ./current/BP-1730406967-172.16.1.237-1585034092308/current/finalized/subdir0/subdir0/blk_1073741827_1003.meta ~/data/
+[root@tw-node1236 data]# pwd
+/hadoop/data
+
+3. vim 
+
+
+[root@tw-node1237 ~]# history 5
+    2  hadoop fs -mv /inceptor1 /inceptor1-bak
+    3  hadoop fs -mv /inceptor1-encrypt /inceptor1
+    4  hdfs dfs -rmr /inceptor1-encrypt
+    5  hdfs dfs -lsr /
+    6  history 5
+
+[root@tw-node1237 lib]# cd ../..
+[root@tw-node1237 lib]# find ./ -name hadoop-common-2.7.2-transwarp-6.2.1.jar*
+./hadoop/hadoop-common-2.7.2-transwarp-6.2.1.jar
+[root@tw-node1237 lib]# find ./ -name hadoop-common-2.7.2-transwarp*
+./hadoop/hadoop-common-2.7.2-transwarp-6.2.1.jar
+[root@tw-node1237 lib]# cd hadoop
+[root@tw-node1237 hadoop]# pwd
+/usr/lib/hadoop
+[root@tw-node1237 hadoop]# 
+
+
+    命令格式
+    hdfs dfs -rm 目标文件
+    hdfs dfs -rmr 目标文件 递归删除（慎用）使用用例
+    hdfs dfs -rm /user/test.txt 删除test.txt文件
+    hdfs dfs -rmr /user/testdir 递归删除testdir文件夹
+    注：rm不可以删除文件夹
+
+^@^A^B^@^@^B^@
+\<87>?
+
+
+
+    1  cd /usr/lib
+    2  ls
+    3  cd hadoop
+    4  ls
+    5  cd ~
+    6  ls
+    7  kinit hive
+    8  hdfs dfs -ls /
+    9  hdfs dfs -lsr /
+   10  hdfs dfs -rmr /inceptor1-encrypt
+   11  hadoop fs -mkdir /inceptor1-encrypt
+   12  hdfs dfs -ls /
+   13  hdfs dfs -lsr /
+   14  hadoop fs -cp /inceptor1/* /inceptor1-encrypt
+   15  hdfs dfs -lsr /
+   16  hadoop fs -cat /inceptor1-encrypt/user/sm4/sm4Test
+   17  hdfs fsck /inceptor1-encrypt/user/sm4/sm4Test -files -blocks -locations
+   18  history 30
+
+传统数据管理软件/硬件堆栈中的加密可以在不同的层完成。选择在给定层加密具有不同的优点和缺点。
+
+应用程序级加密。这是最安全和最灵活的方法。应用程序对加密的内容有最终的控制，并且可以精确地反映用户的要求。但是，编写应用程序来做到这一点很困难。对于不支持加密的现有应用程序的客户来说，这也不是一种选择。
+
+数据库级加密。类似于应用程序级加密的属性。大多数数据库供应商提供某种形式的加密 但是，可能会有性能问题。一个例子是索引不能被加密。
+
+文件系统级加密。该选项提供了高性能，应用程序透明性，并且通常易于部署。但是，它无法模拟某些应用程序级别的策略。例如，多租户应用程序可能希望基于最终用户进行加密。数据库可能需要对存储在单个文件中的每个列进行不同的加密设置。
+
+磁盘级加密。易于部署和高性能，但也相当不灵活。只有真正防止物理盗窃。
+
+HDFS级别的加密适用于此堆栈中的数据库级和文件系统级加密。这有很多积极的影响。HDFS加密能够提供良好的性能，现有的Hadoop应用程序能够在加密的数据上透明地运行。在制定策略决策时，HDFS也比传统的文件系统具有更多的上下文。
+
+HDFS级加密还可以防止在文件系统级和以下的攻击（所谓的“OS级攻击”）。操作系统和磁盘只与加密的字节交互，因为数据已经被HDFS加密了。
+
+[root@tw-node1237 ~]# hadoop key create sm4-key
+2020-03-25 14:12:34,578 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+sm4-key has not been created. java.io.IOException: HTTP status [500], exception [java.lang.reflect.UndeclaredThrowableException], message [null] 
+java.io.IOException: HTTP status [500], exception [java.lang.reflect.UndeclaredThrowableException], message [null] 
+	at org.apache.hadoop.util.HttpExceptionUtils.validateResponse(HttpExceptionUtils.java:159)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.call(KMSClientProvider.java:546)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.call(KMSClientProvider.java:504)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.createKeyInternal(KMSClientProvider.java:677)
+	at org.apache.hadoop.crypto.key.kms.KMSClientProvider.createKey(KMSClientProvider.java:685)
+	at org.apache.hadoop.crypto.key.KeyShell$CreateCommand.execute(KeyShell.java:483)
+	at org.apache.hadoop.crypto.key.KeyShell.run(KeyShell.java:79)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:70)
+	at org.apache.hadoop.crypto.key.KeyShell.main(KeyShell.java:515)
+
+
+[root@tw-node1238 ~]# hadoop key create hdfs1-key
+2020-03-25 11:48:57,895 INFO util.KerberosUtil: Using principal pattern: HTTP/_HOST
+hdfs1-key has been successfully created with options Options{cipher='AES/CTR/NoPadding', bitLength=128, description='null', attributes=null}.
+KMSClientProvider[http://tw-node1238:16000/kms/v1/] has been updated.
+[root@tw-node1238 ~]# [root@tw-node1236 data]# 
+
+
+
+Setting `dfs.encrypt.data.transfer.cipher.suites` to `AES/CTR/NoPadding` activates AES encryption. By default, this is unspecified, so AES is not used. When AES is used, the algorithm specified in `dfs.encrypt.data.transfer.algorithm` is still used during an initial key exchange. The AES key bit length can be configured by setting `dfs.encrypt.data.transfer.cipher.key.bitlength` to 128, 192 or 256. The default is 128.
+
+
+// IPConfigList is the struct for ip constraints
+type IPConfigList struct {
+	BlackListIP []string
+	WhiteListIP []string
+}
+
+// MatchIPInList is to match ip in IPlist
+func MatchIPInList(IPlist []string, remoteAddr string) bool {
+	for _, ip := range IPlist {
+		reg, err := regexp.Compile(ip)
+		if err != nil {
+			log.Errorf("Failed to compile to regexp: %v", err)
+		}
+		if reg.MatchString(remoteAddr) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Conn) handleIPList() error {
+	data, err := ioutil.ReadFile(*ipConfig)
+	if err != nil {
+		log.Errorf("Failed to read ipConfig file: %v", err)
+		return err
+	}
+
+	// Unmarshal the data here and process remoteAddr
+	ipList := IPConfigList{}
+	err = json.Unmarshal(data, &ipList)
+	if err != nil {
+		log.Errorf("Error parsing ipConfig file config: %v", err)
+		return err
+	}
+	remoteAddr := c.conn.RemoteAddr().String()
+	i := strings.LastIndex(remoteAddr, ":")
+	if i != -1 {
+		remoteAddr = remoteAddr[:i]
+	}
+
+	// If the whitelist exists, We just allow the whitelist ip to connect
+	// Or else we block ip in the blacklist
+	// If the connected ip is both in whitelist and blacklist, we block it
+	if (len(ipList.WhiteListIP) != 0 && !MatchIPInList(ipList.WhiteListIP, remoteAddr)) || (len(ipList.BlackListIP) != 0 && MatchIPInList(ipList.BlackListIP, remoteAddr)) {
+		if audit.IsAuditLoggerExisted() {
+			audit.AuditLogger.WithFields(logrus.Fields{
+				"Time":         time.Now().Format(time.RFC850),
+				"AuthResult":   "Fail",
+				"RemoteAddr":   remoteAddr,
+				"ConnectionID": c.ConnectionID,
+				"User":         c.User,
+			}).Info("Auth")
+		}
+		return c.writeErrorPacket(ERAccessDeniedError, SSHandshakeError, " %s is disallowed to connect due to get blocked", remoteAddr)
+	}
+	return nil
+}
+
+
+var ipConfig = flag.String("ip_config", "", "IP config for whitelist or blacklist")
+
+mysql -h172.16.132.31 -P15307 -uvt_app -p123 --enable-cleartext-plugin -A
+
+密码编解码器的密码套件。
+hadoop.security.crypto.cipher.suite
+
+kms提供key的加密手段
+hadoop.security.key.default.cipher
+
+### Data Encryption on Block data transfer.
+dfs.encrypt.data.transfer.cipher.suites
+
+
+ if (var1 != null && var2 != null) {
+      if (var1 == var2) {
+        throw new IllegalArgumentException("Input and output buffers must not be the same object, consider using buffer.duplicate()");
+      } else if (var2.isReadOnly()) {
+        throw new ReadOnlyBufferException();
+      } else {
+        this.chooseFirstProvider();
+        return this.spi.engineDoFinal(var1, var2);
+      }
+    } else {
+      throw new IllegalArgumentException("Buffers must not be null");
+    }
+
+
+hadoop.security.crypto.codec.classes.EXAMPLECIPHERSUITE
+hadoop.security.crypto.codec.classes.aes.ctr.nopadding
+hadoop.security.crypto.cipher.suite
+hadoop.security.crypto.jce.provider
+hadoop.security.crypto.buffer.size
+
+// TestMatchIPInList is the unit test for MatchIPInList method
+func TestMatchIPInList(t *testing.T) {
+	IPlist := []string{"127.0.0.[0-5]", "172.16.1.236"}
+	ip := "127.0.0.1"
+	match := auth.MatchIPInList(IPlist, ip)
+	if !match {
+		t.Fatalf("Should match ip in the given list")
+	}
+	ip = "127.0.0.6"
+	match = auth.MatchIPInList(IPlist, ip)
+	if match {
+		t.Fatalf("Should not match ip in the given list")
+	}
+}
+
+OBM：A设计，A生产，A品牌，A销售==工厂自己设计自产自销
+
+ODM：B设计，B生产，A品牌，A销售==俗称“贴牌”，就是工厂的产品，别人的品牌
+
+OEM：A设计，B生产，A品牌，A销售==代工，代生产，别人的技术和品牌，工厂只生产
+
+搭一个guardian federation oem出镜像的jenkins job
+
+mpiling 1 source file to /home/jenkins/workspace/build-guardian-federation-oem-image/test/jenkins-test/target/classes
+
+NameNode 和 HDFS 客户端通过 KeyProvider API 操作与 Hadoop KMS (或您配置的替代 KMS) 交互。KMS 负责将加密密钥存储在后备密钥存储中。
+
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /home/jenkins/workspace/build-guardian-federation-oem-image/test/jenkins-test/src/main/java/io/transwarp/guardian/federation/test/StressTest.java:[24,1] package org.apache.commons.cli does not exist
+[ERROR] /home/jenkins/workspace/build-guardian-federation-oem-image/test/jenkins-test/src/main/java/io/transwarp/guardian/federation/test/StressTest.java:[54,5] cannot find symbol
+  symbol:   class Options
+  location: class io.transwarp.guardian.federation.test.StressTest
+[ERROR] /home/jenkins/workspace/build-guardian-federation-oem-image/test/jenkins-test/src/main/java/io/transwarp/guardian/federation/test/StressTest.java:[54,27] cannot find symbol
+  symbol:   class Options
+  location: class io.transwarp.guardian.federation.test.StressTest
+[ERROR] /home/jenkins/workspace/build-guardian-federation-oem-image/test/jenkins-test/src/main/java/io/transwarp/guardian/federation/test/StressTest.java:[55,23] cannot find symbol
+  symbol:   variable Option
+  location: class io.transwarp.guardian.federation.test.StressTest
+[ERROR] /home/jenkins/workspace/build-guardian-federation-oem-image/test/jenkins-test/src/main/java/io/transwarp/guardian/federation/test/StressTest.java:[56,23] cannot find symbol
+  symbol:   variable Option
+
+ protected SecretKey engineGenerateKey() {
+    SecretKeySpec var1 = null;
+    if (this.random == null) {
+      this.random = SunJCE.RANDOM;
+    }
+
+    byte[] var2 = new byte[this.keySize];
+    this.random.nextBytes(var2);
+    var1 = new SecretKeySpec(var2, "AES");
+    return var1;
+  }
+}
+
+
+/////
+
+export ENABLE_OVERLAY=true 
+sudo /usr/bin/startdocker.sh & sleep 60s 
+
+
+mkdir -p /home/jenkins/.m2/
+mkdir -p /home/jenkins/.docker
+sudo cp /opt/config.json /home/jenkins/.docker/
+
+    repeat_until_ready() {
+      echo "Testing '$1' until ready"
+      tmp=$(mktemp)
+      for ((i = 0; i < $4; i++)); do
+        $1 > ${tmp} && {
+          [ `grep "$2" ${tmp} | wc -l` == '0' ] || return 0
+        }
+        echo "Not ready, wait for $3 seconds ..."
+        sleep $3
+      done
+      return 1
+    }
+
+    [ -e "`which zinc`" ] && {
+      set +e
+      repeat_until_ready "zinc -start" "Zinc compiler" 5 120
+      set -e
+    }
+
+time=`date "+%Y-%m-%d-%H-%M-%S"`
+imageTag="${TAG_NAME}-${time}-${BUILD_ID}"
+
+if [ -f profile.properties ]; then
+   rm profile.properties
+fi
+    
+touch profile.properties
+    
+echo "REVISION=@$SVN_REVISION" > profile.properties
+echo "IMAGE_TAG=$imageTag" >> profile.properties
+
+export IMAGE_TAG=${imageTag}
+export IMAGE_NAME=${USER}/guardian-federation:latest
+export COMPONENT_BASE="federation"
+export DEV_ROOT=${WORKSPACE}
+export DOCKER_REPO_URL="172.16.1.99"
+export BUILDER="postcommit"
+export USER=`whoami`
+export OSINFO="centos-7"
+export releaseStagingId="priv-transwarp-lib"
+export releaseRepoName="libs-release-local"
+export releaseRepoUrl="http://172.16.1.161:30033/repository/libs-release-local"
+export snapStagingId="priv-transwarp-snapshots"
+export snapRepoName="libs-snapshot"
+export snapRepoUrl="http://172.16.1.161:30033/repository/libs-snapshot-local"
+
+# use jdk 1.8
+export JAVA_HOME=/usr/jdk-8u131-linux-x64.tar/jdk1.8.0_131
+
+cd ${DEV_ROOT}
+
+
+git clone -b master http://wjcaitu:${wj_git}@172.16.1.41:10080/InfraTools/base_project.git base_project
+
+
+sudo cp base_project/settings_postcommit.xml /home/jenkins/.m2/settings.xml
+
+
+# add frontend
+curl -L -H "PRIVATE-TOKEN: ${FRONTEND_PRIVATE_TOKEN}" \
+http://172.16.1.41:10080/api/v4/projects/4531/jobs/artifacts/master/download?job=postcommit -o frontend.zip
+unzip frontend.zip
+
+RESOURCE_DIR=$DEV_ROOT/federation-service/src/main/resources
+mkdir -p $RESOURCE_DIR/static
+mv dist/guardian-federation-frontend/index.html $RESOURCE_DIR/templates/index.html
+mv dist/guardian-federation-frontend/* $RESOURCE_DIR/static/
+sed -i "s@<html lang=\"en\">@<html xmlns:th=\"http://www.thymeleaf.org\">@g" $RESOURCE_DIR/templates/index.html
+sed -i "s@<base href=\"/\">@<base th:href=\"\${basePath}\">@g" $RESOURCE_DIR/templates/index.html
+
+# add frontend
+curl -L -H "PRIVATE-TOKEN: ${FRONTEND_PRIVATE_TOKEN}" \
+http://172.16.1.41:10080/api/v4/projects/4531/jobs/artifacts/master/download?job=postcommit -o frontend.zip
+unzip frontend.zip
+
+RESOURCE_DIR=$DEV_ROOT/federation-service/src/main/resources
+mkdir -p $RESOURCE_DIR/static
+mv dist/guardian-federation-frontend/index.html $RESOURCE_DIR/templates/index.html
+rm -rf $RESOURCE_DIR/static/*
+mv dist/guardian-federation-frontend/* $RESOURCE_DIR/static/
+sed -i "s@<html lang=\"en\">@<html xmlns:th=\"http://www.thymeleaf.org\">@g" $RESOURCE_DIR/templates/index.html
+sed -i "s@<base href=\"/\">@<base th:href=\"\${basePath}\">@g" $RESOURCE_DIR/templates/index.html
+
+
+
+# compile & build image
+git clone -b master http://wjcaitu:${wj_git}@172.16.1.41:10080/InfraTools/packageRelease.git script
+cp build_script/image/build_federation.sh ${DEV_ROOT}/script/build_utils/image/build_federation.sh
+cp build_script/deploy/deploy_federation.sh ${DEV_ROOT}/script/build_utils/deploy/deploy_federation.sh
+set -e && bash -x script/jenkins_job_build.sh
+
+
+mvn clean install -DskipTests -Pdocker 
+
+
+# push image
+docker tag ${IMAGE_NAME} ${DOCKER_REPO_URL}/${BUILDER}/guardian-federation:${IMAGE_TAG}
+docker push ${DOCKER_REPO_URL}/${BUILDER}/guardian-federation:${IMAGE_TAG}
+ps aux | grep dockerd | grep -v "grep" | awk '{print $2}' | xargs kill -9
+
+
+time="2020-03-27T11:37:41.824432268+08:00" level=warning msg="Running modprobe bridge br_netfilter failed with message: FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory\n, error: exit status 1" 
+time="2020-03-27T11:37:41.826151072+08:00" level=warning msg="Running modprobe nf_nat failed with message: `FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory`, error: exit status 1" 
+time="2020-03-27T11:37:41.827554678+08:00" level=warning msg="Running modprobe xt_conntrack failed with message: `FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory`, error: exit status 1" 
+time="2020-03-27T11:37:41.889363938+08:00" level=warning msg="Could not load necessary modules for IPSEC rules: Running modprobe xfrm_user failed with message: `FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory`, error: exit status 1" v
+
+time="2020-03-27T11:55:28.287104458+08:00" level=warning msg="Running modprobe bridge br_netfilter failed with message: FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory\n, error: exit status 1" 
+time="2020-03-27T11:55:28.288422390+08:00" level=warning msg="Running modprobe nf_nat failed with message: `FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory`, error: exit status 1" 
+time="2020-03-27T11:55:28.289780032+08:00" level=warning msg="Running modprobe xt_conntrack failed with message: `FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory`, error: exit status 1" 
+time="2020-03-27T11:55:28.333805344+08:00" level=warning msg="Could not load necessary modules for IPSEC rules: Running modprobe xfrm_user failed with message: `FATAL: Could not load /lib/modules/4.9.45/modules.dep: No such file or directory`, error: exit status 1" 
+time="2020-03-27T11:55:28.334075758+08:00" level=info msg="Default bridge (docker0) is assigned with an IP address 172.17.0.0/16. Daemon option --bip can be used to set a preferred IP address" 
+
+
+
+？////
+当前版本： KunDB 1.3
+整理日期：2020/03/27
+一，编写目的
+本测试用例文档针对与KunDB安全方面-使用权限认证功能的测试用例覆盖和功能整理。对于每个存储对象不同的权限定义，通过mysql5.7的show privileges语句查看，在本地测试对比持久化在mysql和KunDB的权限数据，形成测试需求。
+
+二，测试环境
+KunDB本身支持mysql协议客户端和JDBC等方式的gRPC连接，SQL语句的ACL部分在内部处理和与KunGate的连接方式无关，在此可以不做区别，所以测试环境只选在本地开的mysql客户端做测试。
+
+transwarp@transwarp-Latitude-5480:~$ uname -a
+Linux transwarp-Latitude-5480 4.15.0-91-generic #92~16.04.1-Ubuntu SMP Fri Feb 28 14:57:22 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
+图1
+
+三，测试用例及执行情况
+
+执行show privileges语句：
+图2
+
+这里的权限对象讨论的是普通用户可以使用acl功能的权限，只有admin用户能执行的功能不再讨论范围之内
+KunDB ACL对象：database, table, view, index，column, trigger，procedure, function, global index
+show privileges 语句提供了账户可执行的操作，实际上通过在mysql的information schema中。mysql并没有按照read write view admin来区分权限，而是细化到定义不同的权限来进行用户操作限制,所以实际权限请按下图为准，这一节的对象权限为自己分类，用户赋权权限通过with grant option拥有赋权的权限
+图3
+kunDB处理之中的15种：SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX, CREATE ROUTINE, ALTER ROUTINE, EXECUTE, TRIGGER, USAGE, CREATE USER, CREATE VIEW
+暂时不能处理以下16种mysql原生支持的权限类型：CREATE TEMPORARY TABLES，Event，File，Grant option，Lock tables，Process，Proxy, References, Reload, Replication client , Replication slave, Show databases, Show view ,Shutdown, Super, Create tablespace
+
+以下为通过kundb可进行的对象操作
+kundb没有特定的admin权限，不过可以通过grant语句进行类似admin权限的控制
+grant all on *.* to lzb;	//赋予全部权限，相当于global admin
+grant all on DBName.* to lzb;		//赋予特定库下的全部权限
+grant all on DBName.TableName to lzb;		//赋予用户特定库特定表的全部权限
+grant all on TableName to lzb;		//赋予用户一张表的全部权限
+3.1 database
+用户对database有create, drop, show权限
+CREATE DATABASE not_exists_opt table_id
+show create database -> 权限表 默认有
+
+3.2 table
+用户可以对table有select, delete, insert, update, create, drop, alter, index, trigger权限
+
+3.3 view
+用户可以对view有select, drop, CREATE VIEW权限,同时创建完成的view作为一张表存在(不支持赋权？）
+
+3.4 index
+index被使用没有权限，在table中有index权限的用户可以创建权限
+
+3.5 column
+用户对column有select， insert， update权限
+mysql> grant insert(itemid) on item1 to lzb;
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> show grants for lzb;
++----------------------------------------------------------------------------------------------------+
+| Grants for lzb@%                                                                                   |
++----------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'lzb'@'%' IDENTIFIED BY PASSWORD '*471BD27F313EB01D08E0D9B6CCD6F2236BDB6739' |
+| GRANT INSERT (itemid), UPDATE (itemid) ON `db1`.`item1` TO 'lzb'@'%'                               |
+| GRANT SELECT ON `db1`.`customer` TO 'lzb'@'%'                                                      |
++----------------------------------------------------------------------------------------------------+
+3 rows in set (0.00 sec)
+
+
+3.6 trigger
+trigger被使用没有权限，在table中有TRIGGER权限的用户可以创建权限
+
+3.7 procedure
+MySQL的程序（process/routine）
+一个全局权限：CREATE ROUTINE，在user,db表中体现
+三个对象级权限，主要分为procedure和function两个对象类型。对于程序而言他们的权限种类有
+1，EXECUTE #执行权限
+2，ALTER ROUTINE #修改权限
+3，GRANT  #授予权限
+
+3.8 global index
+global index被使用没有权限，用户依赖于在table中index的权限可以创建
+
+
+四，统计与分析
+五，结论

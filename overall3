@@ -3745,3 +3745,359 @@ ERROR 1044 (42000): vtgate: http://tw-node594:15001/: target: _mfed.0.master, us
 
 create user/role是dcl语句
 
+
+[root@tw-node1238 log]# kubectl logs hadoop-hdfs-namenode-hdfs1-69ff856999-9q6sf -c hadoop-hdfs-namenode-hdfs1
+
+
+	<dependency>
+      <groupId>io.transwarp.guardian.common</groupId>
+      <artifactId>gm-crypto</artifactId>
+      <version>guardian-3.2.0</version>
+    </dependency>
+
+
+明加密技术是近年来针对企业文件保密需求应运而生的一种文件加密技术。它是指对使用者来说是无感知的。当使用者在打开或编辑指定文件时，系统将自动对未加密的文件进行加密，对已加密的文件自动解密。文件在硬盘上是密文，在内存中是明文。一旦离开使用环境，由于应用程序无法得到自动解密的服务而无法打开，从而起来保护文件内容的效果。
+
+jce-aes
+算法/模式/填充         16字节加密后数据长度         不满16字节加密后长度
+AES/CBC/NoPadding              16                         不支持
+AES/CBC/PKCS5Padding           32                         16
+AES/CBC/ISO10126Padding        32                         16
+
+分组密码有五种工作体制：1.电码本模式（Electronic Codebook Book (ECB)）；2.密码分组链接模式（Cipher Block Chaining (CBC)）；3.计算器模式（Counter (CTR)）；4.密码反馈模式（Cipher FeedBack (CFB)）；5.输出反馈模式（Output FeedBack (OFB)）。
+hadoop.security.crypto.cipher.suite -> main/resource/core-default
+common/crypto/key/keyproviderCryptoExtension
+1801
+<property>
+  <name>hadoop.security.crypto.cipher.suite</name>
+  <value>AES/CTR/NoPadding</value>
+  <description>
+    Cipher suite for crypto codec.
+  </description>
+</property>
+
+<property>
+  <name>hadoop.security.crypto.jce.provider</name>
+  <value></value>
+  <description>
+    The JCE provider name used in CryptoCodec. 
+  </description>
+</property>
+
+
+CA/JCE
+
+    概念简单解析
+    1） Java密码学架构(Java Cryptography Architecture 简称JCA)
+    Java平台重视安全性，包括语言安全性，密码学，公钥基础设施，身份验证，安全通行和访问控制。JCA是JDk平台上非常重要的部分，通过包含一个 “provider”架构，设计了一套API为包括 数字签名、消息摘要、证书和证书验证、加密(对称和非对称，分组和流式密码)、秘钥生成和管理、安全随机码生成等功能服务。
+
+JCA是Java平台安全的基础，其它相关的还有Java密码学拓展(Java Cryptography Extension 简称JCE)、Java Secure Socket Extension (JSSE) 、Java Generic Security Services (JGSS)
+
+JCA在设计之初就遵循一些基本原则，也就是
+实现的独立性和互操作性
+算法的独立性和可扩展性
+应用无需实现具体的安全算法，或者说应用请求来自Java平台的安全服务
+
+    int var3 = this.engineUpdate(var1, var2);
+    var3 += this.implDoFinal(var2);
+    return var3;
+
+
+  protected int engineDoFinal(ByteBuffer var1, ByteBuffer var2) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+    int var3 = this.engineUpdate(var1, var2);
+    var3 += this.implDoFinal(var2);
+    return var3;
+  }
+
+
+
+private int implUpdate(ByteBuffer var1, ByteBuffer var2) throws ShortBufferException {
+    int var3 = var1.remaining();
+    if (var3 <= 0) {
+      return 0;
+    } else {
+      int var4 = var2.remaining();
+      if (var4 < this.updateLength(var3)) {
+        throw new ShortBufferException();
+      } else {
+        int var5 = var1.position();
+
+        try {
+          this.ensureInitialized();
+          long var6 = 0L;
+          int var8 = 0;
+          byte[] var9 = null;
+          if (var1 instanceof DirectBuffer) {
+            var6 = ((DirectBuffer)var1).address();
+            var8 = var5;
+          } else if (var1.hasArray()) {
+            var9 = var1.array();
+            var8 = var5 + var1.arrayOffset();
+          }
+
+          long var10 = 0L;
+          int var12 = 0;
+          byte[] var13 = null;
+          if (var2 instanceof DirectBuffer) {
+            var10 = ((DirectBuffer)var2).address();
+            var12 = var2.position();
+          } else if (var2.hasArray()) {
+            var13 = var2.array();
+            var12 = var2.position() + var2.arrayOffset();
+          } else {
+            var13 = new byte[var4];
+          }
+
+          int var14 = 0;
+          if (this.encrypt) {
+            if (var6 == 0L && var9 == null) {
+              var9 = new byte[var3];
+              var1.get(var9);
+            } else {
+              var1.position(var5 + var3);
+            }
+
+            var14 = this.token.p11.C_EncryptUpdate(this.session.id(), var6, var9, var8, var3, var10, var13, var12, var4);
+          } else {
+            int var15 = 0;
+            if (this.paddingObj != null) {
+              if (this.padBufferLen != 0) {
+                if (this.padBufferLen != this.padBuffer.length) {
+                  int var16 = this.padBuffer.length - this.padBufferLen;
+                  if (var3 <= var16) {
+                    this.bufferInputBytes(var1, var3);
+                    return 0;
+                  }
+
+                  this.bufferInputBytes(var1, var16);
+                  var8 += var16;
+                  var3 -= var16;
+                }
+
+                var14 = this.token.p11.C_DecryptUpdate(this.session.id(), 0L, this.padBuffer, 0, this.padBufferLen, var10, var13, var12, var4);
+                this.padBufferLen = 0;
+              }
+
+              var15 = var3 & this.blockSize - 1;
+              if (var15 == 0) {
+                var15 = this.padBuffer.length;
+              }
+
+              var3 -= var15;
+            }
+
+            if (var3 > 0) {
+              if (var6 == 0L && var9 == null) {
+                var9 = new byte[var3];
+                var1.get(var9);
+              } else {
+                var1.position(var1.position() + var3);
+              }
+
+              var14 += this.token.p11.C_DecryptUpdate(this.session.id(), var6, var9, var8, var3, var10, var13, var12 + var14, var4 - var14);
+            }
+
+            if (this.paddingObj != null && var15 != 0) {
+              this.bufferInputBytes(var1, var15);
+            }
+          }
+
+          this.bytesBuffered += var3 - var14;
+          if (!(var2 instanceof DirectBuffer) && !var2.hasArray()) {
+            var2.put(var13, var12, var14);
+          } else {
+            var2.position(var2.position() + var14);
+          }
+
+          return var14;
+        } catch (PKCS11Exception var17) {
+          var1.position(var5);
+          if (var17.getErrorCode() == 336L) {
+            throw (ShortBufferException)((ShortBufferException)(new ShortBufferException()).initCause(var17));
+          } else {
+            this.reset();
+            throw new ProviderException("update() failed", var17);
+          }
+        }
+      }
+    }
+  }
+
+
+[root@tw-node1238 log]# kubectl logs hadoop-hdfs-namenode-hdfs1-69ff856999-9q6sf -c hadoop-hdfs-namenode-hdfs1
+
+
+	<dependency>
+      <groupId>io.transwarp.guardian.common</groupId>
+      <artifactId>gm-crypto</artifactId>
+      <version>guardian-3.2.0</version>
+    </dependency>
+
+
+明加密技术是近年来针对企业文件保密需求应运而生的一种文件加密技术。它是指对使用者来说是无感知的。当使用者在打开或编辑指定文件时，系统将自动对未加密的文件进行加密，对已加密的文件自动解密。文件在硬盘上是密文，在内存中是明文。一旦离开使用环境，由于应用程序无法得到自动解密的服务而无法打开，从而起来保护文件内容的效果。
+
+jce-aes
+算法/模式/填充         16字节加密后数据长度         不满16字节加密后长度
+AES/CBC/NoPadding              16                         不支持
+AES/CBC/PKCS5Padding           32                         16
+AES/CBC/ISO10126Padding        32                         16
+
+分组密码有五种工作体制：1.电码本模式（Electronic Codebook Book (ECB)）；2.密码分组链接模式（Cipher Block Chaining (CBC)）；3.计算器模式（Counter (CTR)）；4.密码反馈模式（Cipher FeedBack (CFB)）；5.输出反馈模式（Output FeedBack (OFB)）。
+hadoop.security.crypto.cipher.suite -> main/resource/core-default
+common/crypto/key/keyproviderCryptoExtension
+1801
+<property>
+  <name>hadoop.security.crypto.cipher.suite</name>
+  <value>AES/CTR/NoPadding</value>
+  <description>
+    Cipher suite for crypto codec.
+  </description>
+</property>
+
+<property>
+  <name>hadoop.security.crypto.jce.provider</name>
+  <value></value>
+  <description>
+    The JCE provider name used in CryptoCodec. 
+  </description>
+</property>
+
+
+CA/JCE
+
+    概念简单解析
+    1） Java密码学架构(Java Cryptography Architecture 简称JCA)
+    Java平台重视安全性，包括语言安全性，密码学，公钥基础设施，身份验证，安全通行和访问控制。JCA是JDk平台上非常重要的部分，通过包含一个 “provider”架构，设计了一套API为包括 数字签名、消息摘要、证书和证书验证、加密(对称和非对称，分组和流式密码)、秘钥生成和管理、安全随机码生成等功能服务。
+
+JCA是Java平台安全的基础，其它相关的还有Java密码学拓展(Java Cryptography Extension 简称JCE)、Java Secure Socket Extension (JSSE) 、Java Generic Security Services (JGSS)
+
+JCA在设计之初就遵循一些基本原则，也就是
+实现的独立性和互操作性
+算法的独立性和可扩展性
+应用无需实现具体的安全算法，或者说应用请求来自Java平台的安全服务
+
+    int var3 = this.engineUpdate(var1, var2);
+    var3 += this.implDoFinal(var2);
+    return var3;
+
+
+  protected int engineDoFinal(ByteBuffer var1, ByteBuffer var2) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+    int var3 = this.engineUpdate(var1, var2);
+    var3 += this.implDoFinal(var2);
+    return var3;
+  }
+
+
+
+private int implUpdate(ByteBuffer var1, ByteBuffer var2) throws ShortBufferException {
+    int var3 = var1.remaining();
+    if (var3 <= 0) {
+      return 0;
+    } else {
+      int var4 = var2.remaining();
+      if (var4 < this.updateLength(var3)) {
+        throw new ShortBufferException();
+      } else {
+        int var5 = var1.position();
+
+        try {
+          this.ensureInitialized();
+          long var6 = 0L;
+          int var8 = 0;
+          byte[] var9 = null;
+          if (var1 instanceof DirectBuffer) {
+            var6 = ((DirectBuffer)var1).address();
+            var8 = var5;
+          } else if (var1.hasArray()) {
+            var9 = var1.array();
+            var8 = var5 + var1.arrayOffset();
+          }
+
+          long var10 = 0L;
+          int var12 = 0;
+          byte[] var13 = null;
+          if (var2 instanceof DirectBuffer) {
+            var10 = ((DirectBuffer)var2).address();
+            var12 = var2.position();
+          } else if (var2.hasArray()) {
+            var13 = var2.array();
+            var12 = var2.position() + var2.arrayOffset();
+          } else {
+            var13 = new byte[var4];
+          }
+
+          int var14 = 0;
+          if (this.encrypt) {
+            if (var6 == 0L && var9 == null) {
+              var9 = new byte[var3];
+              var1.get(var9);
+            } else {
+              var1.position(var5 + var3);
+            }
+
+            var14 = this.token.p11.C_EncryptUpdate(this.session.id(), var6, var9, var8, var3, var10, var13, var12, var4);
+          } else {
+            int var15 = 0;
+            if (this.paddingObj != null) {
+              if (this.padBufferLen != 0) {
+                if (this.padBufferLen != this.padBuffer.length) {
+                  int var16 = this.padBuffer.length - this.padBufferLen;
+                  if (var3 <= var16) {
+                    this.bufferInputBytes(var1, var3);
+                    return 0;
+                  }
+
+                  this.bufferInputBytes(var1, var16);
+                  var8 += var16;
+                  var3 -= var16;
+                }
+
+                var14 = this.token.p11.C_DecryptUpdate(this.session.id(), 0L, this.padBuffer, 0, this.padBufferLen, var10, var13, var12, var4);
+                this.padBufferLen = 0;
+              }
+
+              var15 = var3 & this.blockSize - 1;
+              if (var15 == 0) {
+                var15 = this.padBuffer.length;
+              }
+
+              var3 -= var15;
+            }
+
+            if (var3 > 0) {
+              if (var6 == 0L && var9 == null) {
+                var9 = new byte[var3];
+                var1.get(var9);
+              } else {
+                var1.position(var1.position() + var3);
+              }
+
+              var14 += this.token.p11.C_DecryptUpdate(this.session.id(), var6, var9, var8, var3, var10, var13, var12 + var14, var4 - var14);
+            }
+
+            if (this.paddingObj != null && var15 != 0) {
+              this.bufferInputBytes(var1, var15);
+            }
+          }
+
+          this.bytesBuffered += var3 - var14;
+          if (!(var2 instanceof DirectBuffer) && !var2.hasArray()) {
+            var2.put(var13, var12, var14);
+          } else {
+            var2.position(var2.position() + var14);
+          }
+
+          return var14;
+        } catch (PKCS11Exception var17) {
+          var1.position(var5);
+          if (var17.getErrorCode() == 336L) {
+            throw (ShortBufferException)((ShortBufferException)(new ShortBufferException()).initCause(var17));
+          } else {
+            this.reset();
+            throw new ProviderException("update() failed", var17);
+          }
+        }
+      }
+    }
+  }
+
