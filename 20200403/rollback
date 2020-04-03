@@ -1,0 +1,35 @@
+#!/bin/bash
+FILES="m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif"
+ROLLBACK="m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif"
+#modify in pre_upgrade 
+for FILE in $ROLLBACK
+do
+  if [ `grep -c "pwdMinClasses" $FILE` -eq '1' ]; then
+
+    echo "Found! Deleting"
+    sed  '/pwdMinClasses/d' $FILE -i
+else
+    echo "NO"
+fi
+
+
+if [ `grep -c "pwdInHistoryDuration" $FILE` -eq '1' ]; then
+
+    echo "Found! Deleting config in apacheds"
+    sed  '/pwdInHistoryDuration/d' $FILE -i
+else
+    echo "No"
+fi
+
+
+done
+
+#Delete files
+for FILE in $FILES
+do
+  if [ -f "$FILE" ]; then
+   echo "Deleting abundant files"
+   rm $FILE 
+fi
+  
+done

@@ -1,0 +1,986 @@
+0330
+ maven 找不到一个包
+ org.apache.commons.cli
+maven版本问题 3.0.5
+
+工作周报 - 李镇邦 20200323 ~ 20200327
+
+1. WARP-43034: hdfs透明加密SM4算法支持 完成加密算法添加和密钥使用加密部分 集群验证
+2. WARP-42372: 修复JDBC客户端测试case bug
+3. 根据show privileges 整理KunDB权限部分测试用例 wiki: http://172.16.1.168:8090/pages/viewpage.action?pageId=23490750
+
+其他: 
+搭建guardian federation oem出镜像的jenkins job 
+
+本周：
+
+
+静态函数和成员函数
+
+export ENABLE_OVERLAY=true 
+sudo /usr/bin/startdocker.sh & sleep 45s 
+
+
+mkdir -p /home/jenkins/.m2/
+mkdir -p /home/jenkins/.docker
+sudo cp /opt/config.json /home/jenkins/.docker/
+
+    repeat_until_ready() {
+      echo "Testing '$1' until ready"
+      tmp=$(mktemp)
+      for ((i = 0; i < $4; i++)); do
+        $1 > ${tmp} && {
+          [ `grep "$2" ${tmp} | wc -l` == '0' ] || return 0
+        }
+        echo "Not ready, wait for $3 seconds ..."
+        sleep $3
+      done
+      return 1
+    }
+
+    [ -e "`which zinc`" ] && {
+      set +e
+      repeat_until_ready "zinc -start" "Zinc compiler" 5 120
+      set -e
+    }
+
+time=`date "+%Y-%m-%d-%H-%M-%S"`
+imageTag="${TAG_NAME}-${time}-${BUILD_ID}"
+
+if [ -f profile.properties ]; then
+   rm profile.properties
+fi
+    
+touch profile.properties
+    
+echo "REVISION=@$SVN_REVISION" > profile.properties
+echo "IMAGE_TAG=$imageTag" >> profile.properties
+
+export IMAGE_TAG=${imageTag}
+export IMAGE_NAME=${USER}/guardian-federation:latest
+export COMPONENT_BASE="federation"
+export DEV_ROOT=${WORKSPACE}
+export DOCKER_REPO_URL="172.16.1.99"
+export BUILDER="postcommit"
+export USER=`whoami`
+export OSINFO="centos-7"
+export releaseStagingId="priv-transwarp-lib"
+export releaseRepoName="libs-release-local"
+export releaseRepoUrl="http://172.16.1.161:30033/repository/libs-release-local"
+export snapStagingId="priv-transwarp-snapshots"
+export snapRepoName="libs-snapshot"
+export snapRepoUrl="http://172.16.1.161:30033/repository/libs-snapshot-local"
+
+# use jdk 1.8
+export JAVA_HOME=/usr/java/jdk1.8.0_151/
+mvn -version
+# ${LATEST_BRANCH} is from GitLab CI environment
+if [ "${CI_COMMIT_REF_NAME}" = "master" ]; then
+export BRANCH_NAME="${LATEST_BRANCH}"
+else
+export BRANCH_NAME="${CI_COMMIT_REF_NAME}"
+fi
+
+
+cd ${DEV_ROOT}
+
+
+git clone -b master http://wjcaitu:${wj_git}@172.16.1.41:10080/InfraTools/base_project.git base_project
+sudo cp base_project/settings_postcommit.xml /home/jenkins/.m2/settings.xml
+
+# add frontend
+curl -L -H "PRIVATE-TOKEN: ${FRONTEND_PRIVATE_TOKEN}" \
+http://172.16.1.41:10080/api/v4/projects/4531/jobs/artifacts/master/download?job=postcommit -o frontend.zip
+unzip frontend.zip
+
+RESOURCE_DIR=$DEV_ROOT/federation-service/src/main/resources
+mkdir -p $RESOURCE_DIR/static
+mv dist/guardian-federation-frontend/index.html $RESOURCE_DIR/templates/index.html
+mv dist/guardian-federation-frontend/* $RESOURCE_DIR/static/
+sed -i "s@<html lang=\"en\">@<html xmlns:th=\"http://www.thymeleaf.org\">@g" $RESOURCE_DIR/templates/index.html
+sed -i "s@<base href=\"/\">@<base th:href=\"\${basePath}\">@g" $RESOURCE_DIR/templates/index.html
+
+rm -rf /home/jenkins/.m2/repository/*
+# compile & build image
+mvn clean install -DskipTests -Pdocker -DdistMgmtStagingId=${releaseStagingId} -DdistMgmtStagingName=${releaseRepoName} -DdistMgmtStagingUrl=${releaseRepoUrl} -DdistMgmtSnapshotsId=${snapStagingId} -DdistMgmtSnapshotsName=${snapRepoName} -DdistMgmtSnapshotsUrl=${snapRepoUrl}
+
+
+# push image
+docker tag ${IMAGE_NAME} ${DOCKER_REPO_URL}/${BUILDER}/guardian-federation:${IMAGE_TAG}
+docker push ${DOCKER_REPO_URL}/${BUILDER}/guardian-federation:${IMAGE_TAG}
+ps aux | grep dockerd | grep -v "grep" | awk '{print $2}' | xargs kill -9
+
+jenkins job那个事
+[ERROR] /home/jenkins/workspace/build-guardian-federation-oem-image/test/jenkins-test/src/main/java/io/transwarp/guardian/federation/test/StressTest.java:[24,1] package org.apache.commons.cli does not exist
+
++ mvn -version
+Apache Maven 3.0.5 (r01de14724cdef164cd33c7c8c2fe155faf9602da; 2013-02-19 21:51:28+0800)
+Maven home: /root/apache-maven-3.0.5
+
+
+mvn clean install -pl federation-common,federation-service,federation-utils,federation-client -am -DskipTests
+
+.An image does not exist locally with the tag: 172.16.1.99/postcommit/guardian-federation //tag打错了
+
+http://172.16.1.97:8080 owncloud 123456
+
+http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/INTERNAL/KUNDB/kundb-1.3/IMAGE/centos-7/2020-03-30_00-07-30/KUNDB-Image-Registry-Transwarp-1.3.tar.gz
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/INTERNAL/GUARDIAN/guardian-3.2/IMAGE/centos-7/2020-03-29_23-48-03/GUARDIAN-Image-Registry-Transwarp-3.2.tar.gz" > /var/lib/docker/guardian.tar.gz
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/MANAGER/manager-6.0.1907a-final/IMAGE/centos-7/MANAGER-Basic-Component-Transwarp-6.0.1907a-final.tar.gz" > /home/MANAGER-Basic-Component-Transwarp-6.0.1907a-final.tar.gz
+http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/MANAGER/manager-6.0.1907a-final/IMAGE/centos-7/MANAGER-Basic-Component-Transwarp-6.0.1907a-final.tar.gz
+
+
+INSERT INTO item1 (price) VALUES (66);
+delimiter go
+create procedure sp_hello_world()
+begin
+select 'hello world';
+end go
+
+ALTER  PROCEDURE  sp_hello_world 
+MODIFIES SQL DATA
+SQL SECURITY INVOKER ; 
+
+SELECT SPECIFIC_NAME,SQL_DATA_ACCESS,SECURITY_TYPE
+FROM information_schema.Routines
+WHERE ROUTINE_NAME='sp_hello_world' AND ROUTINE_TYPE='PROCEDURE';
+
+
+初始化case
+
+创建一个数据库db1:
+
+create database db1;
+
+进入db1:
+
+use db1;
+
+创建普通表customer:
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+创建普通表item1:
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+
+创建视图v:
+
+create view v as select age as value from db1.customer;
+
+创建用户test1:
+
+create user test1;
+
+
+展示MySQL中所有权限:
+
+show privileges;
+
+------------------------------------------------------------------------------------
+
+case1: 赋予普通用户库，表，global级别的所有权限
+
+赋予全部权限，相当于global admin：
+
+grant all on *.* to test1; 
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on *.* from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+
+赋予特定库下的全部权限：
+
+grant all on db1.* to test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on db1.* from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+
+赋予用户特定库特定表的全部权限
+
+grant all on db1.item1 to test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on db1.item1 from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+
+进入库后，赋予用户一张表的全部权限：
+
+grant all on item1 to test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on item1 from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+
+------------------------------------------------------------------------------------
+
+case2: database权限的赋予和撤回
+
+赋予普通用户针对数据库的create和drop操作权限：
+
+grant create, drop on *.* to test1;
+
+test1用户登陆，测试功能：
+
+create database db2;
+
+drop database db2;
+
+特权用户撤回test1权限：
+
+revoke create, drop on *.* from test1;
+
+
+------------------------------------------------------------------------------------
+
+case3: table权限的赋予和撤回
+
+赋予普通用户所有表的select, delete, insert, update, create, drop, alter, index, trigger, create view权限：
+
+grant select, delete, insert, update, create, drop, alter, index, trigger, create view on item1 to test1;
+
+test1用户测试功能：
+
+省略，下边有重复的
+
+特权用户撤回test1权限：
+
+revoke select, delete, insert, update, create, drop, alter, index, trigger, create view on item1 from test1;
+
+
+------------------------------------------------------------------------------------
+
+case4:view， index, trigger权限的赋予和撤回
+
+赋予用户在表item1上的create view和index权限：
+
+grant create view, index, trigger on item1 to test1;
+
+test1用户测试功能：
+
+create view v2 as select price as dollar from db1.item1;  //测试create view
+
+create index id1 on item1(price);   //测试index权限
+
+delimiter $$
+
+CREATE  DEFINER=`test1`@`%` TRIGGER Tri_Item_Insert BEFORE INSERT ON item1 FOR EACH ROW BEGIN         insert into item1 values(6, 'baby', 35); END;$$
+
+delimiter ;   //测试trigger权限
+
+特权用户撤回test1权限：
+
+revoke create view, index, trigger on item1 from test1;
+
+
+------------------------------------------------------------------------------------
+
+
+case5: column 权限的赋予和撤回
+
+赋予用户在表item1上列price的权限：
+
+grant select(price),  update(price) on item1 to test1;
+
+切到test1用户测试功能：
+
+select price from item1;
+
+update item1 set price = 5;
+
+特权用户撤回test1权限：
+
+ revoke select(price),  update(price) on item1 from test1;
+
+
+------------------------------------------------------------------------------------
+
+case6: routine权限的赋予和撤回
+
+ 赋予用户CREATE ROUTINE的权限：
+
+grant CREATE ROUTINE on db1.* to test1;
+
+test1测试：
+
+\d go
+
+create procedure sp_hello_world()
+
+begin
+
+select 'hello world';
+
+end go
+
+\d ;
+
+ 赋予用户执行和修改的权限：
+
+grant execute, alter routine on sp_hello_world to test1;
+
+test1测试：
+
+call sp_hello_world();
+
+ALTER  PROCEDURE  sp_hello_world
+
+MODIFIES SQL DATA
+
+SQL SECURITY INVOKER ;
+
+验证
+
+SELECT SPECIFIC_NAME,SQL_DATA_ACCESS,SECURITY_TYPE
+
+FROM information_schema.Routines
+
+WHERE ROUTINE_NAME='sp_hello_world' AND ROUTINE_TYPE='PROCEDURE';
+
+收回赋权
+
+ revoke execute, alter routine on sp_hello_world from test1
+
+
+docker run -it --privileged --rm -v /home/transwarp/Downloads/work/mariadb:/root/mariadb_src 172.16.1.99/kundb/x86_64/mysql-compiler:v1 bash
+
+
+GuardianSm4CtrCryptoCodec
+
+if(algorithm == "SM4") {
+      SM4KeyGenerator sm4KeyGenerator = SM4KeyGenerator.getInstance(algorithm);
+      return sm4KeyGenerator.generateKey();
+    }
+
+MANAGER-Basic-Component-Transwarp-6.0.1907a-fi
+
+docker run -e CONF_DIR=/etc/guardian/conf -e DUMP_FILE=/etc/guardian/conf/pre_upgrade.dump -e oldVersion=guardian-3.1.0-final --net=host --volume /etc/guardian/conf:/etc/guardian/conf --volume /guardian/data/:/guardian/data/ --volume /transwarp/mounts/guardian:/vdir transwarp/apacheds:guardian-3.1 bash /bin/pre_rollback.sh
+
+ curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/MANAGER/manager-6.0.1907a-final/IMAGE/centos-7/MANAGER-Basic-Component-Transwarp-6.0.1907a-final.tar.gz" > /home/MANAGER-Basic-Component-Transwarp-6.0.1907a-final.tar.gz
+ 1135  ls -l
+ 1136  service transwarp-manager restart
+ 1137  df -h
+ 1138  docker images
+ 1139  docker pull 172.16.1.99/gold/txsql:guardian-3.1
+ 1140  docker images
+ 1141  docker tag 7f8 tw-node1236:5000/transwarp/txsql:guardian-3.1
+ 1142  docker push 7f8 tw-node1236:5000/transwarp/txsql:guardian-3.1
+ 1143  docker push tw-node1236:5000/transwarp/txsql:guardian-3.1
+ 1144  df -h
+ 1145  cd /etc/guardian/conf/
+ 1146  ls
+ 1147  vi /var/log/transwarp-manager/master/transwarp-manager.log
+ 1148  cd /guardian/txsql/data/
+ 1149  ls
+
+{"log":"+ echoWithTimestamp 'Error: failed to resolve LOCAL_IP'\n","stream":"stderr","time":"2020-03-31T10:59:50.205966142Z"}
+
+grep "aabbcc" /var/test -n
+pwdInHistoryDuration
+grep "pwdInHistoryDuration" ~/tmp/m-oid\=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+
+mkfs.xfs -n ftype=1 /dev/sdb
+
+UUID=048f5b79-fbb7-4594-8c80-6a1d110949db /var/lib/docker xfs defaults 0 0
+
+UUID="048f5b79-fbb7-4594-8c80-6a1d110949db"
+
+tw-node1236:5000/transwarp/workflow              studio-1.3.0-final                                                                    7aea94292aca        5 weeks ago         1.41GB
+172.16.1.99/transwarp/workflow                   flyingzoop-studio-1.3.0-final                                                         7aea94292aca        5 weeks ago         1.41GB
+transwarp/workflow                               <none>                                                                                6e294012b52a        5 weeks ago         1.38GB
+tw-node1236:5000/transwarp/workflow              <none>                                                                                6e294012b52a        5 weeks ago         1.38GB
+172.16.1.99/transwarp/inceptor                   flyingzoop-flyingzoop-6.2.1-final                                                     90e0037a2ed8        5 weeks ago         3.99GB
+transwarp/inceptor                               <none>                                                                                90e0037a2ed8        5 weeks ago         3.99GB
+tw-node1236:5000/transwarp/inceptor              <none>                                                                                90e0037a2ed8        5 weeks ago         3.99GB
+172.16.1.99/postcommit/watchman                  oem_flyingzoop_tdh_621-2020-02-20-18-53-55-f0ce9980a8c138d9db051ff9625eba48ebd2e21a   a75f1ce6d41a        5 weeks ago         924MB
+172.16.1.99/transwarp/dbaservice                 flyingzoop-flyingzoop-6.2.1-final                                                     a75f1ce6d41a        5 weeks ago         924MB
+transwarp/dbaservice                             transwarp-6.2.1-final                                                                 a75f1ce6d41a        5 weeks ago         924MB
+tw-node1236:5000/transwarp/dbaservice            transwarp-6.2.1-final                                                                 a75f1ce6d41a        5 weeks ago         924MB
+172.16.1.99/transwarp/guardian                   flyingzoop-guardian-3.1.2-final                                                       cfd84ef79271        5 weeks ago         1.38GB
+172.16.1.99/transwarp/guardian                   guardian-3.1.2-final                                                                  cfd84ef79271        5 weeks ago         1.38GB
+transwarp/guardian                               guardian-3.1.0-final                                                                  cfd84ef79271        5 weeks ago         1.38GB
+tw-node1236:5000/transwarp/guardian              guardian-3.1.0-final                                                                  cfd84ef79271        5 weeks ago         1.38GB
+172.16.1.99/postcommit/watchman                  oem_flyingzoop_tdh_621                                                                43a5e736ec4b        5 weeks ago         924MB
+transwarp/dbaservice                             <none>                                                                                43a5e736ec4b        5 weeks ago         924MB
+tw-node1236:5000/transwarp/dbaservice            <none>                                                                                43a5e736ec4b        5 weeks ago         924MB
+transwarp/inceptor                               <none>                                                                                d793464f3259        5 weeks ago         3.98GB
+172.16.1.99/transwarp/guardian-federation        flyingzoop-guardian-3.1.2-final                                                       92ddd2533013        5 weeks ago         1.11GB
+transwarp/guardian-federation                    guardian-3.1.0-final                                                                  92ddd2533013        5 weeks ago         1.11GB
+tw-node1236:5000/transwarp/guardian-federation   guardian-3.1.0-final                                                                  92ddd2533013        5 weeks ago         1.11GB
+172.16.1.99/transwarp/cas-server                 flyingzoop-guardian-3.1.2-final                                                       f98776656dea        5 weeks ago         1.28GB
+transwarp/cas-server                             guardian-3.1.0-final                                                                  f98776656dea        5 weeks ago         1.28GB
+
+
+var/lib/docker/temp/KUNDB-Image-Registry-Transwarp-1.3.0-X86_64-rc0.tar.gz
+/var/lib/docker/STUDIO-Image-Registry-Transwarp-1.3.0-final.tar.gz
+/var/lib/docker/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/INTERNAL/GUARDIAN/guardian-3.1/IMAGE/centos-7/2020-04-01_16-13-21/GUARDIAN-Image-Registry-Transwarp-3.1.tar.gz" > /var/lib/docker/guardian.tar.gz
+
+
+
+Job for docker.service failed because the control process exited with error code. See "systemctl status docker.service" and "journalctl -xe" for details.
+
+
+pwdInHistoryDuration
+pwdMinClasses
+
+if [ `grep -c "pwdInHistoryDuration" ~/tmp/m-oid\=1.3.6.1.4.1.42.2.27.8.2.1.ldif` -eq '0' ]; then
+
+    echo "Found!"
+else
+    echo "NO"
+fi
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/MANAGER/manager-7.0.1910a-final/IMAGE/centos-7/MANAGER-Basic-Component-Transwarp-7.0.1910a-final.tar.gz" > /var/lib/docker/manager.tar.gz
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/tdh.tar.gz
+
+http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/INTERNAL/KUNDB/kundb-1.3/IMAGE/centos-7/2020-04-02_00-06-44/KUNDB-Image-Registry-Transwarp-1.3.tar.gz
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/KUNDB/kundb-1.3.0-X86_64-rc2/IMAGE/centos-7/KUNDB-Image-Registry-Transwarp-1.3.0-X86_64-rc2.tar.gz" > /var/lib/docker/Kundb.tar.gz
+
+装manager
+/237 238挂盘 /car/lib/docker
+http://172.16.1.168:8090/pages/viewpage.action?pageId=3997860 内部iso文件
+
+m-may: pwdMinClasses
+m-may: pwdInHistoryDuration
+
+删
+sed '$d' 
+删除/etc/passwd所有包含root的行，其他行输出
+sed  '/pwdInHistoryDuration/d' new-new-test.txt -i
+sed  '/pwdMinClasses/d' new-new-test.txt -i
+如果是要增加两行以上，在第二行后面加入两行字，例如 Drink tea or ..... 与 drink beer?
+sed -i '$a # This is a test' file
+transwarp@transwarp-Latitude-5480:
+
+
+ sed -i '$a m-may: pwdMinClasses\
+m-may: pwdInHistoryDuration' new-new-test.txt
+
+0: jdbc:hive2://172.26.0.38:10000> revoke all on database db_user2 from user crmuser_ht;
+Error: EXECUTION FAILED: Task DDL error HiveAuthzPluginException: [Error 40000] ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db_user2], component='inceptor5', grantable='false'} from USER: crmuser_ht (state=08S01,code=40000)
+
+
+2020-04-01 17:59:00,582 ERROR inceptor.GuardianHiveAccessController: (GuardianHiveAccessController.java:revokePrivileges(173)) [HiveServer2-Handler-Pool: Thread-36547(SessionHandle=9711b3dc-82bf-4fa2-85d1-def9cf9200e4)] - Fail to grant permission: DELETE for hiveObj: [TABLE_OR_VIEW, db_user2] to user: crmuser_ht
+io.transwarp.guardian.common.exception.GuardianClientException: ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db_user2], component='inceptor5', grantable='false'} from USER: crmuser_ht
+        at io.transwarp.guardian.client.impl.rest.RestClient.processFailure(RestClient.java:389)
+        at io.transwarp.guardian.client.impl.rest.RestClient.requestWithHA(RestClient.java:446)
+        at io.transwarp.guardian.client.impl.rest.RestClient.requestReturningNothing(RestClient.java:350)
+        at io.transwarp.guardian.client.impl.rest.RestClient.put(RestClient.java:179)
+        at io.transwarp.guardian.client.impl.rest.RestAdminImpl$10.run(RestAdminImpl.java:209)
+        at io.transwarp.guardian.client.impl.rest.RestAdminImpl$10.run(RestAdminImpl.java:206)
+        at io.transwarp.guardian.client.impl.rest.AbstractGuardianClient.runWithRelogin(AbstractGuardianClient.java:264)
+        at io.transwarp.guardian.client.impl.rest.RestAdminImpl.revoke(RestAdminImpl.java:206)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAccessController.revokePrivileges(GuardianHiveAccessController.java:170)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAccessControllerWrapper.revokePrivileges(GuardianHiveAccessControllerWrapper.java:44)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAuthorizer.revokePrivileges(GuardianHiveAuthorizer.java:32)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.grantOrRevokePrivileges(DDLTask.java:1208)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.execute(DDLTask.java:604)
+        at org.apache.hadoop.hive.ql.exec.Task.executeTask(Task.java:164)
+        at org.apache.hadoop.hive.ql.exec.TaskRunner.runSequential(TaskRunner.java:89)
+
+0: jdbc:hive2://172.26.0.38:10000> revoke all on database db_user2 from user crmuser_ht;
+
+
+0: jdbc:hive2://172.26.0.38:10000> revoke all on database db_user2 from user a;
+Error: EXECUTION FAILED: Task DDL error HiveAuthzPluginException: [Error 40000] ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db_user2], component='inceptor5', grantable='false'} from USER: a (state=08S01,code=40000)
+
+2020-04-01 18:15:50,616 ERROR inceptor.GuardianHiveAccessController: (GuardianHiveAccessController.java:revokePrivileges(173)) [HiveServer2-Handler-Pool: Thread-36547(SessionHandle=9711b3dc-82bf-4fa2-85d1-def9cf9200e4)] - Fail to grant permission: DELETE for hiveObj: [TABLE_OR_VIEW, db_user2] to user: a
+io.transwarp.guardian.common.exception.GuardianClientException: ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db_user2], component='inceptor5', grantable='false'} from USER: a
+        at io.transwarp.guardian.client.impl.rest.RestClient.processFailure(RestClient.java:389)
+        at io.transwarp.guardian.client.impl.rest.RestClient.requestWithHA(RestClient.java:446)
+        at io.transwarp.guardian.client.impl.rest.RestClient.requestReturningNothing(RestClient.java:350)
+        at io.transwarp.guardian.client.impl.rest.RestClient.put(RestClient.java:179)
+        at io.transwarp.guardian.client.impl.rest.RestAdminImpl$10.run(RestAdminImpl.java:209)show
+        at io.transwarp.guardian.client.impl.rest.RestAdminImpl$10.run(RestAdminImpl.java:206)
+        at io.transwarp.guardian.client.impl.rest.AbstractGuardianClient.runWithRelogin(AbstractGuardianClient.java:264)
+        at io.transwarp.guardian.client.impl.rest.RestAdminImpl.revoke(RestAdminImpl.java:206)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAccessController.revokePrivileges(GuardianHiveAccessController.java:170)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAccessControllerWrapper.revokePrivileges(GuardianHiveAccessControllerWrapper.java:44)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAuthorizer.revokePrivileges(GuardianHiveAuthorizer.java:32)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.grantOrRevokePrivileges(DDLTask.java:1208)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.execute(DDLTask.java:604)
+        at org.apache.hadoop.hive.ql.exec.Task.executeTask(Task.java:164)
+        at org.apache.hadoop.hive.ql.exec.TaskRunner.runSequential(TaskRunner.java:89)
+        at org.apache.hadoop.hive.ql.Driver.launchTask(Driver.java:2734)
+        at org.apache.hadoop.hive.ql.Driver.execute(Driver.java:2451)
+        at org.apache.hadoop.hive.ql.Driver.runInternal(Driver.java:1778)
+        at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1613)
+        at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1580)
+        at io.transwarp.inceptor.server.InceptorSQLOperation.runInternal(InceptorSQLOperation.scala:66)
+        at org.apache.hive.service.cli.operation.Operation.run(Operation.java:295)
+        at org.apache.hive.service.cli.session.HiveSessionImpl.executeStatementInternal(HiveSessionImpl.java:434)
+        at org.apache.hive.service.cli.session.HiveSessionImpl.executeStatementWithParamsAndPropertiesAsync(HiveSessionImpl.java:401)
+        at org.apache.hive.service.cli.CLIService.executeStatementWithParamsAndPropertiesAsync(CLIService.java:333)
+        at io.transwarp.inceptor.server.InceptorCLIService.executeStatementWithParamsAndPropertiesAsync(InceptorCLIService.scala:148)
+        at org.apache.hive.service.cli.thrift.ThriftCLIService.ExecuteStatement(ThriftCLIService.java:542)
+        at org.apache.hive.service.cli.thrift.TCLIService$Processor$ExecuteStatement.getResult(TCLIService.java:1857)
+        at org.apache.hive.service.cli.thrift.TCLIService$Processor$ExecuteStatement.getResult(TCLIService.java:1842)
+        at org.apache.thrift.ProcessFunction.process(ProcessFunction.java:39)
+        at org.apache.thrift.TBaseProcessor.process(TBaseProcessor.java:39)
+        at org.apache.hive.service.auth.TSetIpAddressProcessor.process(TSetIpAddressProcessor.java:56)
+        at org.apache.thrift.server.TThreadPoolServer$WorkerProcess.run(TThreadPoolServer.java:285)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+        at java.lang.Thread.run(Thread.java:745)
+2020-04-01 18:15:50,617 ERROR exec.DDLTask: (DDLTask.java:execute(786)) [HiveServer2-Handler-Pool: Thread-36547(SessionHandle=9711b3dc-82bf-4fa2-85d1-def9cf9200e4)] - org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthzPluginException: ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db_user2], component='inceptor5', grantable='false'} from USER: a
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAccessController.revokePrivileges(GuardianHiveAccessController.java:175)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAccessControllerWrapper.revokePrivileges(GuardianHiveAccessControllerWrapper.java:44)
+        at io.transwarp.guardian.plugins.inceptor.GuardianHiveAuthorizer.revokePrivileges(GuardianHiveAuthorizer.java:32)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.grantOrRevokePrivileges(DDLTask.java:1208)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.execute(DDLTask.java:604)
+
+guardian-3.1.2-final
+2020-04-01 19:18:18,131 ERROR org.apache.directory.fortress.core.impl.PermUtil: Read permissions failed for permission: Permission{ou='inceptor5', objName='[TABLE_OR_VIEW, db_user3]', opName='CREATE', objId='null'}
+org.apache.directory.fortress.core.FinderException: getPerm no entry found dn [ftOpNm=CREATE,ftObjNm=db_user3,ftObjNm=TABLE_OR_VIEW,ou=inceptor5,ou=Permissions,ou=RBAC,dc=tdh]
+        at org.apache.directory.fortress.core.impl.PermDAO.getPerm(PermDAO.java:1110)
+        at org.apache.directory.fortress.core.impl.PermP.read(PermP.java:358)
+        at org.apache.directory.fortress.core.impl.PermUtil.loadPerm(PermUtil.java:158)
+        at org.apache.directory.fortress.core.impl.PermUtil.getDetailedPerm(PermUtil.java:146)
+        at org.apache.directory.fortress.core.impl.PermUtil.isGrantable(PermUtil.java:42)
+        at org.apache.directory.fortress.core.impl.AdminUtil.canRevoke(AdminUtil.java:299)
+        at org.apache.directory.fortress.core.impl.AdminMgrImpl.revokePermission(AdminMgrImpl.java:731)
+        at io.transwarp.guardian.core.manager.PermManager.revoke(PermManager.java:407)
+        at io.transwarp.guardian.server.boot.controller.PermController.revokePermission(PermController.java:378)
+        at io.transwarp.guardian.server.boot.controller.PermController$$FastClassBySpringCGLIB$$c4c73116.invoke(<generated>)
+        at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:204)
+        at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.invokeJoinpoint(CglibAopProxy.java:746)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+        at org.springframework.aop.framework.adapter.AfterReturningAdviceInterceptor.invoke(AfterReturningAdviceInterceptor.java:52)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:174)
+
+2020-04-01 19:57:15,210 INFO io.transwarp.guardian.client.cache.metrics.PeriodCacheMetricsDisplay: Metrics for cache [CheckAccessCache-7b4d87cb-47ba-4e2e-bfe4-ee4ba2d4d292.cache]: { currentRequestCount=0, currentHitCount=0, currentMissCount=0, currentLoadCount=0, currentHitRate=N/A, currentMissRate=N/A, accumulatedRequestCount=0, accumulatedHitCount=0, accumulatedMissCount=0, accumulatedLoadCount=0, accumulatedHitRate=N/A, accumulatedMissRate=N/A, cacheSize=0, }
+2020-04-01 20:05:53,229 INFO io.transwarp.guardian.core.manager.QuotaManager: Cannot find the specified quota: QuotaVo{component='inceptor5', dataSource='[GLOBAL]', properties=null}
+2020-04-01 20:05:53,268 INFO io.transwarp.guardian.core.manager.QuotaManager: Cannot find the specified quota: QuotaVo{component='inceptor5', dataSource='[TABLE_OR_VIEW, system]', properties=null}
+2020-04-01 20:05:53,281 INFO io.transwarp.guardian.core.manager.QuotaManager: Cannot find the specified quota: QuotaVo{component='inceptor5', dataSource='[TABLE_OR_VIEW, db_user2]', properties=null}
+2020-04-01 20:05:53,297 INFO io.transwarp.guardian.core.manager.QuotaManager: Cannot find the specified quota: QuotaVo{component='inceptor5', dataSource='[TABLE_OR_VIEW, test1]', properties=null}
+2020-04-01 20:05:53,307 INFO io.transwarp.guardian.core.manager.QuotaManager: Cannot find the specified quota: QuotaVo{component='inceptor5', dataSource='[TABLE_OR_VIEW, pctauser]', properties=null}
+
+
+hive show grants
+
+2020-04-01 20:08:22,904 INFO  ql.Driver: (PerfLogger.java:PerfLogBegin(111)) [HiveServer2-Handler-Pool: Thread-36547(SessionHandle=71dbcdb3-7af9-4e58-942a-60f583e22ca6)] - <PERFLOG method=task.DDL.Stage-0>
+2020-04-01 20:08:22,913 ERROR exec.DDLTask: (DDLTask.java:execute(786)) [HiveServer2-Handler-Pool: Thread-36547(SessionHandle=71dbcdb3-7af9-4e58-942a-60f583e22ca6)] - java.lang.NullPointerException
+        at org.apache.hadoop.hive.ql.security.authorization.plugin.HivePrincipal.compareTo(HivePrincipal.java:32)
+        at org.apache.hadoop.hive.ql.exec.DDLTask$1.compare(DDLTask.java:4256)
+        at org.apache.hadoop.hive.ql.exec.DDLTask$1.compare(DDLTask.java:4251)
+        at java.util.TimSort.countRunAndMakeAscending(TimSort.java:351)
+        at java.util.TimSort.sort(TimSort.java:216)
+        at java.util.Arrays.sort(Arrays.java:1512)
+        at java.util.ArrayList.sort(ArrayList.java:1454)
+        at java.util.Collections.sort(Collections.java:175)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.writeGrantInfo(DDLTask.java:4251)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.showGrants(DDLTask.java:1182)
+        at org.apache.hadoop.hive.ql.exec.DDLTask.execute(DDLTask.java:611)
+        at org.apache.hadoop.hive.ql.exec.Task.executeTask(Task.java:164)
+        at org.apache.hadoop.hive.ql.exec.TaskRunner.runSequential(TaskRunner.java:89)
+        at org.apache.hadoop.hive.ql.Driver.launchTask(Driver.java:2734)
+        at org.apache.hadoop.hive.ql.Driver.execute(Driver.java:2451)
+        at org.apache.hadoop.hive.ql.Driver.runInternal(Driver.java:1778)
+        at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1613)
+        at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1580)
+        at io.transwarp.inceptor.server.InceptorSQLOperation.runInternal(InceptorSQLOperation.scala:66)
+        at org.apache.hive.service.cli.operation.Operation.run(Operation.java:295)
+        at org.apache.hive.service.cli.session.HiveSessionImpl.executeStatementInternal(HiveSessionImpl.java:434)
+        at org.apache.hive.service.cli.session.HiveSessionImpl.executeStatementWithParamsAndPropertiesAsync(HiveSessionImpl.java:401)
+        at org.apache.hive.service.cli.CLIService.executeStatementWithParamsAndPropertiesAsync(CLIService.java:333)
+        at io.transwarp.inceptor.server.InceptorCLIService.executeStatementWithParamsAndPropertiesAsync(InceptorCLIService.scala:148)
+        at org.apache.hive.service.cli.thrift.ThriftCLIService.ExecuteStatement(ThriftCLIService.java:542)
+        at org.apache.hive.service.cli.thrift.TCLIService$Processor$ExecuteStatement.getResult(TCLIService.java:1857)
+        at org.apache.hive.service.cli.thrift.TCLIService$Processor$ExecuteStatement.getResult(TCLIService.java:1842)
+        at org.apache.thrift.ProcessFunction.process(ProcessFunction.java:39)
+        at org.apache.thrift.TBaseProcessor.process(TBaseProcessor.java:39)
+        at org.apache.hive.service.auth.TSetIpAddressProcessor.process(TSetIpAddressProcessor.java:56)
+        at org.apache.thrift.server.TThreadPoolServer$WorkerProcess.run(TThreadPoolServer.java:285)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+        at java.lang.Thread.run(Thread.java:745)
+
+
+- name: kundb.log_dir
+  recommendExpression: ${"/var/log/" + service['sid']}
+  defaultValue: null
+  valueType: ABSOLUTE_PATH
+  scope: !<ServiceLevel> {}
+  onDeps: []
+  groups: []
+  visibility: READ_WRITE 
+
+
+#!/bin/bash
+#modify template
+FILES=$(ls *txt)
+NEW="new"
+for FILE in $FILES
+do
+  echo "Renaming $FILE to new-$FILE"
+  mv $FILE $NEW-$FILE
+done
+
+#modify in pre_upgrade
+if [ `grep -c "pwdMinClasses" ~/tmp/m-oid\=1.3.6.1.4.1.42.2.27.8.2.1.ldif` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "Adding config in Apacheds"
+    sed -i '$a m-may: pwdMinClasses\' m-oid\=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+fi
+
+if [ `grep -c "pwdInHistoryDuration" m-oid\=1.3.6.1.4.1.42.2.27.8.2.1.ldif` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "NO Adding"
+    sed -i '$a m-may: pwdInHistoryDuration\' m-oid\=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+fi
+
+
+m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
+
+创建写入文件：https://blog.csdn.net/wwwlyj123321/article/details/81669342
+判断文件是否存在：https://www.cnblogs.com/emanlee/p/3583769.html
+
+2020-04-01T22:07:38.773976-05:00 0 [Warning] 'NO_AUTO_CREATE_USER' sql mode was not set.
+2020-04-01T22:07:38.781877-05:00 0 [Warning] InnoDB: Using innodb_support_xa is deprecated and the parameter may be removed in future releases. Only innodb_support_xa=ON is allowed.
+2020-04-01T22:07:38.781925-05:00 0 [Warning] InnoDB: innodb-page-size has been changed from the default value 16384 to 32768.
+2020-04-01T22:07:41.877646-05:00 0 [Warning] InnoDB: New log files created, LSN=74152
+2020-04-01T22:07:42.978207-05:00 0 [Warning] InnoDB: Creating foreign key constraint system tables.
+2020-04-01T22:07:42.986247-05:00 0 [ERROR] unknown variable 'encryption_algorithm=1'
+2020-04-01T22:07:42.986302-05:00 0 [ERROR] Aborting
+
+# -f 参数判断 $file 是否存在
+file2=m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+if [ ! -f "$file2" ]; then
+  cat > $file2 <<EOF
+version: 1
+dn: m-oid=1.3.6.1.4.1.18060.0.4.1.2.940,ou=attributeTypes,cn=adsconfig,ou=schema
+m-singlevalue: TRUE
+m-oid: 1.3.6.1.4.1.18060.0.4.1.2.940
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.27
+objectclass: top
+objectclass: metaTop
+objectclass: metaAttributeType
+m-name: ads-pwdInHistoryDuration
+creatorsname: uid=admin,ou=system
+m-equality: integerMatch
+m-length: 0
+EOF
+fi
+
+
+mysql -h172.16.1.238 -P15307 -uadmin -padmin --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+8.1.32
+version: 1
+dn: m-oid=1.3.6.1.4.1.42.2.27.8.1.32,ou=attributeTypes,cn=pwdpolicy,ou=schema
+m-singlevalue: TRUE
+m-oid: 1.3.6.1.4.1.42.2.27.8.1.32
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.27
+objectclass: metaTop
+objectclass: metaAttributeType
+objectclass: top
+m-name: pwdMinClasses
+creatorsname: uid=admin,ou=system
+m-equality: integerMatch
+
+
+#Add files
+file1=m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+if [ ! -f "$file1" ]; then
+  cat > $file1 <<EOF
+version: 1
+dn: m-oid=1.3.6.1.4.1.18060.0.4.1.2.939,ou=attributeTypes,cn=adsconfig,ou=schema
+m-singlevalue: TRUE
+m-oid: 1.3.6.1.4.1.18060.0.4.1.2.939
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.27
+objectclass: top
+objectclass: metaTop
+objectclass: metaAttributeType
+m-name: ads-pwdMinClasses
+creatorsname: uid=admin,ou=system
+m-equality: integerMatch
+m-length: 0
+EOF
+fi
+
+file2=m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+if [ ! -f "$file2" ]; then
+  cat > $file2 <<EOF
+version: 1
+dn: m-oid=1.3.6.1.4.1.18060.0.4.1.2.940,ou=attributeTypes,cn=adsconfig,ou=schema
+m-singlevalue: TRUE
+m-oid: 1.3.6.1.4.1.18060.0.4.1.2.940
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.27
+objectclass: top
+objectclass: metaTop
+objectclass: metaAttributeType
+m-name: ads-pwdInHistoryDuration
+creatorsname: uid=admin,ou=system
+m-equality: integerMatch
+m-length: 0
+EOF
+fi
+
+file3=m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif
+if [ ! -f "$file3" ]; then
+  cat > $file3 <<EOF
+version: 1
+dn: m-oid=1.3.6.1.4.1.42.2.27.8.1.32,ou=attributeTypes,cn=pwdpolicy,ou=schema
+m-singlevalue: TRUE
+m-oid: 1.3.6.1.4.1.42.2.27.8.1.32
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.27
+objectclass: metaTop
+objectclass: metaAttributeType
+objectclass: top
+m-name: pwdMinClasses
+creatorsname: uid=admin,ou=system
+m-equality: integerMatch
+m-length: 0
+EOF
+fi
+
+file4=m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
+if [ -f "$file4" ]; then
+ rm $file4
+fi
+
+
+FILES="m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif"
+for FILE in $FILES
+do
+  if [ -f "$FILE" ]; then
+   echo "Deleting abundant files"
+  rm $FILE 
+fi
+  
+done
+
+for FILE in "m-oid\=1.3.6.1.4.1.42.2.27.8.2.1.ldif m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif"
+do
+if [ `grep -c "pwdMinClasses" $FILE` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "No Adding config in Apacheds"
+    sed -i '$a m-may: pwdMinClasses\' $FILE
+fi
+
+if [ `grep -c "pwdInHistoryDuration" $FILE` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "NO Adding"
+    sed -i '$a m-may: pwdInHistoryDuration\' $FILE
+fi
+
+done
+
+if [ `grep -c "pwdMinClasses" ~/tmp/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "No Adding config in Apacheds"
+    sed -i '$a m-may: pwdMinClasses\' m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
+fi
+
+if [ `grep -c "pwdInHistoryDuration" m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "NO Adding"
+    sed -i '$a m-may: pwdInHistoryDuration\' m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
+fi
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/GUARDIAN/guardian-3.1.1-final/IMAGE/centos-7/GUARDIAN-Image-Registry-Transwarp-3.1.1-final.tar.gz" > /var/lib/docker/guardianold.tar.gz
+
+set -x 是开启 set +x是关闭 set -o是查看 (xtrace)，set去追中一段代码的显示情况。
+
+	if strings.Contains(strings.ToLower(sql), " USER() ") {
+		strings.Replace(sql, " USER() ", " CURRENT_USER() ", -1)
+	}
+
+	replaceStr := " user()"
+	if strings.Contains(strings.ToLower(sql), replaceStr) {
+		index := strings.Index(strings.ToLower(sql), replaceStr)
+		sql = sql[:index]+" current_user()"+sql[index+len(replaceStr):]
+	}
+	
+	
+	
+	fmt.Println(sql)
+
+本地登陆kundb
+mysql -h172.16.1.236 -P15307 -uadmin -padmin --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+
+[root@tw-node1237 ou=objectclasses]# pwd
+
+creatorsname: uid=admin,ou=system
+
+
+/guardian/data/partitions/schema/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+/guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
+
+/guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif /guardian/data/partitions/schema/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+
+/guardian/data/partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
+/guardian/data/partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif
+/guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+/guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+/guardian/data/partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif /guardian/data/partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif /guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif /guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+ads-pwdid=default,ou=passwordPolicies,ads-interceptorid=authenticationInterceptor,ou=interceptors,ads-directoryserviceid=default,ou=config
+
+docker run -e CONF_DIR=/etc/guardian/conf -e DUMP_FILE=/etc/guardian/conf/pre_upgrade.dump -e oldVersion=guardian-3.1.0-final --net=host --volume /etc/guardian/conf:/etc/guardian/conf --volume /guardian/data/:/guardian/data/ --volume /transwarp/mounts/guardian:/vdir transwarp/apacheds:guardian-3.1 bash /bin/pre_rollback.sh
+
+dn: m-oid=1.3.6.1.4.1.18060.0.4.1.2.938,ou=attributeTypes,cn=adsconfig,ou=schema
+objectclass: top
+objectclass: metaTop
+objectclass: metaAttributeType
+m-oid: 1.3.6.1.4.1.18060.0.4.1.2.938
+m-name: ads-delegateTlsTrustManager
+m-description: FQCN of the TrustManager to use to validate the startTls communication
+m-syntax: 1.3.6.1.4.1.1466.115.121.1.15
+m-equality: caseExactMatch
+m-singlevalue: TRUE
+m-length: 0
+creatorsname: 0.9.2342.19200300.100.1.1=admin,2.5.4.11=system
+
+
+
+ @Override
+  public void grantPrivileges(List<HivePrincipal> hivePrincipals, List<HivePrivilege> hivePrivileges, HivePrivilegeObject hivePrivObject, HivePrincipal grantorPrincipal, boolean grantOption) throws HiveAuthzPluginException, HiveAccessControlException {
+    List<String> dataSource = InceptorPermUtil.convert(hivePrivObject);
+
+    HivePrivilegeObject.HivePrivilegeObjectType objectType = hivePrivObject.getType();
+    if (objectType == null) {
+      objectType = HivePrivilegeObject.HivePrivilegeObjectType.GLOBAL;
+    }
+
+    hivePrivileges = expandAndValidatePrivileges(hivePrivileges, objectType);
+
+    // authorize the grant
+    guardianAuthorizer.authorizeGrant(authenticator.getUserName(), hivePrivileges, hivePrivObject);
+
+    for (HivePrincipal principal : hivePrincipals) {
+      for (HivePrivilege privilege : hivePrivileges) {
+        PermissionVo permVo = new PermissionVo(component, dataSource, privilege.getName());
+        permVo.setGrantable(grantOption);
+        if (principal.getType() == null || StringUtils.isEmpty(principal.getType().name())) continue;
+        try {
+          PrincipalType princType = Enum.valueOf(PrincipalType.class, principal.getType().name());
+          EntityPermissionVo entityPermVo = new EntityPermissionVo(principal.getName(), princType, permVo);
+          guardianAdmin.grant(entityPermVo);
+
+          // Grant Option as ADMIN permission
+          if (grantOptionAsAdmin) {
+            if (grantOption && (objectType == HivePrivilegeObject.HivePrivilegeObjectType.GLOBAL
+                    || objectType == HivePrivilegeObject.HivePrivilegeObjectType.DATABASE
+                    || objectType == HivePrivilegeObject.HivePrivilegeObjectType.TABLE_OR_VIEW)) {
+              PermissionVo adminPermVo = new PermissionVo(component, dataSource, "ADMIN");
+              EntityPermissionVo entityAdminPermVo = new EntityPermissionVo(principal.getName(), princType, adminPermVo);
+              guardianAdmin.grant(entityAdminPermVo);
+            }
+          }
+
+          // TODO: test Group
+        } catch (GuardianClientException e) {
+          LOG.error("Fail to grant permission: {} for hiveObj: {} to user: {}", privilege.getName(), dataSource,
+                  principal.getName(), e);
+          throw new HiveAuthzPluginException(e);
+        } catch (IllegalArgumentException e) {
+          LOG.warn("Parse hive principal type error", e);
+          // ignore
+        }
+      }
+    }
+  }
+
+revoke all问题 ：
+用户create db的时候 初始化数据库并没有guardian权限的初始化 导致hive执行revoke时 针对于这个库没有任何权限 传到ldap查询的时候报错 当我们执行grant的时候 guardian权限为这个库初始化权限 再执行revoke就没有问题了
+show grant问题
+hive为了便于展示在showgrant的时候要根据权限的拥有者做排序，
+
+#!/bin/bash
+
+file1=m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+file2=m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+file3=m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif
+file4=m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
+UPGRADE="m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif"
+#Check modify in pre_upgrade 
+for FILE in $UPGRADE
+do
+if [ `grep -c "pwdMinClasses" $FILE` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "No Adding config in Apacheds"
+    sed -i '$i\m-may: pwdMinClasses\' $FILE
+fi
+
+if [ `grep -c "pwdInHistoryDuration" $FILE` -eq '1' ]; then
+
+    echo "Found!"
+else
+    echo "NO Adding"
+    sed -i '$i\m-may: pwdInHistoryDuration\' $FILE
+fi
+
+done
+
+resourcemanager单测覆盖 test guardian接口有3个可能要添加接口 下周做
+docker ps -a 
+docker logs 
+查看升级脚本日志
+inceptor报错: 1. revoke no datasource node会报错
+2. grant all on db to user -> show grant -> revoke all on db from user -> show grant
+
