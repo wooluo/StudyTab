@@ -1,0 +1,456 @@
+0407
+
+工作周报 - 李镇邦 20200330 ~ 20200403
+
+完成：
+1. WARP-43339: guardian密码策略升级回滚脚本并测试
+
+其他：
+1. KunDB增加ip限制和空闲时间的使用说明
+2. 验证inceptor两个bug：revoke all和show grants报错
+3. 1236集群重装
+
+本周：
+1. 讨论inceptor权限，决定inceptor权限的解决方案
+2. WARP-43659： guardian resource-manager 单测覆盖率提升
+
+
+
+                                <resource>
+                                    <targetPath>rootfs/usr/bin</targetPath>
+                                    <directory>docker-build/scripts/env</directory>
+                                    <exclude>this_is_a_dummy_value</exclude>
+                                </resource>
+
+jar xf genesys_data_etl-0.0.1-SNAPSHOT.jar BOOT-INF/classes/realtime/t_ivr_data_bj.json
+jar xf 内部jar包.jar conf/hbase.conf       # 解出内部jar包子路径下的指定文件
+
+Mon Apr 06 22:15:11 EDT 2020 [Manager] Starting task local part ...
+start to execute docker run -e CONF_DIR=/etc/guardian/conf -e DUMP_FILE=/etc/guardian/conf/pre_upgrade.dump -e oldVersion=guardian-3.1.2-final --net=host --volume /etc/guardian/conf:/etc/guardian/conf --volume /guardian/data/:/guardian/data/ --volume /transwarp/mounts/guardian:/vdir transwarp/apacheds:guardian-3.1 bash /bin/pre_upgrade.sh on tw-node1237
+Starting Upgrade for password policy
+Added ads-pwdMinClasses ldif file
+Added ads-pwdInHistoryDuration ldif file
+Added pwdMinClasses ldif file
+Added pwdInHistoryDuration ldif file
+No pwdMinClasses line, adding config in Apacheds
+NO pwdInHistoryDuration line, adding config in Apacheds
+No pwdMinClasses line, adding config in Apacheds
+NO pwdInHistoryDuration line, adding config in Apacheds
+Finishing Upgrade for password policy
+ + echo 'Starting Upgrade for password policy'
++ cd /guardian/data/
++ LDIF_DIR=partitions/schema/ou=schema
++ file1=partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
++ file2=partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
++ file3=partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif
++ file4=partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
++ file5=partitions/schema/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
++ file6=partitions/schema/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
++ '[' '!' -f partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif ']'
++ cat
++ echo 'Added ads-pwdMinClasses ldif file'
++ '[' '!' -f partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif ']'
++ cat
++ echo 'Added ads-pwdInHistoryDuration ldif file'
++ '[' '!' -f partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif ']'
++ cat
++ echo 'Added pwdMinClasses ldif file'
++ '[' '!' -f partitions/schema/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif ']'
++ cat
++ echo 'Added pwdInHistoryDuration ldif file'
+++ grep -c pwdMinClasses partitions/schema/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
++ '[' 0 -eq 1 ']'
++ echo 'No pwdMinClasses line, adding config in Apacheds'
++ sed -i '$a m-may: pwdMinClasses\' partitions/schema/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+++ grep -c pwdInHistoryDuration partitions/schema/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
++ '[' 0 -eq 1 ']'
++ echo 'NO pwdInHistoryDuration line, adding config in Apacheds'
++ sed -i '$a m-may: pwdInHistoryDuration\' partitions/schema/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+++ grep -c pwdMinClasses partitions/schema/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
++ '[' 0 -eq 1 ']'
++ echo 'No pwdMinClasses line, adding config in Apacheds'
++ sed -i '$i\m-may: ads-pwdMinClasses\' partitions/schema/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
+++ grep -c pwdInHistoryDuration partitions/schema/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
++ '[' 0 -eq 1 ']'
++ echo 'NO pwdInHistoryDuration line, adding config in Apacheds'
++ sed -i '$i\m-may: ads-pwdInHistoryDuration\' partitions/schema/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif
++ echo 'Finishing Upgrade for password policy'
+execute docker run -e CONF_DIR=/etc/guardian/conf -e DUMP_FILE=/etc/guardian/conf/pre_upgrade.dump -e oldVersion=guardian-3.1.2-final --net=host --volume /etc/guardian/conf:/etc/guardian/conf --volume /guardian/data/:/guardian/data/ --volume /transwarp/mounts/guardian:/vdir transwarp/apacheds:guardian-3.1 bash /bin/pre_upgrade.sh on tw-node1237 successfully
+Mon Apr 06 22:15:12 EDT 2020 [Manager] Task local part ended
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/TDH.tar.gz
+
+DDLTask
+writeGrantInfo
+
+revokePrivileges
+
+
+
+beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/tw-node1238@TDH"
+
+Java HotSpot(TM) 64-Bit Server VM warning: Using the ParNew young collector with the Serial old collector is deprecated and will likely be removed in a future release
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/usr/lib/inceptor/lib/graphsearch-hive-2.0.0.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/lib/inceptor/lib/shiva-client-shade-1.3.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/lib/inceptor/lib/slf4j-log4j12-1.6.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+scan complete in 5ms
+Connecting to jdbc:hive2://localhost:10000/default;principal=hive/tw-node1238@TDH
+2020-04-07 14:10:34,487 INFO  [main] jdbc.Utils (Utils.java:parseURL(304)) - Supplied authorities: localhost:10000
+2020-04-07 14:10:34,494 INFO  [main] jdbc.Utils (Utils.java:parseURL(391)) - Resolved authority: localhost:10000
+2020-04-07 14:10:35,099 INFO  [Thread-1] util.KerberosUtil (KerberosUtil.java:getDefaultPrincipalPattern(81)) - Using principal pattern: HTTP/_HOST
+Connected to: Apache Hive (version 8.0.2)
+Driver: Inceptor JDBC (version 8.0.2)
+Transaction isolation: TRANSACTION_REPEATABLE_READ
+Beeline version 8.0.2 by Apache Hive
+0: jdbc:hive2://localhost:10000/default> 
+
+DDLTask 
+hive/HivePrincipal-->compareTo
+plugin/HivePrivilegeObject--->compareTo
+
+
+ if (compare == 0) {
+      compare = dbname != null ?
+          (o.dbname != null ? dbname.compareTo(o.dbname) : 1) :
+          (o.dbname != null ? -1 : 0);
+    }
+
+
+TABLE_OR_VIEW
+db2
+
+
+EXECUTION FAILED: Task DDL error HiveAuthzPluginException: [Error 40000] ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db333], component='inceptor5', grantable='false'} from USER: a
+2020-04-08 11:04:01,212 INFO  ql.Driver: (PerfLogger.java:PerfLogEnd(138)) [HiveServer2-Handler-Pool: Thread-36547(SessionHandle=937109ed-3537-4f5b-8066-6a8b73d724bb)] - </PERFLOG method=Driver.execute start=1586315041087 end=1586315041212 duration=125>
+2020-04-08 11:04:01,212 INFO  exec.TransactionManagerHeartbeaterThread: (TransactionManagerHeartbeaterThread.java:stopHeartBeat(70)) [HiveServer2-Handler-Pool: Thread-36547()] - Unregister heart beat for session: 937109ed-3537-4f5b-8066-6a8b73d724bb
+2020-04-08 11:04:01,213 WARN  thrift.ThriftCLIService: (ThriftCLIService.java:ExecuteStatement(553)) [HiveServer2-Handler-Pool: Thread-36547()] - Error executing statement:
+org.apache.hive.service.cli.HiveSQLException: EXECUTION FAILED: Task DDL error HiveAuthzPluginException: [Error 40000] ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db333], component='inceptor5', grantable='false'} from USER: a
+        at io.transwarp.inceptor.server.InceptorSQLOperation.runInternal(InceptorSQLOperation.scala:90)
+        at org.apache.hive.service.cli.operation.Operation.run(Operation.java:295)
+        at org.apache.hive.service.cli.session.HiveSessionImpl.executeStatementInternal(HiveSessionImpl.java:434)
+        at org.apache.hive.service.cli.session.HiveSessionImpl.executeStatementWithParamsAndPropertiesAsync(HiveSessionImpl.java:401)
+        at org.apache.hive.service.cli.CLIService.executeStatementWithParamsAndPropertiesAsync(CLIService.java:333)
+        at io.transwarp.inceptor.server.InceptorCLIService.executeStatementWithParamsAndPropertiesAsync(InceptorCLIService.scala:148)
+        at org.apache.hive.service.cli.thrift.ThriftCLIService.ExecuteStatement(ThriftCLIService.java:542)
+        at org.apache.hive.service.cli.thrift.TCLIService$Processor$ExecuteStatement.getResult(TCLIService.java:1857)
+        at org.apache.hive.service.cli.thrift.TCLIService$Processor$ExecuteStatement.getResult(TCLIService.java:1842)
+        at org.apache.thrift.ProcessFunction.process(ProcessFunction.java:39)
+        at org.apache.thrift.TBaseProcessor.process(TBaseProcessor.java:39)
+        at org.apache.hive.service.auth.TSetIpAddressProcessor.process(TSetIpAddressProcessor.java:56)
+        at org.apache.thrift.server.TThreadPoolServer$WorkerProcess.run(TThreadPoolServer.java:285)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+        at java.lang.Thread.run(Thread.java:745)
+
+172.26.0.37
+root/Aiops!123
+beeline -u jdbc:hive2://172.26.0.38:10000 -n hive -p 123456
+
+{action: "ADMIN", component: "inceptor5", dataSource: ["TABLE_OR_VIEW", "db3"]}
+
+一般都是直接grant，如果发现permission没创建的话，会自动创建
+
+2020-04-08 15:09:27,027 field=PERMISSION, requestClass=RevokePermRequest, user=hive, serverIp=172.26.0.38, clientIp=172.26.0.38, level=UPDATE, operation=revoke permission, entity [EntityPermissionVo{name='a', principalType=USER, permissionVo=PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db36666], component='inceptor5', grantable='false'}}], statusCode=500, errorCode=3007
+2020-04-08 15:09:27,027 field=PERMISSION, requestClass=RevokePermRequest, user=hive, serverIp=172.26.0.38, clientIp=172.26.0.38, level=UPDATE, operation=revoke permission, entity [EntityPermissionVo{name='a', principalType=USER, permissionVo=PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db36666], component='inceptor5', grantable='false'}}], statusCode=500, errorCode=3007
+
+
+compare = dbname != null ?
+          (o.dbname != null ? dbname.compareTo(o.dbname) : 1) :
+          (o.dbname != null ? -1 : 0);
+
+    int compare = o.name != null ? name.compareTo(o.name) : 0;
+
+
+git log --author="lishinho" --pretty=tformat: --numstat | awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }' -
+
+
+if *enablePlanCache {
+		if result, ok := e.plans.Get(key); ok {
+			servenv.AccumPlanCacheHit.Add(1)
+			return result.(*engine.Plan), nil
+		}
+	}
+
+
+{
+  "name": "a",
+  "permissionVo": {
+    "action": "SELECT",
+    "administrative": false,
+    "component": "inceptor5",
+    "dataSource": [
+      "TABLE_OR_VIEW", 
+      "db342345222222"
+    ],
+    "grantable": false,
+    "heritable": false
+  },
+  "principalType": "USER"
+}
+
+
+2020-04-08 15:12:53,219 WARN io.transwarp.guardian.common.util.ResourceUtil: Can not find string by key 3007 in resource guardian-error
+io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db36666], component='inceptor5', grantable='false'} from USER: a
+        at io.transwarp.guardian.core.manager.PermManager.revoke(PermManager.java:454)
+        at io.transwarp.guardian.server.boot.controller.PermController.revokePermission(PermController.java:378)
+        at io.transwarp.guardian.server.boot.controller.PermController$$FastClassBySpringCGLIB$$c4c73116.invoke(<generated>)
+        at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:204)
+        at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.invokeJoinpoint(CglibAopProxy.java:746)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+        at org.springframework.aop.framework.adapter.AfterReturningAdviceInterceptor.invoke(AfterReturningAdviceInterceptor.java:52)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:174)
+        at org.springframework.aop.aspectj.AspectJAfterThrowingAdvice.invoke(AspectJAfterThrowingAdvice.java:62)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:174)
+
+2020-04-08 15:09:27,488 ERROR org.apache.directory.fortress.core.impl.PermUtil: Read permissions failed for permission: Permission{ou='inceptor5', objName='[TABLE_OR_VIEW, db36666]', opName='DELETE', objId='null'}
+org.apache.directory.fortress.core.FinderException: getPerm no entry found dn [ftOpNm=DELETE,ftObjNm=db36666,ftObjNm=TABLE_OR_VIEW,ou=inceptor5,ou=Permissions,ou=RBAC,dc=tdh]
+        at org.apache.directory.fortress.core.impl.PermDAO.getPerm(PermDAO.java:1110)
+        at org.apache.directory.fortress.core.impl.PermP.read(PermP.java:358)
+        at org.apache.directory.fortress.core.impl.PermUtil.loadPerm(PermUtil.java:158)
+        at org.apache.directory.fortress.core.impl.PermUtil.getDetailedPerm(PermUtil.java:146)
+        at org.apache.directory.fortress.core.impl.PermUtil.isGrantable(PermUtil.java:42)
+        at org.apache.directory.fortress.core.impl.AdminUtil.canRevoke(AdminUtil.java:299)
+        at org.apache.directory.fortress.core.impl.AdminMgrImpl.revokePermission(AdminMgrImpl.java:731)
+        at io.transwarp.guardian.core.manager.PermManager.revoke(PermManager.java:407)
+        at io.transwarp.guardian.server.boot.controller.PermController.revokePermission(PermController.java:378)
+        at io.transwarp.guardian.server.boot.controller.PermController$$FastClassBySpringCGLIB$$c4c73116.invoke(<generated>)
+
+旧版本admin可以revoke不存在的权限 hive不能
+
+
+    Permission getPerm( Permission permission )
+        throws FinderException
+    {
+        Permission entity = null;
+        LdapConnection ld = null;
+        String dn = getDn( permission, permission.getContextId() );
+
+        try
+        {
+            ld = getAdminConnection( true );
+            Entry findEntry = read( ld, dn, PERMISSION_OP_ATRS );
+            if ( findEntry == null )
+            {
+                String warning = "getPerm no entry found dn [" + dn + "]";
+                throw new FinderException( GlobalErrIds.PERM_OP_NOT_FOUND, warning );
+            }
+            entity = unloadPopLdapEntry( findEntry, 0, permission.isAdmin() );
+        }
+        catch ( LdapNoSuchObjectException e )
+        {
+            String warning = "getPerm Op COULD NOT FIND ENTRY for dn [" + dn + "]";
+            throw new FinderException( GlobalErrIds.PERM_OP_NOT_FOUND, warning );
+        }
+        catch ( LdapException e )
+        {
+            String error = "getUser [" + dn + "] caught LdapException=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_READ_OP_FAILED, error, e );
+        }
+        finally
+        {
+            closeAdminConnection( ld );
+        }
+        return entity;
+    }
+{
+  "name": "a",
+  "permissionVo": {
+    "action": "SELECT",
+    "administrative": false,
+    "component": "inceptor5",
+    "dataSource": [
+      "TABLE_OR_VIEW", 
+      "db342345222222"
+    ],
+    "grantable": false,
+    "heritable": false
+  },
+  "principalType": "USER"
+}
+
+
+2020-04-08 15:12:53,219 WARN io.transwarp.guardian.common.util.ResourceUtil: Can not find string by key 3007 in resource guardian-error
+io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 3007, ErrorMessage: Failed to revoke permission PermissionVo{action='DELETE', dataSource=[TABLE_OR_VIEW, db36666], component='inceptor5', grantable='false'} from USER: a
+        at io.transwarp.guardian.core.manager.PermManager.revoke(PermManager.java:454)
+        at io.transwarp.guardian.server.boot.controller.PermController.revokePermission(PermController.java:378)
+        at io.transwarp.guardian.server.boot.controller.PermController$$FastClassBySpringCGLIB$$c4c73116.invoke(<generated>)
+        at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:204)
+        at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.invokeJoinpoint(CglibAopProxy.java:746)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+        at org.springframework.aop.framework.adapter.AfterReturningAdviceInterceptor.invoke(AfterReturningAdviceInterceptor.java:52)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:174)
+        at org.springframework.aop.aspectj.AspectJAfterThrowingAdvice.invoke(AspectJAfterThrowingAdvice.java:62)
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:174)
+
+2020-04-08 15:09:27,488 ERROR org.apache.directory.fortress.core.impl.PermUtil: Read permissions failed for permission: Permission{ou='inceptor5', objName='[TABLE_OR_VIEW, db36666]', opName='DELETE', objId='null'}
+org.apache.directory.fortress.core.FinderException: getPerm no entry found dn [ftOpNm=DELETE,ftObjNm=db36666,ftObjNm=TABLE_OR_VIEW,ou=inceptor5,ou=Permissions,ou=RBAC,dc=tdh]
+        at org.apache.directory.fortress.core.impl.PermDAO.getPerm(PermDAO.java:1110)
+        at org.apache.directory.fortress.core.impl.PermP.read(PermP.java:358)
+        at org.apache.directory.fortress.core.impl.PermUtil.loadPerm(PermUtil.java:158)
+        at org.apache.directory.fortress.core.impl.PermUtil.getDetailedPerm(PermUtil.java:146)
+        at org.apache.directory.fortress.core.impl.PermUtil.isGrantable(PermUtil.java:42)
+        at org.apache.directory.fortress.core.impl.AdminUtil.canRevoke(AdminUtil.java:299)
+        at org.apache.directory.fortress.core.impl.AdminMgrImpl.revokePermission(AdminMgrImpl.java:731)
+        at io.transwarp.guardian.core.manager.PermManager.revoke(PermManager.java:407)
+        at io.transwarp.guardian.server.boot.controller.PermController.revokePermission(PermController.java:378)
+        at io.transwarp.guardian.server.boot.controller.PermController$$FastClassBySpringCGLIB$$c4c73116.invoke(<generated>)
+
+旧版本admin可以revoke不存在的权限 hive不能
+
+
+    Permission getPerm( Permission permission )
+        throws FinderException
+    {
+        Permission entity = null;
+        LdapConnection ld = null;
+        String dn = getDn( permission, permission.getContextId() );
+
+        try
+        {
+            ld = getAdminConnection( true );
+            Entry findEntry = read( ld, dn, PERMISSION_OP_ATRS );
+            if ( findEntry == null )
+            {
+                String warning = "getPerm no entry found dn [" + dn + "]";
+                throw new FinderException( GlobalErrIds.PERM_OP_NOT_FOUND, warning );
+            }
+            entity = unloadPopLdapEntry( findEntry, 0, permission.isAdmin() );
+        }
+        catch ( LdapNoSuchObjectException e )
+        {
+            String warning = "getPerm Op COULD NOT FIND ENTRY for dn [" + dn + "]";
+            throw new FinderException( GlobalErrIds.PERM_OP_NOT_FOUND, warning );
+        }
+        catch ( LdapException e )
+        {
+            String error = "getUser [" + dn + "] caught LdapException=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_READ_OP_FAILED, error, e );
+        }
+        finally
+        {
+            closeAdminConnection( ld );
+        }
+        return entity;
+    }
+
+
+	//check cache if yes, right; else go on
+	if result, ok := cache.Get(authData.Username); ok {
+		
+	}
+	getter, err := c.config.AuthService.Authenticate(authData.Username, authData.Password)
+	if err != nil {
+		field := logrus.Fields{
+			"Time":       time.Now().Format(time.RFC850),
+			"AuthResult": "Fail",
+			"RemoteAddr": tlsConn.RemoteAddr().String(),
+			"User":       authData.Username,
+		}
+		audit.Log(field, "Auth")
+		authRespBuf[0] = authFailByte
+	} else {
+		field := logrus.Fields{
+			"Time":       time.Now().Format(time.RFC850),
+			"AuthResult": "Success",
+			"RemoteAddr": tlsConn.RemoteAddr().String(),
+			"User":       authData.Username,
+		}
+		//record in cache using SetIfAbsent
+
+		audit.Log(field, "Auth")
+	}
+
+func (pln *Plan) Size() int {
+	return 1
+}
+
+// Get returns wrapped username and LDAP groups and possibly updates the cache
+func (lud *LdapUserData) Get() *querypb.VTGateCallerID {
+	if time.Since(lud.lastUpdated) > lud.asl.RefreshTimeout*time.Second {
+		go lud.update()
+	}
+	return &querypb.VTGateCallerID{Username: lud.username, Groups: lud.groups}
+}
+
+enablePlanCache     = flag.Bool("enable_plan_cache", true, "whether to use plan cache or not")
+
+
+
+	//check cache if yes, right; else go on
+	result, ok := servenv.LdapCache.Get(authData.Username)
+	if ok {
+		field := logrus.Fields{
+			"Time":       time.Now().Format(time.RFC850),
+			"AuthResult": "Success",
+			"RemoteAddr": tlsConn.RemoteAddr().String(),
+			"User":       authData.Username,
+		}
+		audit.Log(field, "Auth")
+
+		err := c.sendAll(tlsConn, authRespBuf)
+		if err != nil {
+			return nil, nil, err
+		}
+		return tlsConn, TLSWithPasswordAuthInfo{State: getTLSConnectionState(tlsAuthInfo), CallerID: result.(*servenv.CacheValue)}, nil
+	}
+
+servenv.LoginCache.Get(user)
+/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-keystore.jks
+/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-truststore.jks
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-ca=/etc/kundb1/conf/ca-cert.pem --ssl-cert=/etc/kundb1/conf/kungate-client-cert.pem --ssl-key=/etc/kundb1/conf/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+
+login_cache_conns
+
+runtime error: invalid memory address or nil pointer dereference
+
+services
+{"serviceName":"hdfs1","serviceType":"HDFS","description":"description","serviceHosts":["tw-node1237","tw-node1238"],"timestamp":1586427963065}]
+serviceMapping
+{"hdfs1":"hdfs1","inceptor1":"inceptor1","yarn1":"yarn1"}
+searchPrincipals?component=hdfs1&dataSource=GLOBAL&action=ADMIN
+{"users":["admin","hdfs"],"groups":[],"roles":[]}
+
+resourceLookupVo
+{
+  "resources": {
+"name": ["123","124"]},
+  "serviceName": "hdfs1",
+  "serviceType": "HDFS",
+  "userInput": "aaa"
+}
+QuotaManager
+
+golang gocache
+awk指令
+
+public class HdfsResourceSvcTest {
+  private HdfsResourceSvc hdfsResourceSvc;
+
+  @Test
+  public void connectionTest() throws GuardianException {
+    Assert.assertFalse(hdfsResourceSvc.connectionTest());
+  }
+
+  @Test
+  public void lookupResource() throws GuardianException {
+    HdfsResourceMgrTest mgrTest = new HdfsResourceMgrTest();
+    mgrTest.getHdfsResources();
+  }
+}
+
+new ResourceEntry(
+      new NodeVo(ResourceTypes.CLUSTER, CLUSTER_RESOURCE_NAME));
+new ResourceVo.Builder().serviceName(component).dataSource(SEARCH_CLUSTER).build()
+
+ResourceVo resourceVo = new ResourceVo("HDFS", "service", Arrays.asList(new NodeVo("DIR", "/"),
+            new NodeVo("DIR", "secret")));
+
+
+ // [] -> [<scheduler *>]
+  // [<pool root.default.sub_queue>] -> [<scheduler *>, <queue root>, <queue default>, <queue sub_queue>]
