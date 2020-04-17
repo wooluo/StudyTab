@@ -1,0 +1,823 @@
+工作周报 - 李镇邦 20200407 ~ 20200410
+
+完成：
+1. WARP-43781: 解决Inceptor 权限show grant 和revoke all报错
+2. WARP-43853: 用户登陆处增加缓存logincache 增加manager界面参数限定cache容量
+3. 解决WARP-41406,WARP-41627 MR冲突
+
+进行中：
+WARP-43659： guardian resource-manager 单测覆盖率提升
+
+编辑
+备注
+分配更多
+Start Test
+导出
+
+
+
+
+
+[WARNING] /security/guardian-backend/guardian/resource-manager/src/test/java/io/transwarp/guardian/resource/ResourceServiceInitializerTest.java: /security/guardian-backend/guardian/resource-manager/src/test/java/io/transwarp/guardian/resource/ResourceServiceInitializerTest.java uses or overrides a deprecated API.
+[WARNING] /security/guardian-backend/guardian/resource-manager/src/test/java/io/transwarp/guardian/resource/ResourceServiceInitializerTest.java: Recompile with -Xlint:deprecation for details.
+[WARNING] /security/guardian-backend/guardian/resource-manager/src/test/java/io/transwarp/guardian/resource/hdfs/HdfsResourceMgrTest.java: Some input files use unchecked or unsafe operations.
+[WARNING] /security/guardian-backend/guardian/resource-manager/src/test/java/io/transwarp/guardian/resource/hdfs/HdfsResourceMgrTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 4 warnings 
+[INFO] -------------------------------------------------------------
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /security/guardian-backend/guardian/resource-manager/src/test/java/io/transwarp/guardian/resource/tcc/TccResourceSvcTest.java:[29,35] cannot find symbol
+  symbol:   method initialize()
+  location: variable resourceServiceInitializerTest of type io.transwarp.guardian.resource.ResourceServiceInitializerTest
+[INFO] 1 error
+
+getInheritDataNodes
+getAuthorizedDataNodes
+
+
+Running io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest
+2020-04-13 10:33:56,282 DEBUG conf.GuardianConfiguration: parsing URL file:/security/guardian-backend/guardian/resource-manager/target/test-classes/guardian-site.xml
+2020-04-13 10:33:56,282 DEBUG conf.GuardianConfiguration: parsing input stream java.io.BufferedInputStream@6d4dac56
+2020-04-13 10:33:56,286 DEBUG conf.GuardianConfiguration: parsing URL file:/security/guardian-backend/guardian/resource-manager/target/test-classes/guardian-site.xml
+2020-04-13 10:33:56,287 DEBUG conf.GuardianConfiguration: parsing input stream java.io.BufferedInputStream@1ca55d5
+2020-04-13 10:33:56,296 DEBUG conf.GuardianConfiguration: parsing URL file:/security/guardian-backend/guardian/resource-manager/target/test-classes/guardian-site.xml
+2020-04-13 10:33:56,297 DEBUG conf.GuardianConfiguration: parsing input stream java.io.BufferedInputStream@6fc9c0cc
+Tests run: 3, Failures: 0, Errors: 3, Skipped: 0, Time elapsed: 0.021 sec <<< FAILURE! - in io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest
+lookupResource(io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest)  Time elapsed: 0.001 sec  <<< ERROR!
+java.lang.NullPointerException: null
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest.getInceptorResources(InceptorResourceMgrTest.java:43)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest.lookupResource(InceptorResourceSvcTest.java:20)
+
+getSchedulerType(io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest)  Time elapsed: 0.008 sec  <<< ERROR!
+java.lang.ClassCastException: io.transwarp.guardian.common.conf.GuardianConfiguration cannot be cast to java.util.Map
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest.getSchedulerType(InceptorResourceMgrTest.java:26)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest.getSchedulerType(InceptorResourceSvcTest.java:25)
+
+connectionTest(io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest)  Time elapsed: 0 sec  <<< ERROR!
+java.lang.NullPointerException: null
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceSvcTest.connectionTest(InceptorResourceSvcTest.java:15)
+
+Running io.transwarp.guardian.resource.inceptor.InceptorSchedulerResponseTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 sec - in io.transwarp.guardian.resource.inceptor.InceptorSchedulerResponseTest
+Running io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest
+2020-04-13 10:33:56,300 DEBUG conf.GuardianConfiguration: parsing URL file:/security/guardian-backend/guardian/resource-manager/target/test-classes/guardian-site.xml
+2020-04-13 10:33:56,300 DEBUG conf.GuardianConfiguration: parsing input stream java.io.BufferedInputStream@7011eee0
+2020-04-13 10:33:56,304 DEBUG conf.GuardianConfiguration: parsing URL file:/security/guardian-backend/guardian/resource-manager/target/test-classes/guardian-site.xml
+2020-04-13 10:33:56,304 DEBUG conf.GuardianConfiguration: parsing input stream java.io.BufferedInputStream@5beda06e
+2020-04-13 10:33:56,307 DEBUG conf.GuardianConfiguration: parsing URL file:/security/guardian-backend/guardian/resource-manager/target/test-classes/guardian-site.xml
+2020-04-13 10:33:56,307 DEBUG conf.GuardianConfiguration: parsing input stream java.io.BufferedInputStream@24eb71f6
+Tests run: 3, Failures: 0, Errors: 2, Skipped: 0, Time elapsed: 0.007 sec <<< FAILURE! - in io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest
+getSchedulerType(io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest)  Time elapsed: 0.001 sec  <<< ERROR!
+java.lang.ClassCastException: io.transwarp.guardian.common.conf.GuardianConfiguration cannot be cast to java.util.Map
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest.getSchedulerType(InceptorResourceMgrTest.java:26)
+
+getInceptorResources(io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest)  Time elapsed: 0 sec  <<< ERROR!
+java.lang.NullPointerException: null
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest.getInceptorResources(InceptorResourceMgrTest.java:43)
+
+Running io.transwarp.guardian.resource.inceptor.hms.sync.PathUtilsTest
+Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.027 sec <<< FAILURE! - in io.transwarp.guardian.resource.inceptor.hms.sync.PathUtilsTest
+splitPath(io.transwarp.guardian.resource.inceptor.hms.sync.PathUtilsTest)  Time elapsed: 0.005 sec  <<< FAILURE!
+java.lang.AssertionError: array lengths differed, expected.length=0 actual.length=1
+	at org.junit.Assert.fail(Assert.java:88)
+	at org.junit.internal.ComparisonCriteria.assertArraysAreSameLength(ComparisonCriteria.java:76)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:37)
+	at org.junit.Assert.internalArrayEquals(Assert.java:532)
+	at org.junit.Assert.assertArrayEquals(Assert.java:283)
+	at org.junit.Assert.assertArrayEquals(Assert.java:298)
+	at io.transwarp.guardian.resource.inceptor.hms.sync.PathUtilsTest.splitPath(PathUtilsTest.java:13)
+
+Running io.transwarp.guardian.resource.inceptor.hms.sync.NotificationProcessorTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 sec - in io.transwarp.guardian.resource.inceptor.hms.sync.NotificationProcessorTest
+Running io.transwarp.guardian.resource.ResourceEntryTest
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.004 sec <<< FAILURE! - in io.transwarp.guardian.resource.ResourceEntryTest
+ofTest(io.transwarp.guardian.resource.ResourceEntryTest)  Time elapsed: 0.003 sec  <<< ERROR!
+java.lang.NullPointerException: null
+	at io.transwarp.guardian.resource.ResourceEntry.of(ResourceEntry.java:113)
+	at io.transwarp.guardian.resource.ResourceEntryTest.ofTest(ResourceEntryTest.java:12)
+
+
+Results :
+
+Failed tests: 
+  ResourceEntryTest.differenceTest:29 expected null, but was:<[]>
+  PathUtilsTest.splitPath:13 array lengths differed, expected.length=0 actual.length=1
+
+ private static final Map<String, Class<? extends ResourceBaseService>> RES_CLASS_MAP =
+      ImmutableMap.<String, Class<? extends ResourceBaseService>>builder()
+          .put("HDFS", HdfsResourceSvc.class)
+          .put("YARN", YarnResourceSvc.class)
+          .put("HYPERBASE", HyperbaseResourceSvc.class)
+          .put("INCEPTOR", InceptorResourceSvc.class)
+          .put("SLIPSTREAM", InceptorResourceSvc.class)
+          .put("ZOOKEEPER", ZookeeperResourceSvc.class)
+          .put("SOPHON", SophonResourceSvc.class)
+          .put("WORKFLOW", WorkflowResourceSvc.class)
+          .put("RUBIK", RubikResourceSvc.class)
+          .put("PILOT", PilotResourceSvc.class)
+          .put("DISCOVER", DiscoverResourceSvc.class)
+          .put("NOTEBOOK", DiscoverResourceSvc.class)
+          .put("TRANSPORTER", TransporterResourceSvc.class)
+          .put("KAFKA", KafkaResourceSvc.class)
+          .put("ELASTICSEARCH", SearchResourceSvc.class)
+          .put("SLIPSTREAMSTUDIO", SlipstreamStudioResourceSvc.class)
+          .put("TCC", TccResourceSvc.class).build();
+
+
+Results :
+
+Failed tests: 
+  RubikResourceMgrTest.isResourceTypeMatchTest:16 null
+
+Tests in error: 
+  ResourceEntryTest.ofTest:12 » NullPointer
+  KerberosUtilsTest.loginTest:24 NullPointer
+  StudioCommonResourceMgrTest.getResourcesTest:28 » NullPointer
+  WorkflowResourceSvcTest.<init>:9 » NullPointer
+  WorkflowResourceSvcTest.<init>:9 » NullPointer
+  RubikResourceSvcTest.lookupResourceTest:19 » NullPointer
+  HyperbaseResourceSvcTest.<init>:8 » NullPointer
+  HyperbaseResourceSvcTest.<init>:8 » NullPointer
+  HyperbaseResourceMgrTest.getHyperbaseResourcesTest:18 » NullPointer
+  ResourceServiceInitializerTest.addServiceSuperuserTest:32 » NullPointer
+  KafkaResourceSvcTest.<init>:9 » NullPointer
+  KafkaResourceSvcTest.<init>:9 » NullPointer
+  KafkaResourceMgrTest.<init>:20 ClassCast io.transwarp.guardian.common.conf.Gua...
+  SearchResourceSvcTest.<init>:8 » NullPointer
+  SearchResourceSvcTest.<init>:8 » NullPointer
+  SearchResourceMgrTest.<init>:18 ClassCast io.transwarp.guardian.common.conf.Gu...
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnSiteProviderTest.overrideSchedulerConfAndReturnXmlTest:17 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  InceptorResourceSvcTest.lookupResource:20 » NullPointer
+  InceptorResourceSvcTest.getSchedulerType:25 » ClassCast io.transwarp.guardian....
+  InceptorResourceSvcTest.connectionTest:15 NullPointer
+  InceptorResourceMgrTest.getSchedulerType:26 ClassCast io.transwarp.guardian.co...
+  InceptorResourceMgrTest.getInceptorResources:43 NullPointer
+  ServiceQuotaInterpreterTest.supplementRelatedHdfsQuotaTest:45 NullPointer
+  HdfsResourceSvcTest.lookupResourceTest:17 » ClassCast io.transwarp.guardian.co...
+  HdfsResourceSvcTest.connectionTest:12 NullPointer
+  HdfsResourceMgrTest.<init>:15 ClassCast io.transwarp.guardian.common.conf.Guar...
+
+Tests run: 67, Failures: 1, Errors: 38, Skipped: 0
+
+@Test
+  public void testLookupResource() throws Exception {
+    System.setProperty("java.security.krb5.conf", "/home/qimeng/configuration/krb5.conf");
+    ResourceServiceManager rsMgr = ResourceServiceManager.getInstance();
+    Configuration conf = new Configuration();
+    conf.addResource(new Path("/home/qimeng/configuration/core-site.xml"));
+    conf.addResource(new Path("/home/qimeng/configuration/hdfs-site.xml"));
+    Iterator<Map.Entry<String, String>> it = conf.iterator();
+    Map<String, String> dummyConfigs = new HashMap<>();
+    while(it.hasNext()) {
+      Map.Entry<String, String> entry = it.next();
+      dummyConfigs.put(entry.getKey(), entry.getValue());
+    }
+    rsMgr.register(null, "hdfs", "hdfs1", "hdfs service", dummyConfigs);
+    ResourceLookupContext context = new ResourceLookupContext();
+    context.setUser("hdfs");
+    context.setResourceName("path");
+
+  }
+
+ public ResourceServiceManager(ApplicationContext context, ServiceManager serviceManager, ResourceManager resourceManager,
+                                ResourceServiceInitializer initializer) {
+
+  ApplicationContext context = new AnnotationConfigApplicationContext(TestConfiguration.class);
+  ResourceServiceInitializer resInit = new ResourceServiceInitializer(userManager, permManager);
+  ResourceServiceManager rsMgr = new ResourceServiceManager(context, serviceManager, resourceManager, resInit);
+
+
+@RunWith(SpringRunner.class)
+@ContextConfiguration(classes = TestConfiguration.class)
+
+  @Autowired
+  private ServiceManager serviceManager;
+  @Autowired
+  private ResourceManager resourceManager;
+  @Autowired
+  private UserManager userManager;
+  @Autowired
+  private PermManager permManager;
+
+  @Before
+  public void setUp() throws Exception {
+    serviceManager.deleteAllClusters(null);
+    serviceManager.deleteAllServices(null);
+  }
+
+        System.setProperty("java.security.krb5.conf", "/home/qimeng/inceptor1/krb5.conf");
+        /*
+        ResourceServiceManager rsMgr = ResourceServiceManager.getInstance();
+        Configuration conf = new Configuration();
+        conf.addResource(new Path("/home/qimeng/inceptor1/core-site.xml"));
+        conf.addResource(new Path("/home/qimeng/inceptor1/hive-site.xml"));
+        Iterator<Map.Entry<String, String>> it = conf.iterator();
+        Map<String, String> dummyConfigs = new HashMap<>();
+        while(it.hasNext()) {
+            Map.Entry<String, String> entry = it.next();
+            dummyConfigs.put(entry.getKey(), entry.getValue());
+        }
+        dummyConfigs.put("hive.server2.hostname", "tw-node1194");
+        dummyConfigs.put("hive.server2.thrift.port", "10000");
+        dummyConfigs.put("hive.server2.authentication.kerberos.principal", "hive/tw-node1194@TDH");
+        rsMgr.register("inceptor", "inceptor1", "inceptor service", dummyConfigs);
+
+        ResourceLookupContext context = new ResourceLookupContext();
+        context.setResourceName("database");
+        context.setUserInput("*");
+        context.setUser("");
+        List<String> list1 = rsMgr.lookupResource("INCEPTOR", "inceptor1", context);
+        for(String result : list1)
+            System.out.println(result);*/
+
+        try {
+            Class.forName("org.apache.hive.jdbc.HiveDriver");
+        } catch (ClassNotFoundException e) {
+        }
+
+        Configuration conf = new Configuration();
+        conf.set("hadoop.security.authentication", "kerberos");
+        UserGroupInformation.setConfiguration(conf);
+        // login user via KDC
+        UserGroupInformation ugi1 = UserGroupInformation.loginUserFromKeytabAndReturnUGI("hive@TDH", "/home/qimeng/hdfs1/hive.keytab");
+        Connection con1 = null;
+        try {
+            con1 = ugi1.doAs(new PrivilegedExceptionAction<Connection>() {
+                public Connection run() throws Exception {
+                    return DriverManager.getConnection("jdbc:hive2://tw-node1194:10000/default;principal=hive/tw-node1194@TDH");
+                }
+            });
+            System.out.println("Connection hive@TDH: " + ugi1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        if(con1 != null)
+        {
+
+            String tokenStrHive = ((HiveConnection) con1).getDelegationToken("hive", "hive@TDH");
+            String tokenStrAdmin = ((HiveConnection) con1).getDelegationToken("admin", "hive@TDH");
+            con1.close();
+
+            Token<DelegationTokenIdentifier> hive2TokenAdmin = new Token<>(), hive2TokenHive = new Token<>();
+            hive2TokenHive.decodeFromUrlString(tokenStrHive);
+            hive2TokenAdmin.decodeFromUrlString(tokenStrAdmin);
+
+
+            UserGroupInformation ugiHive = UserGroupInformation.createRemoteUser("hive");
+            ugiHive.addToken(new Text("hive2Token"), hive2TokenHive);
+            UserGroupInformation ugiAdmin = UserGroupInformation.createRemoteUser("admin");
+            ugiAdmin.addToken(new Text("hive2Token"), hive2TokenAdmin);
+
+            String sql = "show databases like \"*\"";
+
+            try {
+                Connection conHive = ugiHive.doAs(new PrivilegedExceptionAction<Connection>() {
+                    public Connection run() throws Exception {
+                        return DriverManager.getConnection("jdbc:hive2://tw-node1194:10000/default;auth=delegationToken");
+                    }
+                });
+                Statement statement = conHive.createStatement();
+                long start = System.currentTimeMillis();
+                ResultSet rs = statement.executeQuery(sql);
+                long end = System.currentTimeMillis();
+                System.out.println("Connection hive: " + ugiHive);
+                System.out.println("Time consumed: " + (end - start));
+                while(rs.next())
+                    System.out.println(rs.getString(1));
+                statement.close();
+                conHive.close();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                Connection conAdmin = ugiAdmin.doAs(new PrivilegedExceptionAction<Connection>() {
+                    public Connection run() throws Exception {
+                        return DriverManager.getConnection("jdbc:hive2://tw-node1194:10000/default;auth=delegationToken");
+                    }
+                });
+                Statement statement = conAdmin.createStatement();
+
+                long start = System.currentTimeMillis();
+                ResultSet rs = statement.executeQuery(sql);
+                long end = System.currentTimeMillis();
+                System.out.println("Connection admin: " + ugiAdmin);
+                System.out.println("Time consumed: " + (end - start));
+                while(rs.next())
+                    System.out.println(rs.getString(1));
+                statement.close();
+                conAdmin.close();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+Results :
+
+Failed tests: 
+  InceptorResourceMgrTest.getSchedulerType:29 expected null, but was:<ResourceEntry{entry=NodeVo{type='scheduler-type', value=''}, fullPath=[NodeVo{type='scheduler-type', value=''}], status=normal}>
+  
+ServiceQuotaInterpreterTest.supplementRelatedHdfsQuotaTest:48 expected:<[QuotaVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='dir', value='/'}], serviceType='HDFS', serviceName='service', externalId=0}, properties={key=value}}, QuotaVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='dir', value='/'}], serviceType='null', serviceName='service', externalId=0}, properties={key=value}}]> 
+but was:<[QuotaVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='dir', value='/'}], serviceType='HDFS', serviceName='service', externalId=0}, properties={key=value}}]>
+  
+HdfsResourceMgrTest.getHdfsResourcesTest:24 expected:<NodeVo{type='dir', value='/'}> but was:<[]>
+  ResourceEntryTest.ofTest:12 expected null, but was:<ResourceEntry{fullName='/', name='/', type=, status=NORMAL}>
+
+Tests in error: 
+  InceptorResourceMgrTest.getInceptorResources:45 NullPointer
+  InceptorResourceSvcTest.<init>:21 » NoSuchBeanDefinition No qualifying bean of...
+  InceptorResourceSvcTest.<init>:21 » NoSuchBeanDefinition No qualifying bean of...
+  InceptorResourceSvcTest.<init>:21 » NoSuchBeanDefinition No qualifying bean of...
+  SearchResourceSvcTest.<init>:14 » NullPointer
+  SearchResourceSvcTest.<init>:14 » NullPointer
+  SearchResourceMgrTest.getSearchResourcesTest:27 » NullPointer
+  KerberosUtilsTest.loginTest:22 » NullPointer
+  HdfsResourceSvcTest.<init>:21 » NoSuchBeanDefinition No qualifying bean of typ...
+  HdfsResourceSvcTest.<init>:21 » NoSuchBeanDefinition No qualifying bean of typ...
+  KafkaResourceMgrTest.<init>:20 ClassCast io.transwarp.guardian.common.conf.Gua...
+  KafkaResourceSvcTest.<init>:14 » NullPointer
+  KafkaResourceSvcTest.<init>:14 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnResourceSvcTest.<init>:8 » NullPointer
+  YarnSiteProviderTest.overrideSchedulerConfAndReturnXmlTest:17 » NullPointer
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnResourceMgrTest.<init>:19 ClassCast io.transwarp.guardian.common.conf.Guar...
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  HyperbaseResourceSvcTest.<init>:8 » NullPointer
+  HyperbaseResourceSvcTest.<init>:8 » NullPointer
+  HyperbaseResourceMgrTest.getHyperbaseResourcesTest:22 » Guardian ErrorCode: 56...
+  StudioCommonResourceMgrTest.getResourcesTest:27 » NullPointer
+  RubikResourceSvcTest.lookupResourceTest:19 » NullPointer
+  WorkflowResourceSvcTest.<init>:22 » NoSuchBeanDefinition No qualifying bean of...
+  WorkflowResourceSvcTest.<init>:22 » NoSuchBeanDefinition No qualifying bean of...
+  ResourceServiceInitializerTest.addServiceSuperuserTest:32 » NullPointer
+
+Tests run: 67, Failures: 4, Errors: 34, Skipped: 0
+
+0414 10:00
+Results :
+
+Failed tests: 
+  HdfsResourceMgrTest.getHdfsResourcesTest:24 expected:<NodeVo{type='dir', value='/'}> but was:<[ResourceEntry{entry=NodeVo{type='dir', value='/'}, fullPath=[NodeVo{type='dir', value='/'}], status=normal}]>
+  KafkaResourceMgrTest.getKafkaResourcesTest:35 
+expected:<ResourceEntry{entry=NodeVo{type='cluster', value='kafka-cluster'}, fullPath=[NodeVo{type='cluster', value='kafka-cluster'}], status=normal}> 
+but was:<[ResourceEntry{entry=NodeVo{type='cluster', value='kafka-cluster'}, fullPath=[NodeVo{type='cluster', value='kafka-cluster'}], status=normal}]>
+  ResourceEntryTest.ofTest:12 expected:<ResourceEntry{fullName='null', name='null', type=, status=NORMAL}> but was:<ResourceEntry{fullName='/', name='/', type=, status=NORMAL}>
+
+Tests in error: 
+  InceptorResourceMgrTest.getInceptorResources:49 NullPointer
+  InceptorResourceSvcTest.<init>:19 » NoSuchBeanDefinition No qualifying bean of...
+  InceptorResourceSvcTest.<init>:19 » NoSuchBeanDefinition No qualifying bean of...
+  InceptorResourceSvcTest.<init>:19 » NoSuchBeanDefinition No qualifying bean of...
+  SearchResourceSvcTest.<init>:12 » NoSuchBeanDefinition No qualifying bean of t...
+  SearchResourceSvcTest.<init>:12 » NoSuchBeanDefinition No qualifying bean of t...
+  SearchResourceMgrTest.getSearchResourcesTest:24 » NullPointer
+  KerberosUtilsTest.loginTest:22 » Guardian ErrorCode: 56003, ErrorMessage: Guar...
+  HdfsResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean of typ...
+  HdfsResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean of typ...
+  KafkaResourceSvcTest.<init>:12 » NoSuchBeanDefinition No qualifying bean of ty...
+  KafkaResourceSvcTest.<init>:12 » NoSuchBeanDefinition No qualifying bean of ty...
+  YarnResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean of typ..
+  YarnResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean of typ...
+  YarnResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean of typ...
+  YarnResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean of typ...
+  YarnResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean of typ...
+  YarnResourceMgrTest.genXmlConfTest:47 NullPointer
+  YarnResourceMgrTest.getInactiveQueuesTest:40 NullPointer
+  YarnResourceMgrTest.getYarnResourcesTest:30 » NullPointer
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  YarnQueueProviderTest.<init>:18 » GuardianClient ErrorCode: 50107, ErrorMessag...
+  HyperbaseResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean o...
+  HyperbaseResourceSvcTest.<init>:16 » NoSuchBeanDefinition No qualifying bean o...
+  HyperbaseResourceMgrTest.getHyperbaseResourcesTest:22 » Guardian ErrorCode: 56...
+  StudioCommonResourceMgrTest.getResourcesTest:27 » NullPointer
+  RubikResourceSvcTest.lookupResourceTest:19 » NullPointer
+  WorkflowResourceSvcTest.<init>:17 » NoSuchBeanDefinition No qualifying bean of...
+  WorkflowResourceSvcTest.<init>:17 » NoSuchBeanDefinition No qualifying bean of...
+  ResourceServiceInitializerTest.addServiceSuperuserTest:28 » NullPointer
+
+Tests run: 64, Failures: 3, Errors: 31, Skipped: 0
+
+ private List<ResourceEntry> getResourcesFromParentDataSource(SessionVo sessionVo, String user, List<NodeVo> parentDataSource,
+                                                               String resourceType, String prefix) throws GuardianException {
+
+@RunWith(SpringRunner.class)
+@EnableAutoConfiguration
+
+
+  public YarnResourceSvcTest(ApplicationContext context) {
+    this.yarnResourceSvc = context.getBean(YarnResourceSvc.class, context, "YARN",
+        "yarn1", "yarn service", dummyConfigs);
+  }
+
+
+Results :
+
+Failed tests: 
+  ResourceEntryTest.ofTest:16 expected: io.transwarp.guardian.resource.ResourceEntry<ResourceEntry{fullName='/', name='/', type=TEST_TEST1, status=NORMAL}> but was: io.transwarp.guardian.resource.ResourceEntry<ResourceEntry{fullName='/', name='/', type=TEST_TEST1, status=NORMAL}>
+
+Tests in error: 
+  InceptorResourceMgrTest.getInactivePools:33 NullPointer
+  InceptorResourceMgrTest.getInceptorResources:45 NullPointer
+  InceptorResourceSvcTest.<init>:22 » NullPointer
+  InceptorResourceSvcTest.<init>:22 » NullPointer
+  InceptorResourceSvcTest.<init>:22 » NullPointer
+  SearchResourceSvcTest.<init>:18 » NullPointer
+  SearchResourceSvcTest.<init>:18 » NullPointer
+  SearchResourceMgrTest.getSearchResourcesTest:21 » NullPointer
+  KerberosUtilsTest.loginTest » UnsatisfiedDependency Error creating bean with n...
+  ServiceQuotaInterpreterTest.supplementRelatedHdfsQuotaTest » UnsatisfiedDependency
+  ServiceQuotaInterpreterTest.decorateQuotaResourceTest » UnsatisfiedDependency ...
+  HdfsResourceMgrTest.getHdfsResourcesTest:29 » NullPointer
+  HdfsResourceSvcTest.<init>:16 » NullPointer
+  HdfsResourceSvcTest.<init>:16 » NullPointer
+  KafkaResourceMgrTest.getKafkaResourcesTest:37 » NullPointer
+  KafkaResourceSvcTest.<init>:10 » NullPointer
+  KafkaResourceSvcTest.<init>:10 » NullPointer
+  YarnResourceSvcTest.<init>:21 » NullPointer
+  YarnResourceSvcTest.<init>:21 » NullPointer
+  YarnResourceSvcTest.<init>:21 » NullPointer
+  YarnResourceSvcTest.<init>:21 » NullPointer
+  YarnResourceSvcTest.<init>:21 » NullPointer
+  YarnResourceMgrTest.genXmlConfTest:51 » NullPointer
+  YarnResourceMgrTest.getInactiveQueuesTest:44 » NullPointer
+  YarnResourceMgrTest.getYarnResourcesTest:32 » NullPointer
+  YarnQueueProviderTest.genFSXmlTest » UnsatisfiedDependency Error creating bean...
+  YarnQueueProviderTest.genCSXmlTest » UnsatisfiedDependency Error creating bean...
+  HyperbaseResourceSvcTest.<init>:21 » NullPointer
+  HyperbaseResourceSvcTest.<init>:21 » NullPointer
+  HyperbaseResourceMgrTest.getHyperbaseResourcesTest:22 » Guardian ErrorCode: 56...
+  StudioCommonResourceMgrTest.getResourcesTest:28 » NullPointer
+  RubikResourceSvcTest.<init>:23 » NullPointer
+  RubikResourceSvcTest.<init>:23 » NullPointer
+  WorkflowResourceSvcTest.<init>:22 » NullPointer
+  WorkflowResourceSvcTest.<init>:22 » NullPointer
+  ResourceServiceInitializerTest.addServiceSuperuserTest » UnsatisfiedDependency
+
+
+Tests in error: 
+  StudioCommonResourceMgrTest.getResourcesTest:28 » NullPointer
+  HyperbaseResourceMgrTest.getHyperbaseResourcesTest:22 » Guardian ErrorCode: 56...
+  ServiceQuotaInterpreterTest.supplementRelatedHdfsQuotaTest » UnsatisfiedDependency
+  ServiceQuotaInterpreterTest.decorateQuotaResourceTest » UnsatisfiedDependency ...
+  ResourceServiceInitializerTest.addServiceSuperuserTest » UnsatisfiedDependency
+  SearchResourceMgrTest.getSearchResourcesTest:40 » NullPointer
+  KerberosUtilsTest.loginTest » UnsatisfiedDependency Error creating bean with n...
+  YarnResourceMgrTest.genXmlConfTest:51 » NullPointer
+  YarnResourceMgrTest.getInactiveQueuesTest:44 » NullPointer
+  YarnResourceMgrTest.getYarnResourcesTest:32 » NullPointer
+  YarnQueueProviderTest.genFSXmlTest » UnsatisfiedDependency Error creating bean...
+  YarnQueueProviderTest.genCSXmlTest » UnsatisfiedDependency Error creating bean...
+  InceptorResourceMgrTest.getInactivePools:46 NullPointer
+  InceptorResourceMgrTest.getInceptorResources:56 NullPointer
+
+Tests run: 63, Failures: 0, Errors: 34, Skipped: 0
+
+1. sessionVo报空：kafka,search（getchildnode），yarn(getDescendantResources), studioCommon
+
+2. 所有的svc getbean初始化
+
+3. configuration初始化 取出用 guardian-plugin和guardian不同
+
+4. 扩充所有用例
+
+/home/transwarp/Downloads/work/guardian-backend/guardian/resource-manager/src/test/resources
+
+context.setSession(null);
+
+{"component":"yarn1",
+"dataSource":["CAPACITY_SCHEDULER","root","default"],
+"properties"{"maxAMResource":0.1,"userLimitFactor":1.0,
+"maximumCapacity":100.0,"state":"RUNNING","userLimit":100,
+"capacity":100.0,"maxApplications":10000}}
+
+1.租户管理员怎么定义
+2.版本
+3.需要做controller-
+
+  @RequireAdminPriv(AdminPriv.ADD_USER)
+
+AdminManager adminManager = AdminManager.getInstance();
+      if (adminManager.hasRole(session, null, Collections.singletonList(GuardianConstants.TOKEN_ADMIN_ROLE))) {
+        return true;
+      }
+
+ if (!skipCheckAccessWithService
+            && !AuthUtil.checkAuthorized(sessionVo, AdminPriv.READ_SERVICE)
+            && !AuthUtil.checkGlobalAdmin(sessionVo, serviceName)) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE, AdminPriv.READ_SERVICE);
+    }
+
+
+[{"roleName":"grantors","roleDescription":"predefined role: use which can grant the permission with grant option","users":[],"osPSet":[],"osUSet":[]},{"roleName":"role-viewer","roleDescription":"Role Viewer","users":[],"osPSet":[],"osUSet":[]},{"roleName":"perm-viewer","roleDescription":"Perm Viewer","users":[],"osPSet":[],"osUSet":[]},{"roleName":"tenant-owners","roleDescription":"predefined role: tenant-owners","users":[],"osPSet":[],"osUSet":[]},{"roleName":"role-admin","roleDescription":"Role Admin","users":["guardian/guardian","lzb"],"osPSet":[],"osUSet":[]},{"roleName":"perm-admin","roleDescription":"Perm Admin","users":["guardian/guardian"],"osPSet":[],"osUSet":[]},{"roleName":"service-admin","roleDescription":"Service Admin","users":[],"osPSet":[],"osUSet":[]},{"roleName":"super-admin","roleDescription":"Guardian Super User","users":["admin"],"osPSet":[],"osUSet":[]},{"roleName":"user-viewer","roleDescription":"User Viewer","users":[],"osPSet":[],"osUSet":[]},{"roleName":"user-admin","roleDescription":"User Admin","users":[],"osPSet":[],"osUSet":[]},{"roleName":"group-viewer","roleDescription":"Group Viewer","users":[],"osPSet":[],"osUSet":[]},{"roleName":"group-admin","roleDescription":"Group Admin","users":["guardian/guardian"],"osPSet":[],"osUSet":[]}]
+
+	// LoginCacheConns manages the cache capacity to login
+	LoginCacheConns = flag.Int64("login_cache_conns", 0, "Cache capacity to login"
+
+
+// GetWithExpiration returns an item and its expiration time from the cache.
+// It returns the item or nil, the expiration time if one is set (if the item
+// never expires a zero value for time.Time is returned), and a bool indicating
+// whether the key was found.
+func (c *cache) GetWithExpiration(k string) (interface{}, time.Time, bool) {
+	c.mu.RLock()
+	// "Inlining" of get and Expired
+	item, found := c.items[k]
+	if !found {
+		c.mu.RUnlock()
+		return nil, time.Time{}, false
+	}
+
+	if item.Expiration > 0 {
+		if time.Now().UnixNano() > item.Expiration {
+			c.mu.RUnlock()
+			return nil, time.Time{}, false
+		}
+
+		// Return the item and the expiration time
+		c.mu.RUnlock()
+		return item.Object, time.Unix(0, item.Expiration), true
+	}
+
+	// If expiration <= 0 (i.e. no expiration time set) then return the item
+	// and a zeroed time.Time
+	c.mu.RUnlock()
+	return item.Object, time.Time{}, true
+}
+
+
+			l, s, c, o := ldapCache.Stats()
+			log.Infof("cache msg:%v, %v, %v, %v", l, s, c, o)
+
+
+strings.LastIndex(remoteAddr, ":")
+
+func (lru *LRUCache) checkExpired(expireTime time.Duration) (ok bool) {
+	// Partially duplicated from Delete
+	lru.mu.Lock()
+	defer lru.mu.Unlock()
+
+	for e := lru.list.Back(); e != nil; e = e.Prev() {
+		oldest := e.Value.(*entry).timeAccessed
+		if oldest.Add(expireTime).Before(time.Now()) {
+			lru.list.Remove(e)
+			delete(lru.table, e.Value.(*entry).key)
+			lru.size -= e.Value.(*entry).size
+		} else {
+			return true
+		}
+	}
+	return false
+}
+
+ mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+
+ AdminManager adminManager = AdminManager.getInstance();
+    if (!(enableTokenAdminAccess && AuthUtil.checkAuthorized(sessionVo, AdminPriv.ADD_TOKEN))) {
+      
+    }
+    if (session != null && tokenVo != null && (!session.getUserId().equals(tokenVo.getOwner())) ||
+        adminManager.hasAnyRole(session, null, Arrays.asList(GuardianConstants.TOKEN_ADMIN_ROLE, GuardianConstants.TOKEN_VIEWER_ROLE))) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE,
+              "User " + session.getUserId() + " has no the permission to get access token of id " + id);
+    }
+
+
+dn: ftOpNm=createToken,ftObjNm=org.apache.directory.fortress.core.impl.AdminMgrImpl,ou=AdminPerms,ou=ARBAC,${guardian_ds_domain}
+objectClass: top
+objectClass: organizationalRole
+objectClass: ftOperation
+objectClass: ftProperties
+objectClass: ftMods
+cn: org.apache.directory.fortress.core.impl.AdminMgrImpl.createToken
+ftId: 9573a986-8543-5724-ac80-9496f7dee140
+ftObjNm: org.apache.directory.fortress.core.impl.AdminMgrImpl
+ftOpNm: createToken
+ftPermName: org.apache.directory.fortress.core.impl.AdminMgrImpl.createToken
+ftRoles: super-admin
+ftRoles: token-admin
+
+dn: ftOpNm=updateToken,ftObjNm=org.apache.directory.fortress.core.impl.AdminMgrImpl,ou=AdminPerms,ou=ARBAC,${guardian_ds_domain}
+objectClass: top
+objectClass: organizationalRole
+objectClass: ftOperation
+objectClass: ftProperties
+objectClass: ftMods
+cn: org.apache.directory.fortress.core.impl.AdminMgrImpl.updateToken
+ftId: 2a777deb-6922-4222-ae9f-d760c39331be
+ftObjNm: org.apache.directory.fortress.core.impl.AdminMgrImpl
+ftOpNm: updateToken
+ftPermName: org.apache.directory.fortress.core.impl.AdminMgrImpl.updateToken
+ftRoles: super-admin
+ftRoles: token-admin
+
+dn: ftOpNm=deleteToken,ftObjNm=org.apache.directory.fortress.core.impl.AdminMgrImpl,ou=AdminPerms,ou=ARBAC,${guardian_ds_domain}
+objectClass: top
+objectClass: organizationalRole
+objectClass: ftOperation
+objectClass: ftProperties
+objectClass: ftMods
+cn: org.apache.directory.fortress.core.impl.AdminMgrImpl.deleteToken
+ftId: b61cfa24-0cc0-4383-bb51-fc322f423a0d
+ftObjNm: org.apache.directory.fortress.core.impl.AdminMgrImpl
+ftOpNm: deleteToken
+ftPermName: org.apache.directory.fortress.core.impl.AdminMgrImpl.deleteToken
+ftRoles: super-admin
+ftRoles: token-admin
+
+  public static final String ADD_TOKEN_PERM = "createToken";
+  public static final String UPDATE_TOKEN_PERM = "updateToken";
+  public static final String DELETE_TOKEN_PERM = "deleteToken";
+  public static final String READ_TOKEN_PERM = "readToken";
+
+checkAccess
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+   <bean id="WorkflowResourceSvc" class="com.tutorialspoint.HelloWorld" 
+      scope="singleton">
+   </bean>
+
+</beans>
+
+WARP-7349
+
+<property>
+        <name>guardian.txsql.connection.url</name>
+        <value>jdbc:mysql://localhost:3306/guardian?characterEncoding=UTF-8&amp;allowMultiQueries=true</value>
+    </property>
+mysql -h127.0.0.1 -P3306 -uroot -p123456
+
+Caused by: com.mysql.jdbc.exceptions.jdbc4.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+
+2020-04-17 15:01:05,263 INFO org.flywaydb.core.internal.util.VersionPrinter: Flyway Community Edition 5.0.7 by Boxfuse
+2020-04-17 15:01:05,746 ERROR io.transwarp.guardian.persistence.flyway.SchemaMigrator: Exception occurred when migrating from location classpath:flyway
+org.flywaydb.core.internal.exception.FlywaySqlException: 
+Unable to obtain connection from database (jdbc:mysql://127.0.0.1:3306/guardian?characterEncoding=UTF-8&allowMultiQueries=true) for user 'root': Could not create connection to database server.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL State  : 08001
+Error Code : 0
+Message    : Could not create connection to database server.
+
+
+jdbc:mysql://127.0.0.1:3306/mysql
+root@172.17.0.1
+
+
+  <property>
+        <name>guardian.txsql.connection.url</name>
+        <value>jdbc:mysql://localhost:3307/guardian?characterEncoding=UTF-8&amp;allowMultiQueries=true</value>
+    </property>
+
+java.lang.ClassNotFoundException: io.transwarp.guardian.apacheds.synchronization.GuardianAuthenticationInterceptor
+        at java.net.URLClassLoader.findClass(URLClassLoader.java:382)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:419)
+        at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:352)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:352)
+        at java.lang.Class.forName0(Native Method)
+        at java.lang.Class.forName(Class.java:264)
+        at io.transwarp.guardian.apacheds.ApacheDsServer.createInterceptors(ApacheDsServer.java:558)
+        at io.transwarp.guardian.apacheds.ApacheDsServer.initConfigPartition(ApacheDsServer.java:435)
+        at io.transwarp.guardian.apacheds.ApacheDsServer.initDirectoryService(ApacheDsServer.java:312)
+        at io.transwarp.guardian.apacheds.ApacheDsServer.initialize(ApacheDsServer.java:254)
+        at io.transwarp.guardian.examples.StandaloneEnv.main(StandaloneEnv.java:13)
+Exception in thread "main" org.apache.directory.server.config.ConfigurationException: Cannot initialize the io.transwarp.guardian.apacheds.synchronization.GuardianAuthenticationInterceptor, error : java.lang.ClassNotFoundException: io.transwarp.guardian.apacheds.synchronization.GuardianAuthenticationInterceptor
+        at io.transwarp.guardian.apacheds.ApacheDsServer.createInterceptors(ApacheDsServer.java:610)
+        at io.transwarp.guardian.apacheds.ApacheDsServer.initConfigPartition(ApacheDsServer.java:435)
+        at io.transwarp.guardian.apacheds.ApacheDsServer.initDirectoryService(ApacheDsServer.java:312)
+        at io.transwarp.guardian.apacheds.ApacheDsServer.initialize(ApacheDsServer.java:254)
+        at io.transwarp.guardian.examples.StandaloneEnv.main(StandaloneEnv.java:13)
+transwarp@transwarp-Latitude-5480:~/Downloads/work/guardian-backend/guardian/test$ 
+
+ mysql -uroot -pTranswarp! -P17100 -h127.0.0.1
+
+getVSchema
+
+
+func (e *Executor) getVSchema(ctx context.Context, ksName string) (*vschemapb.Keyspace, error) {
+	keyspaceVSchema, err1 := e.topServ.GetVSchema(ctx, ksName)
+	if err1 == topo.ErrNoNode {
+
+mysql> show databases;
+Empty set (0.00 sec)
+
+mysql> create database kundb1;
+Query OK, 1 row affected (0.13 sec)
+
+mysql> use kundb1;
+Database changed
+mysql> 
+mysql> CREATE TABLE t1 (   id int(11),   name varchar(20),   PRIMARY KEY (`id`) ) ENGINE=InnoDB;
+Query OK, 0 rows affected (0.16 sec)
+
+mysql> show tables;
++------------------+
+| Tables_in_kundb1 |
++------------------+
+| t1               |
++------------------+
+1 row in set (0.00 sec)
+
+mysql> 
+mysql> insert into t1(id, name) values (1, 'Zhang'), (2, 'Li');
+Query OK, 2 rows affected (0.01 sec)
+
+mysql> select * from t1;
++----+-------+
+| id | name  |
++----+-------+
+|  1 | Zhang |
+|  2 | Li    |
++----+-------+
+2 rows in set (0.00 sec)
+
+mysql> create user lzb;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> grant select on t1 to lzb;
+Query OK, 0 rows affected (0.01 sec)
+
+show databases;
+create database kundb1;
+use kundb1;
+CREATE TABLE t1 (   id int(11),   name varchar(20),   PRIMARY KEY (`id`) ) ENGINE=InnoDB;
+show tables;
+insert into t1(id, name) values (1, 'Zhang'), (2, 'Li');
+select * from t1;
+create user lzb;
+grant select on t1 to lzb;
+
+
+if grant.GrantIdent.Schema.IsEmpty() {
+			return nil, fmt.Errorf("sql[%s] is should be executed here", sql)
+		}
+		originalSchema := grant.GrantIdent.Schema.String()
+		allKs, err := getAllKeyspaces(ctx, e.serv, e.cell)
+		if err != nil {
+			return nil, err
+		}
+		ksSQL := make(map[string]string)
+		for _, ks := range allKs {
+			shardSQL := sql
+			if ks != "_mfed" {
+				internalDb := schemautil.GenerateInternalDBName(ks, originalSchema)
+				shardSQL = strings.Replace(shardSQL, originalSchema, internalDb, 1)
+			}
+			ksSQL[ks] = shardSQL
+		}
+		grant.GrantIdent.Schema = sqlparser.NewTableIdent(originalSchema)
+		if err := e.execOnSchema2(ctx, session, ksSQL, bindVars); err != nil {
+			return nil, err
+		}
+	dclResult, err = e.execOnTarget(ctx, session, shardSQL, bindVars, querypb.Target{Keyspace: ks.String(), TabletType: topodatapb.TabletType_MASTER})
+			
+	if err := e.execOnSchema(ctx, session, sql, bindVars); err != nil {
+			return nil, err
+		}
+	dclResult, err = e.execOnTarget(ctx, session, sql, bindVars, querypb.Target{Keyspace: ksName, TabletType: topodatapb.TabletType_MASTER})
+
+
+	allKs, err := getAllKeyspaces(ctx, e.serv, e.cell)
+	if err != nil {
+		return err
+	}
+	// if map(failed) is not empty when exists for, this operation is failed
+	// tell user which keyspace of schema is failed, then user should repair it or revert it
+	for _, ks := range allKs {
+		if _, err := e.execOnTarget(ctx, session, sql, bindVars, querypb.Target{Keyspace: ks, TabletType: topodatapb.TabletType_MASTER}); err != nil {
+			log.Warningf("failed to execute sql[%s] in keyspace[%s]. err is %s", sql, ks, err.Error())
+			lastErr = err
+			failed = append(failed, ks)
+		}
+	}
+			

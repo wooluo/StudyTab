@@ -10,6 +10,7 @@
 2. 验证inceptor两个bug：revoke all和show grants报错
 3. 1236集群重装
 
+Accesstoken登陆hdfs、inceptor组件时，租户管理员可以增删改该租户下所有用户的AcessToken
 本周：
 1. 讨论inceptor权限，决定inceptor权限的解决方案
 2. WARP-43659： guardian resource-manager 单测覆盖率提升
@@ -404,6 +405,8 @@ servenv.LoginCache.Get(user)
 
 mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-ca=/etc/kundb1/conf/ca-cert.pem --ssl-cert=/etc/kundb1/conf/kungate-client-cert.pem --ssl-key=/etc/kundb1/conf/kungate-client-key.pem --ssl-mode=VERIFY_CA
 
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
 
 login_cache_conns
 
@@ -454,3 +457,5 @@ ResourceVo resourceVo = new ResourceVo("HDFS", "service", Arrays.asList(new Node
 
  // [] -> [<scheduler *>]
   // [<pool root.default.sub_queue>] -> [<scheduler *>, <queue root>, <queue default>, <queue sub_queue>]
+
+
