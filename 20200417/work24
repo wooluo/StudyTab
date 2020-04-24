@@ -767,6 +767,7 @@ Query OK, 0 rows affected (0.01 sec)
 mysql> grant select on t1 to lzb;
 Query OK, 0 rows affected (0.01 sec)
 
+case1
 show databases;
 create database kundb1;
 use kundb1;
@@ -777,6 +778,17 @@ select * from t1;
 create user lzb;
 grant select on t1 to lzb;
 
+case2
+CREATE TABLE t2 (   id int(11),   name varchar(20),   PRIMARY KEY (`id`) ) ENGINE=InnoDB;
+show tables;
+insert into t2(id, name) values (1, 'Zhang'), (2, 'Li');
+select * from t2;
+grant select(id) on t2 to lzb;
+
+case3
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+grant select(id) on customer to lzb;
 
 if grant.GrantIdent.Schema.IsEmpty() {
 			return nil, fmt.Errorf("sql[%s] is should be executed here", sql)
@@ -820,4 +832,54 @@ if grant.GrantIdent.Schema.IsEmpty() {
 			failed = append(failed, ks)
 		}
 	}
+
+
+		originalSchema := grant.GrantIdent.Schema.String()
+		allKs, err := getAllKeyspaces(ctx, e.serv, e.cell)
+		if err != nil {
+			return nil, err
+		}
+	ksSQL := make(map[string]string)
+		for _, ks := range allKs {
+			shardSQL := sql
+			internalDb := schemautil.GenerateInternalDBName(ks, originalSchema)
+			shardSQL = strings.Replace(shardSQL, originalSchema, internalDb, 1)
+			ksSQL[ks] = shardSQL
+		}
+		grant.GrantIdent.Schema = sqlparser.NewTableIdent(originalSchema)
+		if err := e.execOnSchema2(ctx, session, ksSQL, bindVars); err != nil {
+			return nil, err
+		}
+
+
+
+		if table, ok := tableOrView.(*vindexes.Table); ok {
+					if !table.Sharded {
+						target.Keyspace, target.Shard, _ = getFirstShard(ctx, e.serv, e.cell, target.Keyspace, topodatapb.TabletType_MASTER)
+						defer func() {
+							target.Shard = ""
+						}()
+					}
+				}
 			
+
+if strings.ToLower(keyspace) == "_mfed" || strings.ToLower(dbName) == "information_schema" || strings.ToLower(dbName) == "mysql" {
+		return strings.ToLower(keyspace), dbName, nil
+	}
+
+case sqlparser.ShowSchemasStr, sqlparser.ShowDatabasesStr, sqlparser.ShowKeyspacesStr:
+		schemas, err := getAllSchemas(ctx, e.serv, e.cell)
+		if err != nil {
+			return nil, err
+		}
+
+		rows := make([][]sqltypes.Value, len(schemas))
+		for i, v := range schemas {
+			rows[i] = buildVarCharRow(v)
+		}
+
+		return &sqltypes.Result{
+			Fields:       buildVarCharFields("Databases"),
+			Rows:         rows,
+			RowsAffected: uint64(len(rows)),
+		}, nil

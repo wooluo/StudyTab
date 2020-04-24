@@ -1,0 +1,324 @@
+show privileges;
+show databases;
+
+
+create database db1
+use db1;
+创建分片表customer:
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+创建普通表item1:
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal );
+
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+
+创建视图v:
+
+create view v as select age as value from db1.customer;
+
+创建用户test1(guardian里先创建有的用户）:
+
+create user test1;
+
+以下所有关于item1表的case，customer表也重新做一遍
+
+--------------------------------------------------------------------------
+case1: 赋予普通用户库，表，global级别的所有权限
+
+赋予全部权限，相当于global admin：
+
+grant all on *.* to test1; 
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on *.* from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+ 
+
+赋予特定库下的全部权限：
+
+grant all on db1.* to test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on db1.* from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+ 
+
+赋予用户特定库特定表的全部权限
+
+grant all on db1.item1 to test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on db1.item1 from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+ 
+
+进入库后，赋予用户一张表的全部权限：
+
+grant all on item1 to test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+撤销权限：
+
+revoke all on item1 from test1;
+
+查看test1用户权限：
+
+show grants for test1;
+
+------------------------------------------------------------------------------------
+
+case2: database权限的赋予和撤回 
+
+赋予普通用户针对数据库的create和drop操作权限：
+
+grant create, drop on *.* to test1;
+
+test1用户登陆，测试功能：
+
+create database db2;
+
+drop database db2;
+
+特权用户撤回test1权限：
+
+revoke create, drop on *.* from test1;
+
+ 
+
+------------------------------------------------------------------------------------
+
+case3: table权限的赋予和撤回
+
+赋予普通用户所有表的select, delete, insert, update, create, drop, alter, index, trigger, create view权限：
+
+grant select, delete, insert, update, create, drop, alter, index, trigger, create view on item1 to test1;
+
+test1用户测试功能：
+
+省略select, delete, insert, update, create, drop, alter，下边有重复的index, trigger, create view
+
+特权用户撤回test1权限：
+
+revoke select, delete, insert, update, create, drop, alter, index, trigger, create view on item1 from test1;
+
+ 
+
+------------------------------------------------------------------------------------
+
+case4:view， index, trigger权限的赋予和撤回
+创建视图的时候，用户必须在基表上有select权限，否则创建失败。
+
+赋予用户在表item1上的create view和index权限：
+
+grant select, create view on db1.* to test1;(WARP-44290: grant schema)
+
+test1用户测试功能：
+
+use db1;
+
+create view v2 as select price as dollar from db1.item1;  //测试create view
+
+create view v3 as select custname as name from db1.customer;
+
+
+赋予用户在表item1上的index权限：
+
+grant index, trigger on db1.* to test1; 
+
+test1用户测试功能：
+
+create index id1 on item1(price);   //测试index权限
+create index id2 on customer(age);
+
+赋予用户在表上的trigger权限：
+
+grant trigger on db1.* to test1; 
+
+delimiter $$
+CREATE TRIGGER tri_item_insert BEFORE INSERT ON item1 FOR EACH ROW BEGIN  insert into item1 values(6, 'baby', 35); END;$$
+delimiter; //测试trigger权限
+
+特权用户撤回test1权限：
+
+revoke create view, index, trigger on item1 from test1;
+
+
+特殊权限测试trigger权限:
+
+vt_app用户登陆（目前kundb不支持super权限的grant语法）
+
+delimiter $$
+
+CREATE  DEFINER=`test1`@`%` TRIGGER tri_item_insert BEFORE INSERT ON item1 FOR EACH ROW BEGIN         insert into item1 values(6, 'baby', 35); END;$$
+
+delimiter ;   
+
+
+------------------------------------------------------------------------------------
+
+ 
+
+case5: column 权限的赋予和撤回
+
+赋予用户在表item1上列price的权限：
+
+use db1;
+
+grant select(price),  update(price) on item1 to test1;
+
+grant select(age),  update(age) on customer to test1;
+
+切到test1用户测试功能：
+
+use db1;
+
+select price from item1;
+
+update item1 set price = 5;****
+
+select age from customer;
+
+update customer set age = 5;****
+
+特权用户撤回test1权限：
+
+ revoke select(price),  update(price) on item1 from test1;
+
+ 
+
+------------------------------------------------------------------------------------
+
+case6: routine权限的赋予和撤回
+
+ 赋予用户CREATE ROUTINE的权限：
+
+grant CREATE ROUTINE on db1.* to test1;
+
+test1测试：
+
+use db1;
+
+\d //
+create procedure proc1 ()
+begin
+insert into customer values(1, 'Kun', 33) ;
+end //
+\d ;
+
+
+vt_app 赋予用户执行和修改的权限：
+use db1;
+
+grant delete on db1.customer to test1;
+grant execute, alter routine on procedure proc1 to test1;
+
+test1测试：
+
+use db1;
+
+call proc1();
+
+ALTER  PROCEDURE  proc1
+
+MODIFIES SQL DATA
+
+SQL SECURITY INVOKER ;
+
+验证
+
+SELECT SPECIFIC_NAME,SQL_DATA_ACCESS,SECURITY_TYPE
+
+FROM information_schema.Routines
+
+WHERE ROUTINE_NAME='sp_hello_world' AND ROUTINE_TYPE='PROCEDURE';
+
+收回赋权
+
+ revoke execute, alter routine on proc1 from test1;
+
+
+
+ ------------------------------------------------------------------------------------
+
+case7: grant option权限的赋予和撤回
+grant grant option on customer to test1;【不支持grant grant option语法】
+revoke grant option on customer from test1;
+
+ ------------------------------------------------------------------------------------
+case8: create user权限
+grant create user on *.* to test1;
+
+test1测试：
+create user test2;
+
+验证：
+切回vt_app
+select user from mysql.user;
+
+ ------------------------------------------------------------------------------------
+
+case9: show databases/schemas
+
+vt_app:
+create database db2;
+
+test1:
+SHOW DATABASES;
+没有任何db2的权限 看不到db2
+
+ ------------------------------------------------------------------------------------
+
+case10: with grant option
+
+vt_app:
+grant select on db1.* to test1 with grant option;
+create user test2;
+test1:
+grant select on db1.* to test2;
+test2:
+use db1;
+select * from item1;
+
+
+case : 所有权限的撤回
+revoke all on *.* from test1;
+revoke all on db1,* from test1;
+show grants for test1;
+
+ 
+
+***mfed处理，需要更新最新的mariadb

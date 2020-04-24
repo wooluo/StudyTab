@@ -1,0 +1,536 @@
+work25
+1.并发
+合理运用锁，什么时候加锁什么时候解锁，防止脏数据；又要防止死锁活锁资源占用
+2.内存限制 ( 限制最大的可使用空间 )
+涉及到golang gc，缓存要对内存实际使用量做限制，内存激增同样会导致资源竞争问题
+Go 请求内存很容易，但释放给操作系统却很难。当碎片被清空的同时，goroutines 去访问 key 的时候，会开始分配内存空间，此时之前的内存空间并没有被完全释放，这导致内存的激增，甚至会出发 OOM 错误。
+我们没有意识到，访问的模式还受 Zipf 定律的束缚。最常访问的几个 key 仍然存在几个锁，因此产生 Goroutines 的竞争问题。这种方式不满足多核之间的扩展的需求。
+3.在多核和多 Goroutines 之间更好的扩展
+单机使用，或者只有一个请求者连续请求的情况下，缓存做到资源管理。多核多goroutine就会涉及到缓存动态扩展问题，业务量上来了怎么去迁移数据保证请求的资源最大限度发挥效用，往往会用到缓存分片
+4.在非随机密钥的情况下，很好地扩展 (eg. Zipf)
+齐夫定律可以表述为：在自然语言的语料库里，一个单词出现的频率与它在频率表里的排名成反比。所以，频率最高的单词出现的频率大约是出现频率第二位的单词的2倍，而出现频率第二位的单词则是出现频率第四位的单词的2倍。这个定律被作为任何与幂定律概率分布有关的事物的参考。搜索引擎经常用到这个定律。缓存这里可以想为zipf定律下如何合理分配缓存的key使得频率访问次数科学地使用缓存
+5.更高的缓存命中率
+由于内存速度比磁盘读写速度快很多，我们当然希望所有的请求热点数据都打到缓存上，充分利用内存以及CPU资源做到效益最大化
+涉及到gc处理
+
+
+go-cache
+安装方法：go get github.com/patrickmn/go-cache
+是一个运行在单机上的k/v缓存，相当于memcached，实现线程安全，可以带有过期时间访问清理。里面有cach0e和sharded cache两种，今年加入了单测可以看怎么去使用，value支持有限的数据类型不过可扩展，是一个比较老的实现，当成一个简单可用的demo是可以好的。
+
+FreeCache - A cache library for Go with zero GC overhead and high concurrent performance.
+https://github.com/coocood/freecache.git
+0gc过剩，支持高并发，支持lru，支持过期清理get，严格限制内存使用量，同时具有审计平均access时间，hitcount等功能，现在仍有活跃开发
+
+FreeCache 将缓存分成了 256 段，每段包括 256 个槽和一个 ring buffer 存储数据。set数据使用 hash 值下 8 位作为标识 id，通过使用 LSB 9-16 的值作为槽 ID。将数据分配到多个槽里面，有助于优化查询的时间 ( 分治策略 )。
+
+数据被存储在 每个槽的ring buffer 中，相当于一个排序的数组里面。如果 ring buffer 内存不足，则会利用 LRU 的策略在 ring buffer 逐个扫描，如果缓存的最后访问时间小于平均访问的时间，就会被删掉。要找到一个缓存内容，在槽中是通过二分查找法对一个已经排好的数据进行查询。
+
+sync包实现了两种锁Mutex （互斥锁）和RWMutex（读写锁）
+
+BIGCache
+https://github.com/allegro/bigcache.git
+参数如下，支持分片支持时间控制，支持最大cache空间限制，支持verbose开关 使用读写锁RWMUTEX读锁无消耗
+https://blog.csdn.net/chenbaoke/article/details/41957725
+Shards
+CleanWindow
+MaxEntriesInWindow
+MaxEntrySize
+Verbose
+HardMaxCacheSize
+OnRemove
+OnRemoveWithReason
+BigCache 会通过 Hash 的方式进行分片。 每个分片都包含一个 map 和一个 ring buffer。无论如何添加元素，都会将它放置在对应的 ring buffer 中，并将位置保存在 map 中。如果多次设置相同的元素，则 ring buffer 中的旧值则会被标记为无效，如果 ring buffer 太小，则会进行扩容。
+
+每个 map 的 key 都是一个 uint32 的 hash 值，每个值对应一个存储着元数据的 ring buffer。如果 hash 值碰撞了，BigCache 会忽略旧 key，然后把新的值存储到 map 中。预先分配更少，更大的 ring buffer，使用 map [uint32] uint32 是避免支付 GC 扫描成本的好方法
+
+BigCache 不能有效地利用缓冲区，并且可能会在缓冲区中为同一个键存储多个条目。
+BigCache 不更新访问 ( 读 ) 条目，因此会导致最近访问的键被删除
+
+GroupCache
+https://github.com/golang/groupcache.git
+星标最多的cache 支持shardByKey，P2P形式形成一个分布式缓存，更好的cachefilling，得益于p2p，cache不命中时只需要在其中的某个cache添加data即可，同时抛弃版本号的概念并支持把super-hot key备份到所有节点
+
+GroupCache 使用链表和 Map 实现了一个精准的 LRU 删除策略的缓存。为了进行公平的比较，我们在 GroupCache 的基础上，实现了一个包括 256 个分片的切片结构。
+
+for _, value := range result.Rows {
+			schema := value[0].ToString()
+			if strings.ToLower(schema) != "_vt" && strings.ToLower(schema) != "information_schema" && strings.ToLower(schema) != "mysql" &&
+				strings.ToLower(schema) != "vt__mfed" && strings.ToLower(schema) != "performance_schema" {
+				schemas = append(schemas, schema)
+			}
+		}
+
+mysql -h127.0.0.1 -P15307 -uvt_appdebug -pvtappdebug_password
+
+工作周报 - 李镇邦 20200413 ~ 20200417
+
+完成：
+1. WARP-43659: [guardian] ResourceManager单测提升 提升中需要一段时间夯实
+2. WARP-43107: [guardian] AccessToken添加admin权限 guardian3.1和3.2版本 本地已测过3.2
+3. WARP-43853: [kundb] ldap接口缓存优化，增加过期处理
+4. WARP-44290: [kundb]grant在schema不分片创建表时时报错表不存在
+5. WARP-41378: [kundb]schema处理后show database未赋权可见
+
+
+本周：
+1. 对kundb权限修改的部分进行审核 添加单测
+2. WARP-43659有些resource不存在的情况下更好的方法实现测试，启动配置
+3. 继续跟进guardian accesstoken权限完成后的测试 以及这个功能滚动升级可能存在的问题
+
+
+ ps aux | grep mariadb
+ mysql -h127.0.0.1 -P17800 -uroot -pTranswarp!
+
+https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_alter
+http://172.16.1.168:8090/pages/viewpage.action?pageId=23490750
+
+
+db1: vt_insert_test
+
+testTb1
+testTb2
+v
+nightly test
+docker run -it --rm --network host 172.16.1.99/kundb-ci/x86_64/bootstrap-ci:go1.14
+git clone http://172.16.1.41:10080/lishinho/kundb.git --depth=1 -b WARP-44346
+mv kundb vitess
+cd vitess && source dev.env
+GO111MODULE=off make build
+python privileges_test.py -v --skip-teardown --keep-logs --skip-build
+python mysqlalias_test.py -v --skip-teardown --keep-logs --skip-build
+
+[1]+  Stopped                 python privileges_test.py -v --skip-teardown --keep-logs --skip-build
+kundb@transwarp-Latitude-5480:/vt/src/github.com/youtube/vitess/test$ python privileges_test.py -v --skip-teardown --keep-logs --skip-build
+-- 2020-04-20 12:49:05,065 mysql_flavor:212 DEBUG Using MySQL flavor: MySQL56, setting MYSQL_FLAVOR=MySQL56 (<class 'mysql_flavor.MySQL56'>)
+-- 2020-04-20 12:49:05,094 environment:237 DEBUG Using protocols flavor 'grpc'
+-- 2020-04-20 12:49:05,095 server:66 DEBUG Using topo server flavor 'zk2'
+-- 2020-04-20 12:49:05,095 gateway:69 DEBUG Using VTGate gateway flavor 'discoverygateway'
+-- 2020-04-20 12:49:05,095 environment:145 DEBUG run: ['/vt/bin/zkctl', '-log_dir', '/vt/vtdataroot/tmp', '-zk.cfg', '1@transwarp-Latitude-5480:15012:15013:15014', 'init'] 
+-- 2020-04-20 12:49:05,125 utils:80 INFO ===== ERROR
+-- 2020-04-20 12:49:05,126 utils:80 INFO ===== ======================================================================
+-- 2020-04-20 12:49:05,126 utils:80 INFO ===== ERROR: setUpModule (__main__)
+-- 2020-04-20 12:49:05,127 utils:80 INFO ===== ----------------------------------------------------------------------
+-- 2020-04-20 12:49:05,127 utils:80 INFO ===== Traceback (most recent call last):
+  File "privileges_test.py", line 29, in setUpModule
+    environment.topo_server().setup()
+  File "/vt/src/github.com/youtube/vitess/test/topo_flavor/zk2.py", line 51, in setup
+    'init'])
+  File "/vt/src/github.com/youtube/vitess/test/environment.py", line 157, in run
+    stderr)
+Exception: Command failed: /vt/bin/zkctl -log_dir /vt/vtdataroot/tmp -zk.cfg 1@transwarp-Latitude-5480:15012:15013:15014 init:
+E0420 12:49:05.101458    9698 zkctl.go:89] failed init: zk already inited
+
+
+-- 2020-04-20 12:49:05,128 utils:80 INFO ===== ----------------------------------------------------------------------
+-- 2020-04-20 12:49:05,128 utils:80 INFO ===== Ran 0 tests in 0.031s
+-- 2020-04-20 12:49:05,128 utils:80 INFO ===== FAILED
+-- 2020-04-20 12:49:05,129 utils:80 INFO ===== FAILED (errors=1)
+-- 2020-04-20 12:49:05,129 utils:187 WARNING Leaving temporary files behind (--keep-logs), please clean up before next run: /vt/vtdataroot
+kundb@transwarp-Latitude-5480:/vt/src/github.com/youtube/vitess/test$ 
+
+guardian admin-assign接口有问题
+ {
+    "dataSource": [
+      "org.apache.directory.fortress.core.impl.AdminMgrImpl"
+    ],
+    "action": "addUser",
+    "heritable": false,
+    "grantable": false,
+    "administrative": true
+  },
+
+ jdbc:kundb://dft:111@168.66.136.100:15991/abc?useSSL=true&trustAllCA=true&nullCatalogMeansCurrent=true&defaultIdleTimeout=36000000
+
+I0421 02:23:36.476831    4062 vtgate.go:426] SQLLog: Session Info: 74be1298-478d-4d60-a856-e66a03645b81 , Executed sql: rollback, BindVariables: map[], Cost: 14.619µs
+W0421 02:23:36.512210    4062 vtgate.go:459] unexpected error when executing sql[create database db2], err is target: _mfed.0.master, used tablet: test_nj-62346 (localhost), vttablet: rpc error: code = Unknown desc = Access denied; you need (at least one of) the SUPER privilege(s) for this operation (errno 1227) (sqlstate 42000) during query: DROP SERVER IF EXISTS `db2`, CallerID: u1
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+本地登陆kundb
+mysql -h172.16.1.236 -P15307 -uadmin -padmin --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+
+   # test create/drop privileges on database
+    params['user'] = 'u1'
+    params['passwd'] = 'u1'
+    conn = MySQLdb.Connect(**params)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('create database db2', {})
+        self.fail('Execute went through')
+    except MySQLdb.OperationalError, e:
+        s = str(e)
+        self.assertIn('denied', s)
+    conn.close()
+
+    params['user'] = 'vt_app'
+    params['passwd'] = 'vt_app'
+    conn = MySQLdb.Connect(**params)
+    cursor = conn.cursor()
+    cursor.execute('grant create, drop on *.* to u1', {})
+    conn.close()
+
+    params['user'] = 'u1'
+    params['passwd'] = 'u1'
+    conn = MySQLdb.Connect(**params)
+    cursor = conn.cursor()
+    cursor.execute('create database db2')
+    cursor.execute('drop database db2')
+    conn.close()
+
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+
+// CheckDbName returns a error if the given name contains underline
+func CheckDbName(dbName string) error {
+	if strings.ContainsAny(dbName, underline) {
+		return fmt.Errorf("not support '_' in the name of database, while the database's name is %s", dbName)
+	}
+	if dbName == "mysql" {
+		return fmt.Errorf("not support 'mysql' as the name of database")
+	}
+	return nil
+}
+Q1 db1 exists
+Q2 
+
+WARP-41378->review
+WARP-44290->review
+WARP-44415->修改case，支持oracle暂不支持select procedure
+WARP-44406->ing cyj
+WARP-44389->ing cyj
+WARP-44350->ing lgy
+
+
+先整理case 然后测一遍
+把WARP-43107 guardian3.1完成 联通项目出包
+
+\d //
+create procedure proc1 ()
+begin
+update FROM item1 WHERE itemid=3;
+end //
+\d ;
+show procedure status;
+
+call proc0();
+
+ERROR 1142 (42000): vtgate: http://tw-node1236:15001/: target: _mfed.80-.master, used tablet: transwarp-810 (tw-node1237), vttablet: TRIGGER command denied to user 'wangbin'@'%' for table 'item1' (errno 1142) (sqlstate 42000) during query: insert into item1 values (3, 'Toy', 20), CallerID: vt_app
+
+
+DELIMITER //  
+CREATE PROCEDURE demo_in_parameter(IN p_in int)  
+BEGIN   
+SELECT p_in;   
+SET p_in=2;   
+SELECT p_in;   
+END;   
+//  
+DELIMITER ;
+
+
+
+
+    if (!skipCheckAccessWithService &&
+        !AuthUtil.checkAdminAccess(session, serviceVo.getServiceName()) &&
+        !AuthUtil.checkPermission(session, AdminManager.ADMIN_MGR, ADD)) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE, ADD);
+    }
+
+      if (!(enableTokenAdminAccess && (AuthUtil.checkPermission(session, AdminManager.ADMIN_MGR, ADD_TOKEN_PERM)))) {
+
+
+
+create_testTb2 = '''create table testTb2 (
+custid bigint,
+custname varchar(64),
+age int,
+primary key (custid)
+) partition by HASH(custid) using hash'''
+
+\d //
+create procedure proc1 ()
+begin
+insert into testtb2 values(1, 'Kun', 33) ;
+update testtb2 set custid=2;
+end //
+\d ;
+
+  543  sudo rm -rf TDH-Client/
+  544  rm -rf tdh-client.tar 
+  545  ls
+  546  sudo tar -xvf tdh-client.tar
+  547  ls
+  548  cd TDH-Client/
+  549  ls
+  550  source init.sh 
+  551  cd ~/tmp
+  552  ls
+  553  cd TDH-Client/
+  554  ls
+  555  cat init.sh 
+  556  ps -aux
+  557  ps -aux | grep init
+  558  ps -aux | grep kerberos
+  559  ls
+  560  source init.sh 
+  561  cd ~/tmp
+  562  ls
+  563  cd TDH-Client/
+  564  ls
+  565  source init.sh 
+  566  ls
+  567  cd -
+  568  cd ~/tmp
+  569  ls
+  570  cd TDH-Client/
+  571  ls
+  572  cat init.sh 
+  573  cat init.sh  | grep exit
+  574  cat init.sh  | grep -a2 exit
+  575  ls
+  576  vi init.sh 
+  577  ls
+  578  ls -al
+  579  ls
+  580  cd ../
+  581  ls
+  582  sudo chown -R transwarp:transwarp TDH-Client/
+  583  cd TDH-Client/
+  584  ls
+  585  vi init.sh 
+  586  ls
+  587  source init.sh 
+  588  ls
+  589  klist
+  590  hadoop fs -ls /
+  591  history 20
+  592  history 50
+
+http://172.26.5.46:8180/#/dashboard/status
+
+lzb/123
+
+
+  627  vi hosts 
+  628  hadoop fs -ls /
+  629  vi hosts 
+  630  cd ..
+  631  rm -rf TDH-Client/
+  632  ls
+  633  rm -rf tdh-client.tar 
+  634  ls
+  635  ps -ef |grep mysql
+  636  vim /vt/vtdataroot/vt_793535492/vt_0000062346/my.cnf
+  637  docker ps 
+  638  docker exec -it 6c35e09e4724 bash
+  639  exit
+  640  docker ps -ef |grep mysql
+  641  docker ps
+  642  docker rm 6c35e09e4724       
+  643  docker ps -a
+  644  ps -ef |grep mysql
+  645  cd /home/transwarp/go/src/github.com/youtube/vitess/
+  646  source dev.env 
+  647  cd test/
+  648  python
+  649  python privileges_test.py  -v --skip-teardown --keep-logs --skip-build
+  650  sudo apt-get install python-mysqldb
+  651  pip install mysql-python
+  652  python privileges_test.py  -v --skip-teardown --keep-logs --skip-build
+  653  ps -ef 
+  654  ps -ef |grep mysql
+  655  vi /home/transwarp/go/vtdataroot/vt_0000062344/my.cnf
+  656  vim ~/go/config/mycnf/master_mysql56.cnf 
+  657  vim ~/go/config/mycnf/master_mysql80.cnf 
+  658  vim ~/go/config/mycnf/master_mariadb.cnf 
+  659  vim ~/go/config/mycnf/mfed.cnf 
+  660  vim ~/go/config/mycnf/binlog_statement.cnf 
+  661  vim privileges_test.py 
+  662  vim st.py 
+  663  history 40
+
+if !ok {
+						return "", vterrors.Errorf(vtrpcpb.Code_NOT_FOUND, "keyspace %s not found in vschema", ksName)
+					}
+
+
+create_trigger = '''drop trigger if exists "Tri_Item_Insert"
+delimiter $$
+CREATE TRIGGER Tri_Item_Insert BEFORE INSERT ON testTb1 FOR EACH ROW
+BEGIN
+insert into testTb1 values(6, 'paper', 35);
+END;$$
+delimiter ;'''
+
+create_routines = '''
+\d //
+create procedure proc1 ()
+begin
+DELETE FROM testTb1 WHERE itemid=3;
+end //
+\d ;'''
+
+E0423 11:58:28.548425   27760 vtgate.go:429] SQLLog: Session Info: 4cfbd124-745a-45a0-9370-82a8446e788d db1, Executed sql: call proc1() , BindVariables: map[], Cost: 4.415642ms, Error: vtgate: http://transwarp-Latitude-5480:15015/: target: _mfed.0.master, used tablet: test_nj-62346 (localhost), vttablet: SELECT command denied to user 'u1'@'localhost' for column 'itemid' in table 'testtb1' (errno 1143) (sqlstate 42000) during query: call proc1() , CallerID: u1
+
+
+create_testTb1 = '''create table testTb1 (
+itemid bigint auto_increment,
+itemname varchar(64),
+price int,
+primary key (itemid)
+) Engine=InnoDB'''
+
+create_testTb2 = '''create table testTb2 (
+custid bigint,
+custname varchar(64),
+age int,
+primary key (custid)
+) partition by HASH(custid) using hash'''
+
+
+hadoop fs -mkdir /inceptor1-encrypt
+
+transwarp@transwarp-Latitude-5480:~/tmp/TDH-Client$ hadoop fs -mkdir /inceptor1-encrypt
+2020-04-23 14:17:53,178 INFO  [main] util.KerberosUtil (KerberosUtil.java:getDefaultPrincipalPattern(81)) - Using principal pattern: HTTP/_HOST
+-mkdir: Fatal internal error
+io.transwarp.guardian.federation.utils.oauth2.configuration.InvalidOAuth2ConfigurationException: Failed to extract client credential from file /etc/hdfs1/conf/client-credential.jks
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.ClientCredentialExtractingTransformer.transform(ClientCredentialExtractingTransformer.java:41)
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.ClientCredentialExtractingTransformer.transform(ClientCredentialExtractingTransformer.java:9)
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.OAuth2Configuration.transform(OAuth2Configuration.java:61)
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.OAuth2ConfigurationFactory.getConf(OAuth2ConfigurationFactory.java:21)
+	at org.apache.hadoop.security.SecurityUtil.getOAuth2Conf(SecurityUtil.java:674)
+	at org.apache.hadoop.security.SaslRpcServer.init(SaslRpcServer.java:202)
+	at org.apache.hadoop.ipc.RPC.getProtocolProxy(RPC.java:575)
+	at org.apache.hadoop.hdfs.NameNodeProxies.createNNProxyWithClientProtocol(NameNodeProxies.java:428)
+	at org.apache.hadoop.hdfs.NameNodeProxies.createNonHAProxy(NameNodeProxies.java:324)
+	at org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider.getProxy(ConfiguredFailoverProxyProvider.java:138)
+	at org.apache.hadoop.io.retry.RetryInvocationHandler.<init>(RetryInvocationHandler.java:73)
+	at org.apache.hadoop.io.retry.RetryInvocationHandler.<init>(RetryInvocationHandler.java:64)
+	at org.apache.hadoop.io.retry.RetryProxy.create(RetryProxy.java:58)
+	at org.apache.hadoop.hdfs.NameNodeProxies.createProxy(NameNodeProxies.java:181)
+	at org.apache.hadoop.hdfs.DFSClient.<init>(DFSClient.java:687)
+	at org.apache.hadoop.hdfs.DFSClient.<init>(DFSClient.java:628)
+/////////||////////////////////////////////////////////////////////////////////////////////////////////////////
+	at org.apache.hadoop.hdfs.DistributedFileSystem.initialize(DistributedFileSystem.java:149)
+	at org.apache.hadoop.fs.FileSystem.createFileSystem(FileSystem.java:2667)
+	at org.apache.hadoop.fs.FileSystem.access$200(FileSystem.java:93)
+	at org.apache.hadoop.fs.FileSystem$Cache.getInternal(FileSystem.java:2718)
+	at org.apache.hadoop.fs.FileSystem$Cache.get(FileSystem.java:2700)
+	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:372)
+	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:171)
+	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:356)
+	at org.apache.hadoop.fs.Path.getFileSystem(Path.java:295)
+	at org.apache.hadoop.fs.shell.PathData.expandAsGlob(PathData.java:325)
+	at org.apache.hadoop.fs.shell.Command.expandArgument(Command.java:235)
+	at org.apache.hadoop.fs.shell.Command.expandArguments(Command.java:218)
+	at org.apache.hadoop.fs.shell.Command.processRawArguments(Command.java:201)
+	at org.apache.hadoop.fs.shell.Command.run(Command.java:165)
+	at org.apache.hadoop.fs.FsShell.run(FsShell.java:287)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:70)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:84)
+	at org.apache.hadoop.fs.FsShell.main(FsShell.java:340)
+
+在使用HDFS的API进行读写操作前都会对FileSystem进行初始化。并且让客户端创建namenode的通信代理代理用于进行RPC通信。
+HADOOP_SECURITY_AUTHENTICATION_OAUTH2_ENABLED -》false
+
+      for (EntityPermissionVo epVo : perms2EntityPermissionVo(perms)) {
+        if (StringUtils.isNotEmpty(epVo.getName())) {
+          epVos.add(epVo);
+        }
+      }
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \ 
+   "isSystem": false, \ 
+   "password": "admin", \ 
+   "username": "admin" \ 
+ }' 'https://172.26.0.38:8380/api/v1/login'
+
+curl -X GET --header 'Accept: application/json' 'http://172.26.5.46:8380/api/v1/perms/component/inceptor1/dataSource/**?subtree=true&pageSize=-1&sorting=false'
+
+
+    List<Permission> findPermissionsByFilters( String contextId, String user, String role, String group,
+        PermFilterParams filter)
+        throws FinderException
+    {
+        List<Permission> permList = new ArrayList<>();
+        LdapConnection ld = null;
+        PermObj permObj = new PermObj( filter.getDataSource(), filter.getComponent() );
+        String permObjDn = getDn( permObj, contextId );
+
+        try
+        {
+            String _user = Rdn.escapeValue( user );
+            String _group = Rdn.escapeValue( group );
+            String _role = Rdn.escapeValue( role );
+            String _prefix = Rdn.escapeValue( filter.getPrefix() );
+            StringBuilder filterbuf = new StringBuilder();
+            filterbuf.append( GlobalIds.FILTER_PREFIX );
+            filterbuf.append( PERM_OP_OBJECT_CLASS_NAME );
+            filterbuf.append( ")" );
+
+            filterbuf.append(")");
+            ld = getAdminConnection( true );
+
+            SearchCursor searchResults;
+            if ( filter.getPageSize() >= 0 ) {
+                // Search paged result
+                searchResults = search( ld, permObjDn, filter.getScope(),
+                    filterbuf.toString(), PERMISSION_OP_ATRS, false, filter.getPagingCookie(), filter.getPageSize());
+            } else {
+                searchResults = search( ld, permObjDn,
+                    filter.getScope(), filterbuf.toString(), PERMISSION_OP_ATRS, false, 0 );
+            }
+
+            long sequence = 0;
+
+            while ( searchResults.next() )
+            {
+                permList.add( unloadPopLdapEntry( searchResults.getEntry(), sequence++, false ) );
+            }
+
+            pagedSearchDone( searchResults, filter );
+        }
+        catch ( LdapException e )
+        {
+            String error = "findAnyPermissions caught LdapException=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_SEARCH_FAILED, error, e );
+        }
+        catch ( CursorException e )
+        {
+            String error = "findAnyPermissions caught CursorException=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_SEARCH_FAILED, error, e );
+        }
+        finally
+        {
+            closeAdminConnection( ld );
+        }
+        return permList;
+    }
+
+mysql binlog rbr sbr
+
+ if (session == null) {
+        throw new GuardianException(ErrorCodes.PARAMETERS_ERROR, "parameter owner is needed");
+      } else if (enableTokenAdminAccess && AuthUtil.checkPermission(session, AdminManager.ADMIN_MGR, FIND_TOKENS_PERM)) {
+        return tokenDao.getAccessTokenByOwner(owner);
+      }
+
+
+ database.  Cause: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'owner' in 'class java.lang.String'\n### Cause: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'owner' in 'class java.lang.String'",
+  "detailMessage": "org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'owner' in 'class java.lang.String'\n\tat org.apache.ibatis.reflection.Reflector.getGetInvoker(Reflector.java:422)\n\tat org.apache.ibatis.reflection.MetaClass.getGetInvoker(MetaClass.java:164)\n\tat org.apache.ibatis.reflection.wrapper.BeanWrapper.getBeanProperty(BeanWrapper.java:162)\n\tat org.apache.ibatis.reflection.wrapper.BeanWrapper.
+
+
+// Original user get owner from session if input owner is empty
+      if (session == null) {
+        throw new GuardianException(ErrorCodes.PARAMETERS_ERROR, "parameter owner is needed");
+      }
+      owner = session.getUserId();
+
+Client的通过RPC的Proxy与NameNode交互。在client端会有两个代理同时存在，分别代表与Active和Standby的NameNode的连接。由于Client端有Retry机制，当与Active NameNode正常通信的client proxy收到RPC返回的StandbyException时，说明这个Active NameNode已经变成了Standby模式，所以触发dfs.client.failover.proxy.provider.[nameservice ID]这个参数指定的类来做failover，目前唯一的实现是ConfiguredFailoverProxyProvider，实现方法就是下次开始把RPC发向另外一个NameNode。此后的RPC都是发往另外一个NameNode，也就是NameNode发生了主从切换。
