@@ -97,6 +97,7 @@ revoke all on item1 from test1;
 
 show grants for test1;
 
+
 ------------------------------------------------------------------------------------
 
 case2: database权限的赋予和撤回 
@@ -132,7 +133,6 @@ test1用户测试功能：
 特权用户撤回test1权限：
 
 revoke select, delete, insert, update, create, drop, alter, index, trigger, create view on item1 from test1;
-
  
 
 ------------------------------------------------------------------------------------

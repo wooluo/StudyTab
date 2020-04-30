@@ -1,0 +1,279 @@
+工作周报 - 李镇邦 20200420 ~ 20200424
+
+完成：
+1. WARP-44346: [Kundb] 增加权限审查单测去保证权限部分功能 nightly-regression test
+2. WARP-41378: [kundb] 修改实现方法，取schema和mfed取回结果交集
+3. WARP-44058: [TDH] 使用TDH-client的OAUth报错
+4. WARP-43781: [guardian] guardian server的search接口返空问题，在guardian-plugin修改
+5. WARP-43107: [guardian]修改使用方式 增加findtokens接口，赋给useradmin使用
+
+
+本周：
+1. 修改WARP-43339的升级脚本 联通DCOS出包
+2. 测试TDH-client的修改效果
+3. resource-manager单测覆盖修改提交
+
+
+020-04-26 13:48:08,310 INFO rest.HttpClient: Trying to perform authentication in PLAIN mode with username: admin, isSystem: false
+2020-04-26 13:48:09,230 INFO v2.PeriodCacheUpdater: Fetch change version: 16270
+2020-04-26 13:48:09,230 DEBUG v2.PeriodCacheUpdater: Change list size: #4
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}, NodeVo{type='TB', value='tb'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,356 DEBUG cache.PeriodCacheUpdater: PeriodCacheUpdater is running.
+2020-04-26 13:48:09,360 INFO cache.PeriodCacheUpdater: Fetch change version: 16251
+2020-04-26 13:48:09,360 DEBUG cache.PeriodCacheUpdater: Change list is empty
+2020-04-26 13:48:09,360 DEBUG cache.PeriodCacheUpdater: Change list is empty
+2020-04-26 13:48:09,382 INFO v2.PeriodCacheUpdater: Fetch change version: 16270
+2020-04-26 13:48:09,382 DEBUG v2.PeriodCacheUpdater: Change list size: #4
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}, NodeVo{type='TB', value='tb'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,916 INFO v2.ResourceTreeCache: Timed removing guardian cache invalid nodes
+2020-04-26 13:48:09,916 INFO v2.ResourceTreeCache: Remove invalid resource node count [0] for component [AUBoZRestClientQuotaCacheTesthdfs1]
+2020-04-26 13:48:09,916 INFO v2.ResourceTreeCache: Remove invalid resource node count [0] for component [AUBoZRestClientQuotaCacheTestinceptor1]
+
+NodeVo{type='DATABASE', value='default'}], serviceType='INCEPTOR', serviceName='metastoreId', externalId=0}, permActionVo=PermActionVo{action='SELECT'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestrequestUser], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DATABASE', value='default'}], serviceType='INCEPTOR', serviceName='metastoreId', externalId=0}, permActionVo=PermActionVo{action='CREATE'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestrequestUser], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DATABASE', value='system'}], serviceType='INCEPTOR', serviceName='metastoreId', externalId=0}, permActionVo=PermActionVo{action='SELECT'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=REVOKED}]
+
+      // Token owner himself or READ_TOKEN_PERM user can read token with owner given
+// FIND_TOKEN_PERM user can read all tokens by giving owner with null
+
+HADOOP_SECURITY_AUTHENTICATION_OAUTH2_ENABLED
+
+
+    UserGroupInformation.AuthenticationMethod confAuthenticationMethod =
+        SecurityUtil.getAuthenticationMethod(conf);
+    if (confAuthenticationMethod == UserGroupInformation.AuthenticationMethod.OAUTHBEARER) {
+      oAuth2Conf = SecurityUtil.getOAuth2Conf(conf);
+      if (oAuth2Conf != null) {
+        Security.addProvider(new OAuth2Server.OAuth2SaslServerProvider());
+      }
+    }
+
+ 1005  source /etc/profile
+ 1008  JAVA_HOME=$JAVA_HOME_7
+
+jar tvf 
+
+ldif/adminPerms.ldif
+
+
+apacheds镜像[root@tw-node1237 guardian-apacheds]# ls
+apacheds-backend-guardian-3.1.3.jar  default-conf  lib  scripts
+r | grep adminPerms.ldifan-apacheds]# jar tvf apacheds-backend-guardian-3.1.3.jar
+ 93329 Thu Mar 05 19:25:00 CST 2020 ldif/adminPerms.ldif
+[root@tw-node1237 guardian-apacheds]# pwd
+/usr/lib/guardian-apacheds
+
+ jar tvf apacheds-backend-guardian-3.1.3.jar | grep adminPerms.ldif
+jar xvf apacheds-backend-guardian-3.1.3.jar  ldif/adminPerms.ldif
+jar uvf apacheds-backend-guardian-3.1.3.jar ldif/adminPerms.ldif
+
+api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 lib]# jar tvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar | grep m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+   355 Thu Mar 05 19:19:30 CST 2020 schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 lib]# jar xvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+/usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 ~]# jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 ~]# ls
+
+/guardian/data
+
+jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+GUARDIAN_ENABLE_TOKEN_ADMIN
+
+if (session != null && !session.getUserId().equals(accessTokenVo.getOwner()) && !checkTokenAdminPerm(session, ADD_TOKEN_PERM)) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE,
+          "User " + session.getUserId() + " has no permission to generate access token for user "
+              + accessTokenVo.getOwner());
+
+    if (sessionVo != null && !sessionVo.getUserId().equals(accessTokenVo.getOwner())
+        && !checkTokenAdminPerm(sessionVo, AdminPriv.CREATE_TOKEN)) {
+    if (session != null && !session.getUserId().equals(accessTokenVo.getOwner()) && !checkTokenAdminPerm(session, AdminPriv.CREATE_TOKEN)) {
+
+    if (session != null && !session.getUserId().equals(accessTokenVo.getOwner()) && !checkTokenAdminPerm(session, ADD_TOKEN_PERM)) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE,
+          "User " + session.getUserId() + " has no permission to generate access token for user "
+              + accessTokenVo.getOwner());
+    }
+
+mvn test -Dtest=[ClassName]
+
+运行测试类中指定的方法：(这个需要maven-surefire-plugin:2.7.3以上版本才能支持)
+ 
+>mvn test -Dtest=[ClassName]#[MethodName]
+//[MethodName]为要运行的方法名，支持*通配符，范例：
+>mvn test -Dtest=MyClassTest#test1
+
+GUARDIAN_SERVER_PRINCIPAL
+>mvn test -Dtest=MyClassTest#*test*
+mvn test -Dtest=AccessTokenManagerV2Test
+
+、运行应用程序中的单元测试：mvn test或mvn test -Dtest=***Test， 其中“***Test"为被测试用例的类名（不需要输入.java）         打开控制台，进入测试工程所在目录：D:\workspace-sell\sell-qatest路径；输入mvn test命令后，开始执行sell-qatest中的所有测试脚本，并将信息输出到控制台。         如果要单独运行一个测试类里的用例，如 publishAuctionTest.java，则可以运行 mvn test -Dtest=publishAuctionTest2、清除目标目录中的生成结果：mvn clean（清除taget文件夹中内容）3、在本地repo中安装jar：mvn install。运行命令后工程根目录下生成target文件夹，文件夹内存放jar包，class文件夹等内容。本地仓库repo中生成工程jar包目录。4、将工程打包：mvn package。运行命令后工程根目录下生成target文件夹，文件夹内存放jar包，class文件夹等内容。5、生成Eclipse项目文件：mvn eclipse:eclipse。运行命令后生成eclipse工程，项目的根目录下产生.project、.classpath文件和target文件夹。将该工程导入到eclipse中：打开eclipse，通过file->import，导入到eclipse中。6、清除Eclipse工程：mvn eclipse:clean。.classpath和.project文件会被删除。7、在运行install 或package时，测试代码不被执行：第一种方法：在cmd运行mvn install 或mvn package 命令后加上-Dmaven.test.skip=true 。例如：mvn install -Dmaven.test.skip=true第二种方法：在pom.xml文件的maven-surefire-plugin插件中添加参数：<skip>true</skip><plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><inherited>true</inherited><configuration><skip>true</skip></configuration></plugin>
+
+mvn -Dtest=HdfsResourceMgrTest  -DfailIfNoTests=false test
+mvn test -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false
+Tests in error: 
+  getAccessTokenByIdTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test)
+  deleteAccessTokenTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test): ErrorCode: 403, ErrorMessage: Permission denied: All of permissions [[assignAdminRole]] required of user [GVLTfAccessTokenManagerV2Test-u1]
+  createAccessTokenTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test): ErrorCode: 403, ErrorMessage: Permission denied: User GVLTfAccessTokenManagerV2Test-u1 has no permission to generate access token for user GVLTfAccessTokenManagerV2Test-u2
+  updateAccessTokenByIdTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test): ErrorCode: 63100, ErrorMessage: Cannot find the access token of id 123456
+
+mvn -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false test
+
+services
+{"serviceName":"hdfs1","serviceType":"HDFS","description":"description","serviceHosts":["tw-node1237","tw-node1238"],"timestamp":1586427963065}]
+serviceMapping
+{"hdfs1":"hdfs1","inceptor1":"inceptor1","yarn1":"yarn1"}
+searchPrincipals?component=hdfs1&dataSource=GLOBAL&action=ADMIN
+{"users":["admin","hdfs"],"groups":[],"roles":[]}
+
+resourceLookupVo
+{
+  "resources": {
+"name": ["123","124"]},
+  "serviceName": "hdfs1",
+  "serviceType": "HDFS",
+  "userInput": "aaa"
+}
+
+
+resourcemanager里没有引用presistence中的apacheds导致bean初始化失败
+
+[root@tw-node1237 ou=attributetypes]# pwd
+/guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes
+
+ + for FILE in '$UPDATE_FILES'
++ '[' '!' -f /guardian/data//partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif ']'
++ jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar /guardian/data//partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
++ echo 'Adding /guardian/data//partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif'
+
+cd $DATA_DIR
+mkdir upgrade_backup
+[ -d backup ] && cp -r backup/ upgrade_backup/
+[ -d conf ] && cp -r conf/ upgrade_backup/
+[ -d log ] && cp -r log/ upgrade_backup/
+[ -d partitions ] && cp -r partitions/ upgrade_backup/
+[ -d run ] && cp -r run/ upgrade_backup/
+
+
+#Update password policy
+echo "Starting Upgrade for password policy"
+
+
+UPDATE_FILES="$LDIF_DIR/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+$LDIF_DIR/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+$LDIF_DIR/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif
+$LDIF_DIR/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
+$LDIF_DIR/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+$LDIF_DIR/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif"
+jarSource=/usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+set -x
+#Add files
+for FILE in $UPDATE_FILES
+do
+  if [ ! -f "$FILE" ]; then
+    jar xvf $jarSource $FILE
+    echo "Adding $FILE"
+  fi
+done
+set +x
+
+
+mysql -h172.16.1.196 -P3306 -uroot -p
+
+{
+  "returnCode": 4002,
+  "errorMessage": "Failed to update password policy",
+  "detailMessage": "org.apache.directory.fortress.core.UpdateException: update name [default] caught LdapException=OBJECT_CLASS_VIOLATION: failed for MessageType : MODIFY_REQUEST\nMessage ID : 24\n    Modify Request\n        Object : 'ads-pwdid=default,ou=passwordPolicies,ads-interceptorid=authenticationInterceptor,ou=interceptors,ads-directoryserviceid=default,ou=config'\n            Modification[0]\n                Operation :  replace\n                Modification\nads-pwdMinAge: 0            Modification[1]\n                Operation :  replace\n                Modification\nads-pwdMaxAge: 0            Modification[2]\n                Operation :  replace\n                Modification\nads-pwdInHistory: 0            Modification[3]\n                Operation :  replace\n                Modification\nads-pwdCheckQuality: 1            Modification[4]\n                Operation :  replace\n                Modification\nads-pwdMinLength: 0            Modification[5]\n                Operation :  replace\n                Modification\nads-pwdExpireWarning: 600            Modification[6]\n                Operation :  replace\n                Modification\nads-pwdGraceAuthNLimit: 5            Modification[7]\n                Operation :  replace\n                Modification\nads-pwdLockout: TRUE          
+
+ads-pwdInHistoryDuration: 0org.apache.directory.api.ldap.model.message.ModifyRequestImpl@b629761a: ERR_277 Attribute ads-pwdMinClasses not declared in objectClasses of entry ads-pwdid=default,ou=passwordPolicies,ads-interceptorid=authenticationInterceptor,ou=interceptors,ads-directoryserviceid=default,ou=config
+        at org.apache.directory.api.ldap.model.message.ResultCodeEnum.processResponse(ResultCodeEnum.java:2083)
+        at org.apache.directory.ldap.client.api.LdapNetworkConnection.modify(LdapNetworkConnection.java:2328)
+        at org.apache.directory.ldap.client.api.LdapNetworkConnection.modify(LdapNetworkConnection.java:2337)
+        at org.apache.directory.ldap.client.api.LdapConnectionWrapper.modify(LdapConnectionWrapper.java:238)
+        at org.apache.directory.fortress.core.ldap.LdapDataProvider.modify(LdapDataProvider.java:284)
+        at org.apache.directory.fortress.core.impl.PolicyDAO.update(PolicyDAO.java:423)
+        ... 109 more
+2020-04-29 11:57:48,455 ERROR io.transwarp.guardian.server.boot.exception.GuardianExceptionHandler: Exception occurs and handled by GuardianExceptionHandler:
+2020-04-29 11:57:48,455 WARN io.transwarp.guardian.common.util.ResourceUtil: Can not find string by key 4002 in resource guardian-error
+io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 4002, ErrorMessage: Failed to update password policy
+        at io.transwarp.guardian.core.manager.AdminManager.updatePasswordPolicy(AdminManager.java:384)
+        at io.transwarp.guardian.server.boot.controller.AdminController.updatePasswordPolicy(AdminController.java:246)
+        at io.transwarp.guardian.server.boot.controller.AdminController$$FastClassBySpringCGLIB$$80ed8f21.invoke(<generated>)
+        at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:204)
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/TDH.tar.gz
+
+http://172.16.1.112:8180/#/dashboard/status
+
+020年 04月 29日 星期三 17:01:11 CST
+[root@tw-node1112 ~]# date -s "2020-04-29 18:13:30"
+2020年 04月 29日 星期三 18:13:30 CST
+[root@tw-node1112 ~]# date
+2020年 04月 29日 星期三 18:13:33 CST
+[root@tw-node1112 ~]# hwclock -w
+[root@tw-node1112 ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+
+    List<String> namespaces = new ArrayList<>();
+    namespaces.add("default");
+    List<String> tables = new ArrayList<>();
+    tables.add("default:tb2");
+    List<String> columnFamilies = new ArrayList<>();
+    columnFamilies.add("default:tb2:f_tb2_1");
+    Map<String, List<String>> existingResources = new HashMap();
+    existingResources.put("table", tables);
+    existingResources.put("column-family", columnFamilies);
+    existingResources.put("namespace", namespaces);
+    lookupContext.setResources(existingResources);
+    lookupContext.setUser("hbase");
+
+    lookupContext.setUserInput(("*"));
+    lookupContext.setResourceName("namespace");
+    List<String> list = rsMgr.lookupResource("hyperbase", "hyperbase1", context);
+    for(String result : list)
+      System.out.println(result);
+    System.out.println();
+
+    context.setUserInput("t*");
+    context.setResourceName("table");
+    List<String> list1 = rsMgr.lookupResource("hyperbase", "hyperbase1", context);
+    for(String result : list1)
+      System.out.println(result);
+    System.out.println();
+
+    context.setResourceName("column-family");
+    context.setUserInput("f");
+    List<String> list2 = rsMgr.lookupResource("hyperbase", "hyperbase1", context);
+    for(String result : list2)
+      System.out.println(result);
+
+spring读配置的过程
+guardian
+springapplication prepareEnvironment
+configurableEnv->guardian.site.xml
+
