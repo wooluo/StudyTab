@@ -157,6 +157,8 @@ resourceLookupVo
   "userInput": "aaa"
 }
 
+io/transwarp/guardian/core/manager/v2/AccessTokenManagerV2Test.properties
+io/transwarp/guardian/core/manager/v2/AccessTokenManagerV2Test.properties
 
 resourcemanager里没有引用presistence中的apacheds导致bean初始化失败
 
@@ -224,9 +226,10 @@ io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 4002, Error
         at io.transwarp.guardian.server.boot.controller.AdminController$$FastClassBySpringCGLIB$$80ed8f21.invoke(<generated>)
         at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:204)
 
-curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/TDH.tar.gz
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/INTERNAL/GUARDIAN/guardian-3.1/IMAGE/centos-7/2020-05-08_05-07-44/GUARDIAN-Image-Registry-Transwarp-3.1.tar.gz" > /var/lib/docker/TDH.tar.gz
 
 http://172.16.1.112:8180/#/dashboard/status
+lzb/123
 
 020年 04月 29日 星期三 17:01:11 CST
 [root@tw-node1112 ~]# date -s "2020-04-29 18:13:30"
@@ -276,4 +279,10 @@ spring读配置的过程
 guardian
 springapplication prepareEnvironment
 configurableEnv->guardian.site.xml
+
+io/transwarp/guardian/core/manager/v2/guardian.server.access.token.admin.perm.enabled=true] cannot be opened because it does not exist
+
+[root@tw-node1113 ou=passwordpolicies]# pwd
+/guardian/data/conf/ou=config/ads-directoryserviceid=default/ou=interceptors/ads-interceptorid=authenticationinterceptor/ou=passwordpolicies
+
 

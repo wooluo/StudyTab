@@ -1,0 +1,494 @@
+工作周报 - 李镇邦 20200427 ~ 20200430
+
+完成：
+1. WARP-43339: [guardian]简化密码复杂度相关升级脚本并测试
+2. WARP-43659: [guardian]提升resource-manager单测覆盖率，确定问题，删除了一些无用的case，增强可测试的case
+3. WARP-44058，WARP-43107: [功能验证]集群测试验证功能
+4. WARP-42372:[KunDB] 修复之前JDBC空闲时间线程始终挂起没有退出机制的问题
+
+
+本周：
+1. WARP-43107: token联通项目的出包
+2. 解决guardian项目ut环境动态配置问题
+3. 
+
+bootstrap.properties：位于jar包外的优先级最高
+
+application.properties：配置中心的文件 > 命令行配置 > 本地active指定文件 > 本地default文件，
+
+ 
+
+高优先级的会覆盖低优先级的 重复的 配置内容
+
+Spring Boot 不单单从 application.properties 获取配置，所以我们可以在程序中多种设置配置属性。按照以下列表的优先级排列：
+1.命令行参数
+2.java:comp/env 里的 JNDI 属性
+3.JVM 系统属性
+4.操作系统环境变量
+5.RandomValuePropertySource 属性类生成的 random.* 属性
+6.应用以外的 application.properties（或 yml）文件
+7.打包在应用内的 application.properties（或 yml）文件
+8.在应用 @Configuration 配置类中，用 @PropertySource 注解声明的属性文件
+9.SpringApplication.setDefaultProperties 声明的默认属性
+
+1）获取默认的配置文件路径，有4种。
+2）遍历所有的路径，拼装配置文件名称。
+3）再遍历解析器，选择yml或者properties解析，将解析结果添加到集合MutablePropertySources当中。
+
+GuardianVars.GUARDIAN_SERVER_ACCESS_TOKEN_ADMIN_PERM_ENABLED.varname=true
+
+
+Devtools global settings properties on your home directory (~/.spring-boot-devtools.properties when devtools is active).
+@TestPropertySource annotations on your tests.
+properties attribute on your tests. Available on @SpringBootTest and the test annotations for testing a particular slice of your application.
+Command line arguments.
+Properties from SPRING_APPLICATION_JSON (inline JSON embedded in an environment variable or system property).
+ServletConfig init parameters.
+ServletContext init parameters.
+JNDI attributes from java:comp/env.
+Java System properties (System.getProperties()).
+OS environment variables.
+A RandomValuePropertySource that has properties only in random.*.
+Profile-specific application properties outside of your packaged jar (application-{profile}.properties and YAML variants).
+Profile-specific application properties packaged inside your jar (application-{profile}.properties and YAML variants).
+Application properties outside of your packaged jar (application.properties and YAML variants).
+Application properties packaged inside your jar (application.properties and YAML variants).
+@PropertySource annotations on your @Configuration classes.
+Default properties (specified by setting SpringApplication.setDefaultProperties).
+
+/home/transwarp/Downloads/work/guardian-backend/guardian/guardian-core/src/main/java/io/transwarp/guardian/core/manager/v2/GuardianVars.java
+
+maven测试单个测试
+mvn -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false test
+spring boot解决配置测试粒度
+@TestPropertySource(properties = "guardian.server.access.token.admin.perm.enabled=true")
+spring解决注解注入问题->生成bean配置@Autowired
+@RunWith(SpringRunner.class)
+@ContextConfiguration(classes = TestConfiguration.class)
+
+guardianClient.addPerm(new PermVo(hdfsGlobal, GuardianConstants.ADMIN_PERM_ACTION));
+guardianClient.addPerm(new PermVo(hdfsPath, GuardianConstants.ADMIN_PERM_ACTION));
+private ResourceVo hdfsGlobal = ResourceVo.global(hdfs.getServiceType(), hdfs.getServiceName());
+  private ResourceVo hdfsRoot = hdfs.service().addNode(DIR, "/").build();
+  private ResourceVo hdfsPath = hdfsRoot.asParent().addNode(DIR_USR).build();
+
+[{"fullName":"/vdir","name":"vdir","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/srv","name":"srv","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/etc","name":"etc","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/var","name":"var","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/usr","name":"usr","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/run","name":"run","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/root","name":"root","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/tmp","name":"tmp","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/dev","name":"dev","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/.dockerenv","name":".dockerenv","type":"FILE","status":"NORMAL"},{"fullName":"/home","name":"home","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/anaconda-post.log","name":"anaconda-post.log","type":"FILE","status":"NORMAL"},{"fullName":"/bin","name":"bin","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/lib","name":"lib","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/lib64","name":"lib64","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/lost+found","name":"lost+found","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/media","name":"media","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/mnt","name":"mnt","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/opt","name":"opt","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/proc","name":"proc","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/sbin","name":"sbin","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/sys","name":"sys","type":"DIRECTORY","status":"NORMAL"}
+
+//    guardianClient.addPerm(new PermVo(hdfsGlobal, GuardianConstants.ADMIN_PERM_ACTION));
+//    guardianClient.addPerm(new PermVo(hdfsPath, GuardianConstants.ADMIN_PERM_ACTION));
+
+  private ResourceVo hdfsUsr = hdfs.service().addNode(DIR, "/").addNode(DIR_USR).build();
+  private ResourceVo hdfsPath = hdfsUsr.asParent().addNode(new NodeVo(DIR, "new")).build();
+
+@TestPropertySource(properties = "guardian.server.access.token.admin.perm.enabled=true")
+
+conf.set("hive.server2.authentication", "kerberos");
+zookeeper.connect
+zookeeper.session.timeout.ms
+authorizer.zookeeper.connection.timeout.ms
+
+migration*
+
+Q1 error zk初始化问题 kafka找topic的资源时会调用zookeeper
+2020-05-07 20:42:20,215 INFO v2.ResourceChangeKeeper: Resource Cache of Guardian Service is not enabled. Skip cache update
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.084 sec <<< FAILURE! - in io.transwarp.guardian.resource.kafka.KafkaResourceMgrTest
+getKafkaResourcesTest(io.transwarp.guardian.resource.kafka.KafkaResourceMgrTest)  Time elapsed: 0.646 sec  <<< ERROR!
+java.lang.IllegalArgumentException: A HostProvider may not be empty!
+	at org.apache.zookeeper.client.StaticHostProvider.<init>(StaticHostProvider.java:82)
+	at org.apache.zookeeper.ZooKeeper.<init>(ZooKeeper.java:505)
+	at org.apache.zookeeper.ZooKeeper.<init>(ZooKeeper.java:438)
+	at org.apache.zookeeper.ZooKeeper.<init>(ZooKeeper.java:380)
+	at org.I0Itec.zkclient.ZkConnection.connect(ZkConnection.java:70)
+	at org.I0Itec.zkclient.ZkClient.connect(ZkClient.java:1228)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:157)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:131)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:127)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:94)
+	at io.transwarp.guardian.resource.kafka.ZkUtil.<init>(ZkUtil.java:23)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgr.initZkUtil(KafkaResourceMgr.java:116)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgr.collectTopicEntries(KafkaResourceMgr.java:88)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgr.getKafkaResources(KafkaResourceMgr.java:72)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgrTest.getKafkaResourcesTest(KafkaResourceMgrTest.java:89)
+
+Q2 warning 配置mysql预编译 ？表示字符串
+020-05-07 20:42:21,571 DEBUG ServiceMapper.insertOrUpdateConf: ==>  Preparing: INSERT INTO gs_service_conf (service_id, conf_key, conf_value) VALUES (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, 
+ON DUPLICATE KEY UPDATE conf_value = VALUES(conf_value) 
+2020-05-07 20:42:21,604 DEBUG ServiceMapper.insertOrUpdateConf: ==> Parameters: 76(Integer), mapreduce.jobtracker.address(String), local(String), 76(Integer), dfs.namenode.resource.check.interval(String), 5000(String), 76(Integer), mapreduce.jobhistory.client.thread-count(String), 10(String), 76(Integer), yarn.admin.acl(String), 
+
+Q3 warning  调整inceptor资源问题
+2020-05-07 20:42:22,964 WARN inceptor.InceptorResourceMgr: Exception encountered when requesting scheduler info: 
+java.lang.IllegalArgumentException: Host name may not be null
+	at org.apache.http.HttpHost.<init>(HttpHost.java:79)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgr.requestSchedulerInfo(InceptorResourceMgr.java:245)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgr.getSchedulerType(InceptorResourceMgr.java:186)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest.getSchedulerType(InceptorResourceMgrTest.java:78)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+
+git reflog
+git reset –hard 63ee781
+
+1. sasl layer
+2. mysql prepared sql
+https://172.26.5.99:8380/#/home?dataSourcePrefix=PATH
+
+进apacheds镜像run，进入/bin替换脚本，
+
+------------------------------------------------spring boot------------------
+从设计模式到spring boot
+## 设计模式
+https://juejin.im/post/5ce69379e51d455d877e0ca0
+### 工厂模式
+Spring使用工厂模式可以通过 BeanFactory 或 ApplicationContext 创建 bean 对象。
+BeanFactory 仅提供了最基本的依赖注入支持，ApplicationContext 扩展了 BeanFactory ,除了有BeanFactory的功能还有额外更多功能，所以一般开发人员使用ApplicationContext会更多
+
+* 上下文：
+context是environment的snapshot.
+每一段程序都有很多外部变量。只有像Add这种简单的函数才是没有外部变量的。一旦你的一段程序有了外部变量，这段程序就不完整，不能独立运行。你为了使他们运行，就要给所有的外部变量一个一个写一些值进去。这些值的集合就叫上下文。
+### 观察者模式
+* 事件角色/事件监听者角色/事件发布者角色
+  applicationevent/applicationListener/applicationEventPublisher
+## environment配置注入
+https://www.ibm.com/developerworks/cn/java/j-lo-spring-boot/index.html#listing4
+http://www.throwable.club/2018/12/16/spring-boot-environment-configuration-spread/
+https://docs.spring.io/spring-boot/docs/2.1.0.RELEASE/reference/htmlsingle/#boot-features-command-line-runner
+jar包启动server
+springApllication.run
+/**
+	 * Static helper that can be used to run a {@link SpringApplication} from the
+	 * specified source using default settings.
+	 * @param primarySource the primary source to load
+	 * @param args the application arguments (usually passed from a Java main method)
+	 * @return the running {@link ApplicationContext}
+	 */
+	public static ConfigurableApplicationContext run(Class<?> primarySource,
+			String... args) {
+		return run(new Class<?>[] { primarySource }, args);
+	}
+
+  public static void main(String[] args) {
+    SpringApplication.run(GuardianServerBootApplication.class, args);
+  }
+
+springApplicationListener->
+AppEnvPrepareds->AppPrepareded->ready->started->starting
+
+run的时候自动创建好一系列事件，也可以去自己继承applicationevent写相应函数，创建发布者和监听者
+在run的情况下携带上下文运行，然后创建不同的listener去监听事件完成应用的初始化，
+在run的时候spring创建并帮助应用程序启动，1.获取创建listener (starting)2.创建参数。配置environment（envPrepared) 3.创建applicationContext 4.初始化上下文(contextPrepared)，加载配置(contextLoaded) 5.更新上下文(Started)，启动程序(running)
+注入env配置顺序
+Spring Boot lets you externalize your configuration so that you can work with the same application code in different environments. You can use properties files, YAML files, environment variables, and command-line arguments to externalize configuration. Property values can be injected directly into your beans by using the @Value annotation, accessed through Spring’s Environment abstraction, or be bound to structured objects through @ConfigurationProperties.
+
+Spring Boot uses a very particular PropertySource order that is designed to allow sensible overriding of values. Properties are considered in the following order:
+
+https://docs.spring.io/spring-boot/docs/2.1.0.RELEASE/reference/htmlsingle/#boot-features-command-line-runner
+
+1.Devtools global settings properties on your home directory (~/.spring-boot-devtools.properties when devtools is active).
+2.@TestPropertySource annotations on your tests.
+3.properties attribute on your tests. Available on @SpringBootTest and the test annotations for testing a particular slice of your application.
+4.Command line arguments.
+5.Properties from SPRING_APPLICATION_JSON (inline JSON embedded in an environment variable or system property).
+6.ServletConfig init parameters.
+7.ServletContext init parameters.
+8.JNDI attributes from java:comp/env.
+9.Java System properties (System.getProperties()).
+10.OS environment variables.
+11.A RandomValuePropertySource that has properties only in random.*.
+12.Profile-specific application properties outside of your packaged jar (application-{profile}.properties and YAML variants).
+13.Profile-specific application properties packaged inside your jar (application-{profile}.properties and YAML variants).
+14.Application properties outside of your packaged jar (application.properties and YAML variants).
+15.Application properties packaged inside your jar (application.properties and YAML variants).
+16.@PropertySource annotations on your @Configuration classes.
+17.Default properties (specified by setting SpringApplication.setDefaultProperties).
+To provide a concrete example, suppose you develop a @Component that uses a name property, as shown in the following example:
+
+@TestPropertySource(properties = "guardian.server.access.token.admin.perm.enabled=true")
+.properties//.yaml
+@PropertySource
+
+---------------------------------------------------------spring boot------------
+get uri加参数 ->一般发送一个tcp请求包
+post请求体body携带数据 ->一般发送报文头返回100 再发送body数据
+在HTTP中，PUT被定义为idempotent的方法，POST则不是，这是一个很重要的区别。
+   “Methods can also have the property of "idempotence" in that (aside from error or expiration issues) the side-effects of N > 0 identical requests is the same as for a single request.”
+上面的话就是说，如果一个方法重复执行多次，产生的效果是一样的，那就是idempotent的。
+
+492
+ private List<Resource> getInheritDataNodes(SqlSession session, List<Long> resourceIds, List<String> groupNames, String action) {
+    if (CollectionUtils.isEmpty(groupNames)) {
+      return Collections.emptyList();
+    }
+    List<Resource> resources = new ArrayList<>();
+    PermMapper permMapper = session.getMapper(PermMapper.class);
+    List<Resource> inheritedResourcesFromGroup = permMapper.selectGroupsAuthorizedDataNodeResources(groupNames, resourceIds, action);
+    if (CollectionUtils.isNotEmpty(inheritedResourcesFromGroup)) {
+      resources.addAll(inheritedResourcesFromGroup);
+    }
+
+    GroupMapper groupMapper = session.getMapper(GroupMapper.class);
+    List<String> roleNames = groupMapper.selectGroupsRoles(groupNames);
+    if (CollectionUtils.isNotEmpty(roleNames)) {
+      List<Resource> inheritedResourcesFromGroupRole = permMapper.selectRolesAuthorizedDataNodeResources(roleNames, resourceIds, action);
+      if (inheritedResourcesFromGroupRole != null) {
+        resources.addAll(inheritedResourcesFromGroupRole);
+      }
+    }
+
+    return resources;
+  }
+
+  private List<ResourcePerm> getInheritedResourcePerms(SqlSession session, PermFilterParams filterParams) {
+    if (CollectionUtils.isEmpty(filterParams.getPrincipals())) {
+      return Collections.emptyList();
+    }
+    List<ResourcePerm> resourcePerms = new ArrayList<>();
+    PermMapper permMapper = session.getMapper(PermMapper.class);
+    List<ResourcePerm> inheritedResourcePermsFromGroup = permMapper.selectServicePermsByGroups(filterParams);
+    if (CollectionUtils.isNotEmpty(inheritedResourcePermsFromGroup)) {
+      resourcePerms.addAll(inheritedResourcePermsFromGroup);
+    }
+
+    GroupMapper groupMapper = session.getMapper(GroupMapper.class);
+    List<String> roleNames = groupMapper.selectGroupsRoles(filterParams.getPrincipals());
+    if (CollectionUtils.isNotEmpty(roleNames)) {
+      filterParams.setPrincipals(roleNames);
+      List<ResourcePerm> inheritedResourcePermsFromGroupRole = permMapper.selectServicePermsByGroupsRoles(filterParams);
+      if (CollectionUtils.isNotEmpty(inheritedResourcePermsFromGroupRole)) {
+        resourcePerms.addAll(inheritedResourcePermsFromGroupRole);
+      }
+    }
+    return resourcePerms;
+  }
+
+
+@Override
+  public List<NodeVo> getAuthorizedDataNodes(PrincipalVo principalVo, PermFilterParams filterParams, boolean includeInherited) throws GuardianException {
+    Assert.assertLegal(principalVo);
+    ResourceVo parentResourceVo = filterParams.getResourceVo();
+    Assert.assertLegal(parentResourceVo);
+    try (SqlSession session = sqlSessionFactory.openSession()) {
+      PermMapper permMapper = session.getMapper(PermMapper.class);
+      String princ = principalVo.getPrincipal();
+      PrincipalType princType = principalVo.getPrincipalType();
+
+      ResourceServiceMapper resourceServiceMapper = session.getMapper(ResourceServiceMapper.class);
+      ResourceMapper resourceMapper = session.getMapper(ResourceMapper.class);
+      List<Long> resourceIds = new ArrayList<>();
+      List<ResourceNode> resourceNodes = filterParams.getScope() == Scope.ONE_LEVEL ? ResourceStorage.getChildNodes(resourceServiceMapper, resourceMapper, parentResourceVo)
+          : ResourceStorage.getDescendantNodes(resourceServiceMapper, resourceMapper, parentResourceVo);
+      for (ResourceNode resourceNode : resourceNodes) {
+        if (resourceNode.getResourceId() != null) {
+          resourceIds.add(resourceNode.getResourceId());
+        }
+      }
+      String action = filterParams.getAction();
+
+      switch (princType) {
+        case USER:
+          UserMapper userMapper = session.getMapper(UserMapper.class);
+          User user = userMapper.selectUserWithCategory(princ);
+          if (user == null || !UserUtil.userPresentable(user)) {
+            return Collections.emptyList();
+          }
+
+          List<Resource> userResources = new ArrayList<>();
+          List<Resource> userSelfResources = permMapper.selectUserAuthorizedDataNodeResources(princ, resourceIds, action);
+          if (CollectionUtils.isNotEmpty(userSelfResources)) {
+            userResources.addAll(userSelfResources);
+          }
+          if (includeInherited) {
+            List<Resource> userInheritedResourcesFromRole = permMapper.selectRoleAuthorizedDataNodeResourcesByUser(princ, resourceIds, action);
+            if (userInheritedResourcesFromRole != null) {
+              userResources.addAll(userInheritedResourcesFromRole);
+            }
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            userResources.addAll(getInheritDataNodes(session, resourceIds, groupNames, action));
+          }
+
+          Set<NodeVo> userAuthorizedNodes = new HashSet<>();
+          if(CollectionUtils.isNotEmpty(userResources)) {
+            userResources.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                userAuthorizedNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+          return new ArrayList<>(userAuthorizedNodes);
+        case ROLE:
+          List<NodeVo> roleAuthorizedDataNodes = new ArrayList<>();
+          List<Resource> roleSelfDataNodes = permMapper.selectRoleAuthorizedDataNodeResources(princ, resourceIds, action);
+          if(CollectionUtils.isNotEmpty(roleSelfDataNodes)) {
+            roleSelfDataNodes.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                roleAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+          return roleAuthorizedDataNodes;
+        case GROUP:
+          Set<NodeVo> groupAuthorizedDataNodes = new HashSet<>();
+          if (includeInherited) {
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            List<Resource> groupDataNodes = new ArrayList<>(getInheritDataNodes(session, resourceIds, groupNames, action));
+            if(CollectionUtils.isNotEmpty(groupDataNodes)) {
+              groupDataNodes.forEach(resource -> {
+                if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                  groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+                }
+              });
+            }
+            return new ArrayList<>(groupAuthorizedDataNodes);
+          } else {
+            List<Resource> groupDataNodes = permMapper.selectGroupAuthorizedDataNodeResources(princ, resourceIds, action);
+            if(CollectionUtils.isNotEmpty(groupDataNodes)) {
+              groupDataNodes.forEach(resource -> {
+                if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                  groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+                }
+              });
+            }
+            return new ArrayList<>(groupAuthorizedDataNodes);
+          }
+      }
+      return Collections.emptyList();
+    } catch (PersistenceException pe) {
+      LOG.error(String.format("Failed to get authorized data nodes of principal [%s] of dataSource [%s] due to persistence exception", principalVo, filterParams.getResourceVo().toString()), pe);
+      throw new GuardianException(ErrorCodes.GUARDIAN_SERVER_PERSISTENCE_EXCEPTION, "failed to get authorized datanodes");
+    }
+  }
+
+  private List<PrincPermVo> getInheritedPerms(SqlSession session, PrincipalVo principalVo,
+                                              Map<Long, ResourceVo> resources, Collection<Long> resourceIds, List<String> groupNames, String action) {
+
+    List<PrincPermVo> princPerms = new ArrayList<>();
+    if (CollectionUtils.isEmpty(groupNames)) {
+      return princPerms;
+    }
+
+    String princ = principalVo.getPrincipal();
+    PrincipalType princType = principalVo.getPrincipalType();
+    PermMapper permMapper = session.getMapper(PermMapper.class);
+
+switch (princType) {
+        case USER:
+          UserMapper userMapper = session.getMapper(UserMapper.class);
+          User user = userMapper.selectUserWithCategory(princ);
+          if (user == null || !UserUtil.userPresentable(user)) {
+            return Collections.emptyList();
+          }
+          Set<Resource> userResources = new HashSet<>();
+          List<Resource> userSelfResources = permMapper.selectUserAuthorizedResources(princ, serviceName, action);
+          if (userSelfResources != null) {
+            userResources.addAll(userSelfResources);
+          }
+          if (includeInherited) {
+            List<Resource> userInheritedResourcesFromRole = permMapper.selectRoleAuthorizedResourcesByUser(princ, serviceName, action);
+            if (userInheritedResourcesFromRole != null) {
+              userResources.addAll(userInheritedResourcesFromRole);
+            }
+
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            userResources.addAll(getInheritedResources(session, serviceName, action, groupNames));
+          }
+          // should put serviceName into resourceVo?
+          return userResources.stream().map(resource -> new ResourceVo.Builder().dataSource(resource.getDataSource()).build())
+              .collect(Collectors.toList());
+        case ROLE:
+          List<Resource> roleSelfResources = permMapper.selectRoleAuthorizedResources(princ, serviceName, action);
+          // should put serviceName into resourceVo?
+          return roleSelfResources.stream().map(resource -> new ResourceVo.Builder().dataSource(resource.getDataSource()).build())
+              .collect(Collectors.toList());
+        case GROUP:
+          Collection<Resource> groupResources;
+          if (includeInherited) {
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            groupResources = getInheritedResources(session, serviceName, action, groupNames);
+          } else {
+            groupResources = permMapper.selectGroupAuthorizedResources(princ, serviceName, action);
+          }
+          // should put serviceName into resourceVo?
+          return groupResources.stream().map(resource -> new ResourceVo.Builder().dataSource(resource.getDataSource()).build())
+              .collect(Collectors.toList());
+      }
+      return Collections.emptyList();
+    } catch (PersistenceException pe) {
+      LOG.error(String.format("Failed to get authorized resources of principal [%s] of service [%s] due to persistence exception", principalVo, serviceName), pe);
+      throw new GuardianException(ErrorCodes.GUARDIAN_SERVER_PERSISTENCE_EXCEPTION, "failed to get authorized resources");
+    }
+1. 代码注释量
+2. Vo & node
+
+curl -X GET --header 'Accept: application/json' 'http://localhost:8380/api/v1/perms/dataNodes/user/admin?component=inceptor1&inheritance=false'
+
+
+curl -k -X GET --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \ 
+   "dataSource": [ \ 
+     { \ 
+       "type": "DIR", \ 
+       "value": "/" \ 
+     } \ 
+   ], \ 
+  \ 
+   "serviceName": "hdfs1", \ 
+   "serviceType": "HDFS" \ 
+ }' 'http://localhost:8380/api/v2/perms/authorized-dataNodes?princ=admin&princType=USER&inheritance=false&subtree=false'
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \\ 
+   "isSystem": false, \\ 
+   "password": "123", \\ 
+   "username": "admin" \\ 
+ }' 'http://localhost:8380/api/v2/login'
+
+
+---------------success-----------------------
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -D cookies.txt -d '{"username": "admin","password": "123","isSystem": false}' 'http://localhost:8380/api/v2/login'
+
+curl -X GET --header 'Content-Type: application/json' --header 'Accept: application/json' -b cookies.txt -d '{"dataSource": [ { "type": "GLOBAL","value": "*"}],"serviceName": "inceptor1", "serviceType": "INCEPTOR" }' 'http://localhost:8380/api/v2/perms/authorized-dataNodes?princ=admin&princType=USER&inheritance=false&subtree=false'
+-------------------------------------------------
+
+ jar tvf apacheds-backend-guardian-3.1.3.jar | grep adminPerms.ldif
+jar xvf apacheds-backend-guardian-3.1.3.jar  ldif/adminPerms.ldif
+jar uvf apacheds-backend-guardian-3.1.3.jar ldif/adminPerms.ldif
+
+api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 lib]# jar tvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar | grep m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+   355 Thu Mar 05 19:19:30 CST 2020 schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 lib]# jar xvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+/usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 ~]# jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 ~]# ls
+
+/guardian/data
+
+jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/GUARDIAN/guardian-3.1.1-final/IMAGE/centos-7/GUARDIAN-Image-Registry-Transwarp-3.1.1-final.tar.gz" > /var/lib/docker/guardian-3.1.1.tar.gz
+
+pwd:123!@#lzb
+
+
+resourceVo是显示层对象，传过来的vo是一个整体，容易提取整个的datasource；
+resourceNode便于在数据库底层查找某个具体资源的信息
+问题：VO是否准备在persistence层做提取datasource的作用
+getAuthorizedDataNodes完全可以写成两个接口
+getAuthorizedDataNodes太大了->显示层的VO提取 各种vo的判空 resource的转化 -> dao层分担过重 -> 
+1.  在dao层没有判空 直接抛出异常 导致dao层需要大量的判空 dao层抛错要返回到manager层 getAuthorizedDataNodes 6个判空 控制异常完全可以上一层判空？
+2.  
+getDescendantResources resourceVo->datasource->path->resources->datasources->resultList(subtree)
+getChildNodes resourceVo->dataSource->cache? resource includeself?(one level)
+
+
+
+
+
+

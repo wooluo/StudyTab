@@ -1,0 +1,49 @@
+支持SLA：
+http://172.16.1.168:8090/pages/viewpage.action?pageId=22689594
+http://172.16.1.168:8090/pages/viewpage.action?pageId=22683403
+1. 首先客户端普通用户 hdfs put 报错，于是将TDH-Client里面的oauth2设置成false了
+2. 调用存储过程，或执行任何sql ，都报错failed to load oauth2 yaml configuration ,定位到是TDH 6.2开始 新功能 oauth2参数的问题
+3.于是想把hdfs 和inceptor的oauth2参数关掉。
+4.关掉参数重启hdfs的时候，昨天报license过期，重启manager解决了，manager bug
+
+5.hdfs nn启动报oAuth文件认证缺失
+“解决掉manager license问题后，关掉oauth2 参数 有一个namenode报错，failed to extract client credential
+开启 hdfs oauth2 参数也一样。”
+如果是TDH-client报错 修改参数 client core-site文件配置修改为false/换jar包
+如果nn启动报错 关掉hadoop.security.authentication.web.oauth2.enabled参数
+
+6. TDH 6.2.1，guardian-3.1.1环境中还有kadmin.guardian 命令吗？
+去wiki下载kadmin.guardian 将kadmin.guardian文件拷贝到Guardian server的pod的任意目录下，并确保其有可执行的权限。
+
+7.  sophon2.3.2 页面上点击注销之后,会出现这个情况（CAS无法使用）
+清除下浏览器缓存
+
+8.用户登陆输入多次错误密码逻辑不正确
+应该将拦截器前置
+
+9. guardian312能在tdh6.0上使用么
+可以 如果同时使用studio1.2之前的版本 需要切换guardian的sso为cas
+http://172.16.1.168:8090/pages/viewpage.action?pageId=23483892
+    适用版本： Guardian: guardian-3.1.0 +
+    TDH环境可以通过manager在对应组件的配置界面修改；TDC环境可以通过修改config map修改完配置需要重启对应服务
+
+10 apacheds主从不同步
+重启apacheds从节点
+
+11.请问在配置了互信的2个集群，一个集群向另外一个集群提交yarn application，无法提交到default队列。这个权限是在guardian里面配置吗？如何配置呢？
+yarn队列添加权限
+
+12. 升级txsql里面的mysql版本
+http://172.16.1.168:8090/pages/viewpage.action?pageId=20269625
+99集群gold镜像
+
+13. kerberos认证集群时间节点同步
+transwarp@transwarp-Latitude-5480:~/tmp/TDH-Client$ hadoop fs -ls /
+2020-04-29 18:06:06,456 INFO  [main] util.KerberosUtil (KerberosUtil.java:getDefaultPrincipalPattern(81)) - Using principal pattern: HTTP/_HOST
+2020-04-29 18:06:11,758 WARN  [main] security.UserGroupInformation (UserGroupInformation.java:hasSufficientTimeElapsed(1626)) - Not attempting to re-login since the last re-login was attempted less than 600 seconds before. Last Login=1588154767292
+date -s
+https://www.jianshu.com/p/4160388ddc9f
+
+14. 请教一下，guardian配置互信之后，双方都可以ls对方hdfs文件，使用hadoop distcp命令时候报错，/etc/hosts,/etc/transwarp/conf/hosts,/etc/krb5.conf,/etc/hdfs1/conf/krb5.conf,/etc/yarn1/conf/krb5.conf都修改过了
+
+
