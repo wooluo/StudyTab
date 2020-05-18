@@ -45,5 +45,44 @@ date -s
 https://www.jianshu.com/p/4160388ddc9f
 
 14. 请教一下，guardian配置互信之后，双方都可以ls对方hdfs文件，使用hadoop distcp命令时候报错，/etc/hosts,/etc/transwarp/conf/hosts,/etc/krb5.conf,/etc/hdfs1/conf/krb5.conf,/etc/yarn1/conf/krb5.conf都修改过了
+--
+15.卸载重装guardian的时候，修改了realm，登陆时显示认证信息无效，日志报错看起来还在读之前默认的realm，是还有哪里需要手动修改下么？
+cas-configuration-server-env.sh 看下有没有CAS_AUTHN_LDAP_DOMAIN
+进cas-config的pod里，打开/etc/configuration-server/config-store/cas.properties，查找baseDn的值
+
+16.客户的tdh523的guardian需要使用配置密码策略功能（至少两种字符组成），有什么好的办法实现吗？
+能够等下一个guardian版本(3.1.3或3.2.0)发布，然后走guardian升级的方式吗？理论上兼容。但是如果客户有测试环境的话，最好先测试一下，省的如果出问题还要回滚
+
+17. sla2-7011
+ldap超时 guardian起不来
+原因是readiness probe和liveness probe设置的不合理，现在的tdc的版本已经重新改过guardian的健康检查的值了
+application-metainfo
+readinessProbe: 
+initialDelaySeconds: 30,
+periodSeconds: 10,
+timeoutSeconds: 8,
+failureThreshold: 25,
+                   
+livenessProbe:  
+initialDelaySeconds: 300,
+periodSeconds: 20,
+timeoutSeconds: 10,
+failureThreshold: 3,
+
+18. sla2-7102 hbase驱动zk报错 客户端认证sasl走md5重连kerberos连不上
+zk源代码bug principal没锁住
+
+19.客户新加服务，在web页面上可以批量添加访问权限么？
+如果很多写脚本或者用java的guaridan client
+
+20. 开安全进入4040界面
+21. krb5.conf爆破 ->apacheds防，日志刷爆，给keytab文件附上合适权限
+22.hbase页面kinit成功 进入hbaseshell报认证错误
+klist里查到keyring验证
+23. 旧版apacheds如果inceptor端东西太多 导致lmdb出错重连
+使用apacheds-cleaner 关闭readiness-probe
+24. 
+
+
 
 
