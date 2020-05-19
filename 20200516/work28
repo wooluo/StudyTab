@@ -449,3 +449,6 @@ META-INF/maven/groupId/artifactId/pom.properties
 
 jackson fasterxml mavenVersionFor
     String version = VersionUtil.mavenVersionFor(GuardianAuthManager.class.getClassLoader(), "io.transwarp.guardian", "hyperbase-plugin").toString();
+
+META-INF
+相当于一个信息包，目录中的文件和目录获得Java 2平台的认可与解释，用来配置应用程序、扩展程序、类加载器和服务manifest.mf文件，在用jar打包时自动生成

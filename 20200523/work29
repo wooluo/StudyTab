@@ -1,0 +1,44 @@
+0518
+
+工作周报 - 李镇邦 20200511 ~ 20200515
+
+完成：
+1. 【测试】guardian与 kunDB，yarn组件的功能测试
+2.  WARP-45083：【guardian】减少guardian-3.1工程的CVE数量并验证
+3.  WARP-44993：【guardian】plugin组件注册时传入对应版本号
+4.  WARP-43034：【HDFS】修改支持SM4算法的提交并merge
+
+其他：
+1. 组内支持了docker-compose文件起guardian的问题和manager升级guardian遇到的问题
+
+
+本周：
+1. WARP-44993 更好实现方式完成pom属性注入
+2. WARP-45040 增加guardian server可以暴露配置项的API
+如何打开ant项目：
+ant eclipse
+通过new import from resource打开eclipse项目
+
+zk拿到version信息
+zookeeper 379行 build.xml 用java指令执行vergen的命令 生成了info.java接口文件 version继承这个接口 zk四字commands使用
+    <target name="version-info" depends="ver-gen,git-revision">
+        <mkdir dir="${src_generated.dir}" />
+        <java classname="org.apache.zookeeper.version.util.VerGen" fork="true" 
+                dir="${src_generated.dir}">
+            <arg value="${version}" />
+            <arg value="${lastRevision}" />
+            <arg value="${build.time}" />
+            <classpath>
+                <pathelement path="${build.classes}" />
+            </classpath>
+        </java>
+    </target>
+
+hdfs对比
+通过pom资源过滤，造成资源文件使用pom属性，通过当前线程查找classpath下的资源文件，拿到属性
+
+Bring component/plugin version to Guardian when registering
+
+工厂模式？？？GuardianDaoFactory
+
+
