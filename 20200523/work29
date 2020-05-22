@@ -42,3 +42,257 @@ Bring component/plugin version to Guardian when registering
 工厂模式？？？GuardianDaoFactory
 
 
+WARP-44961
+    以下jar包已升级
+    1. com.google.guava:guava:jar:18.0:compile -> 24.1.1
+    2. jackson-databind-2.9.5.jar ->2.9.10.4
+    以下jar包未升级
+    1. org.apache.httpcomponents:httpclient:jar:4.2.5->4.3.6
+    涉及cve：CVE-2014-3577 CVE-2015-5262
+
+git remote update --prune
+
+gaurdian-common
+guardian-query-client有10个cve 
+ search-query-guardian-3.2.0.jar: CVE-2019-13423, CVE-2019-13422, CVE-2019-13421, CVE-2019-13417, CVE-2019-13416, CVE-2019-13415, CVE-2019-13419, CVE-2019-13418, CVE-2018-20698, CVE-2019-13420
+
+
+1. com.google.guava:guava:jar:18.0:compile -> 24.1.1  
+2. jackson-databind-2.9.5.jar ->2.9.10.4
+3. mysql.connector.version 5.1.36 ->5.1.48
+
+3. search-query-guardian-3.2.0 ? ->改不了
+4. org.apache.httpcomponents:httpclient:jar:4.2.5->4.3.6 4.3.5
+
+http://172.26.0.104:8888/config/guardian/guardian/guardian-guardian-3.2.0-suppression.xml
+
+<suppressionFiles>
+ <suppressionFile>http://172.26.0.104:8888/config/guardian/guardian/guardian-guardian-3.2.0-suppression.xml</suppressionFile>
+ </suppressionFiles>
+
+                       <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>5.2.4</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>mysql</groupId>
+                        <artifactId>mysql-connector-java</artifactId>
+                        <version>5.1.48</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <enableExperimental>true</enableExperimental>
+                    <databaseDriverName>com.mysql.jdbc.Driver</databaseDriverName>
+                    <connectionString>jdbc:mysql://172.26.0.104:33306/dependencycheck?useSSL=false</connectionString>
+                    <databaseUser>dcscanner</databaseUser>
+                    <databasePassword>Dependencycheck@123</databasePassword>
+                    <failBuildOnAnyVulnerability>false</failBuildOnAnyVulnerability>
+                    <autoUpdate>false</autoUpdate>
+                    <versionCheckEnabled>false</versionCheckEnabled>
+                    <pathToGo>/path/to/go</pathToGo>
+                    <failOnError>false</failOnError>
+		    <skipProvidedScope>true</skipProvidedScope>
+                    <skipRuntimeScope>true</skipRuntimeScope>
+                    <skipSystemScope>true</skipSystemScope>
+                    <suppressionFiles>
+                        <suppressionFile>http://172.26.0.104:8888/config/guardian/guardian/guardian-guardian-3.2.0-suppression.xml</suppressionFile>
+                    </suppressionFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+mvn dependency-check:aggregate
+mvn dependency-check:aggregate -Ddependency-check.skip=false
+CWE-611 Improper Restriction of XML External Entity Reference ('XXE')
+
+maven测试单个测试
+mvn -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false test
+
+
+cas-client-core-3.5.1-guardian-3.1.3.jar
+CWE-611: Improper Restriction of XML External Entity Reference ('XXE')
+The software processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control, causing the product to embed incorrect documents into its output.
+shaded jackson-databind
+
+io.transwarp.guardian.common:search-query:jar:guardian-3.2.0:compile
+org.jasig.cas.client:cas-client-core:jar:3.5.1-guardian-3.2.0:provided (version managed from 3.5.1-transwarp-6.0.0-SNAPSHOT)
+-------com.fasterxml.jackson.core:jackson-databind:jar:2.8.8.1:compile
+
+org.apache.directory.server:apacheds-server-annotations:jar:2.0.0-M23-guardian-3.2.0:compile
+ +- org.quartz-scheduler:quartz:jar:2.3.0:compile (version managed from 2.2.1)
+CVE-2019-13990 (OSSINDEX)  suppress
+initDocumentParser in xml/XMLSchedulingDataProcessor.java in Terracotta Quartz Scheduler through 2.3.0 allows XXE attacks via a job description.
+
+hive
++- org.apache.hive:hive-jdbc:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  +- org.apache.hive:hive-common:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  |  +- org.apache.hive:hive-shims:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  |  |  +- org.apache.hive.shims:hive-shims-common:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  |  |  |  +- log4j:apache-log4j-extras:jar:1.2.17:compile->
+CVE-2019-17571  suppress
+Included in Log4j 1.2 is a SocketServer class that is vulnerable to deserialization of untrusted data which can be exploited to remotely execute arbitrary code when combined with a deserialization gadget when listening to untrusted network traffic for log data. This affects Log4j versions up to 1.2 up to 1.2.17.
+
+
+ +- org.scala-lang:scala-library:jar:2.10.4:compile ->
+CVE-2017-15288  suppress
+The compilation daemon in Scala before 2.10.7, 2.11.x before 2.11.12, and 2.12.x before 2.12.4 uses weak permissions for private files in /tmp/scala-devel/${USER:shared}/scalac-compile-server-port, which allows local users to write to arbitrary class files and consequently gain privileges.
+
+com.thoughtworks.xstream:xstream:jar:1.4.9:compile
+CVE-2017-7957
+
+
+federation-utils-guardian-3.2.0.jar (shaded: com.fasterxml.jackson.core:jackson-databind:2.9.6)
+cas-client-core
+es
+
+search-query-guardian-3.2.0.jar: CVE-2019-13423, CVE-2019-13422, CVE-2019-13421, CVE-2019-13417, CVE-2019-13416, CVE-2019-13415, CVE-2019-13419, CVE-2019-13418, CVE-2018-20698, CVE-2019-13420
+[ERROR] commons-beanutils-1.9.2.jar: CVE-2019-10086
+
+CVE-2019-10086  suppress
+In Apache Commons Beanutils 1.9.2, a special BeanIntrospector class was added which allows suppressing the ability for an attacker to access the classloader via the class property available on all Java objects. We, however were not using this by default characteristic of the PropertyUtilsBean.
+
+
+xercesImpl-2.9.1.jar
+
+hadoop-common
+ io.netty:netty-all:jar:4.1.5.transwarp:compile
+====================================
+guardian-3.1
+1. com.google.guava:guava:jar:18.0:compile -> 24.1.1  
+2. jackson-databind-2.9.5.jar ->2.9.10.4
+3. mysql.connector.version 5.1.36 ->5.1.48 影响模块guardian-persistence
+4. jetty-security 9.2.17.v20160517-> 9.2.27.v20190403 影响guardian-extensible/jetty-tools
+5. dom4j-1.6.1.jar ->org.dom4j-2.1.3
+6. 
+
+未处理
+httpclient-4.2.5.jar->4.3.6
+commons-beanutils-core-1.8.0.jar 在net.sf.json-lib:json-lib:jar:jdk15:2.4:compile影响 影响较小 CVE-2014-0114 CVE-2019-10086
+
+hadoop-common
+ io.netty:netty-all:jar:4.1.5.transwarp:compile ->4.1.46
+ jackson-mapper-asl-1.9.13.jar ->2.9.10.4 #
+
+cas-client
+CWE-611
+cas-client-core-3.5.1-guardian-3.2.0.jar (shaded: com.fasterxml.jackson.core:jackson-databind:2.8.8.1)mvn de
+
+hive
++- org.apache.hive:hive-jdbc:jar:0.12.0-transwarp-6.0.0:compile
+log4j-1.2.17.jar->CVE-2019-17571 CVE-2020-9488 
+apache-log4j-extras-1.2.17.jar CVE-2019-17571 CVE-2020-9488
+scala-library-2.10.4.jar CVE-2017-15288 
+derby-10.4.2.0.jar CVE-2018-1313
+libfb303-0.9.2.jar CVE-2019-3565
+hive-ant-0.12.0-transwarp-6.0.0.jar CVE-2018-1314
+groovy-all-2.1.6.jar CVE-2016-6814 (OSSINDEX) 
+xstream-1.4.9.jar CVE-2017-7957
+jsp-2.1-6.1.14.jar CVE-2011-4461
+
+zookeeper-3.4.5-transwarp.jar->3.4.13
+
+hdfs
+xercesImpl-2.9.1.jar->CVE-2009-2625 2.12.0
+
+federation
+
+
+hbase-client-1.3.1-transwarp-6.0.0.jar CVE-2018-8025
+
+hadoop-yarn-server-common-2.7.2-transwarp-6.0.0.jar
+
+
+http://172.26.0.104:8888/config/guardian/guardian/guardian-${project.version}-suppression.xml
+
+guardian-util--
+search-query-guardian-3.2.0.jar
+guardian--
+httpclient-4.2.5.jar
+spring-core-5.0.6.RELEASE.jar
+fotress--
+cxf-api-2.7.18.jar
+apacheds--
+api-ldap-codec-core-1.0.0-RC1-guardian-3.2.0.jar
+quartz-2.2.1.jar
+c3p0-0.9.1.1.jar
+bcprov-jdk15on-1.53.jar
+api-i18n-1.0.0-RC1-guardian-3.2.0.jar
+cas-client--
+cas-client-core-3.5.1-guardian-3.2.0.jar
+hive--
+netty-all-4.1.5.transwarp.jar
+
+resourceservicemanager重写
+guava-jre和android的区别
+
+@RestController
+使用@Controller注解的Controller类中的函数可以返回具体的页面。比如直接返回的String类型Jsp，html页面名字。
+但是如果使用@Controller注解的Controller类中的函数想要返回json类型的数据，则需要在函数上面添加一个注解@ResponseBody。如果一个类中所有的方法返回的都是json类型数据，那么我们可以使用@RestController注解。
+@RestController=@ResponseBody+@Controller，该注解类下的所有函数都返回的是json类型数据，不再返回页面。
+
+@Api swagger用覆盖路径值打tag description一直可用
+@Configuration
+Spring的@Bean注解用于告诉方法，产生一个Bean对象，然后这个Bean对象交给Spring管理。产生这个Bean对象的方法Spring只会调用一次，随后这个Spring将会将这个Bean对象放在自己的IOC容器中。
+@Autowired
+@Component
+
+@NestedConfigurationProperty，该注解会为basicProperties生成单独的一个属性组。如果不添加该注解，则不会生成单独的属性组，而是形成如下的一个属性节点：
+@JsonUnwrapped @JsonUnwrapped: 作用在属性字段或方法上，用来将子JSON对象的属性添加到封闭的JSON对象。
+@RestController注解相当于@ResponseBody ＋ @Controller合在一起的作用。
+如果只是使用@RestController注解Controller，则Controller中的方法无法返回jsp页面，配置的视图解析器InternalResourceViewResolver不起作用，返回的内容就是Return 里的内容。例如：本来应该到success.jsp页面的，则其显示success. 
+如果需要返回到指定页面，则需要用 @Controller配合视图解析器InternalResourceViewResolver才行。
+如果需要返回JSON，XML或自定义mediaType内容到页面，则需要在对应的方法上加上@ResponseBody注解。
+
+@ConfigurationProperties适用与注入配置文件整个对应bean的全部属性，而@Value正如其名称一样，适合注入配置文件单个值
+desc table
+
+Spring中的环境属性管理的源码个人认为是最清晰和简单的：从文件中读取数据转化为key-value结构，key-value结构存放在一个PropertySource实例中，然后得到的多个PropertySource实例存放在一个CopyOnWriteArrayList中，属性访问的时候总是遍历CopyOnWriteArrayList中的PropertySource进行匹配。可能相对复杂的就是占位符的解析和参数类型的转换，后者牵连到Converter体系
+
+mvn help:system查看所有环境变量。
+
+1. guardianconf解决默认值问题
+2. 正则过滤密码
+.*(username|password|keytab).*
+
+@SwaggerDefinition(tags = {
+	@Tag(name = "foo", description = "some description of foo controller")
+})
+
+guardianHiveAuthorizor
+
+http://172.16.1.168:8090/pages/viewpage.action?pageId=23471650
+麻烦先试着换下inceptor和guardian-plugin的包，分别是
+inceptor-exec-8.0.1.jar	 
+inceptor-metastore-8.0.1.jar		 
+inceptor-plugin-transwarp-6.2.1.jar
+
+
+不开插件检查db/tb owner：
+grantPrivileges
+revokePrivileges
+grantQuota
+showQuota
+grantFacl
+revokeFacl
+showFacl
+grantRowPermission
+revokeRowPermission
+showPermission
+grantColumnPermission
+revokeColumnPermission
+showPrivileges
+
+开插件检查db/tb owner:
+showPrivileges
+filterDatabaseByPrivileges
+filterTablesByPrivileges
+
+"returnCode":500,"errorMessage":"Could not write JSON: java.lang.Boolean cannot be cast to java.lang.String; nested exception is com.fasterxml.jackson.databind.JsonMappingException: java.lang.Boolean cannot be cast to java.lang.String (through reference chain: java.util.Properties[\"guardian.server.tls.enabled\"])","detailMessage":"com.fasterxml.jackson.databind.JsonMappingException: java.lang.Boolean cannot be cast to java.lang.String (through reference chain: java.util.Properties[\"guardian.server.tls.enabled\"])\n\tat com.fasterxml.jackson.databind.JsonMappingException.wrapWithPath(JsonMappingException.java:391)\n\tat com.fasterxml.jackson.databind.JsonMappingException.wrapWithPath(JsonMappingException.java:351)\n\tat com.fasterxml.jackson.databind.ser.std.StdSerializer.wrapAndThrow(StdSerializer.java:316)\n\tat com.fasterxml.jackson.databind.ser.std.MapSerializer.serializeOptionalFields(MapSerializer.java:780)\n\tat com.fasterxml.jackson.databind.ser.std.MapSerializer.serialize(MapSerializer.java:635)\n\tat com.fasterxml.jackson.databind.ser.std.MapSerializer.serialize(MapSerializer.java:33)\n\tat com.fasterxml.jackson.databind.ser.DefaultSerializerProvider._serialize(DefaultSerializerProvider.java:480)\n\tat com.fasterxml.jackson.databind.ser.DefaultSerializerProvider.serializeValue(DefaultSerializerProvider.java:400)\n\tat com.fasterxml.jackson.databind.ObjectWriter$Prefetch.serialize(ObjectWriter.java:1392)\n\tat com.fasterxml.jackson.databind.ObjectWriter.writeValue(ObjectWriter.java:913)\n\tat org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.writeInternal(AbstractJackson2HttpMessageConverter.java:286)\n\tat org.springframework.http.converter.AbstractGenericHttpMessageConverter.write(AbstractGenericHttpMessageConverter.java:102)\n\tat org.springframework.web.servlet.mvc.method.annotation.AbstractMessageConverterMethodProcessor.writeWithMessageConverters(AbstractMessageConverterMethodProcessor.java:272)\n\tat org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.handleReturnValue(RequestResponseBodyMethodProcessor.java:180)\n\tat 

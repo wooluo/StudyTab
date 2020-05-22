@@ -453,6 +453,7 @@ curl -X GET --header 'Content-Type: application/json' --header 'Accept: applicat
  jar tvf apacheds-backend-guardian-3.1.3.jar | grep adminPerms.ldif
 jar xvf apacheds-backend-guardian-3.1.3.jar  ldif/adminPerms.ldif
 jar uvf apacheds-backend-guardian-3.1.3.jar ldif/adminPerms.ldif
+jar cvf xxx.jar
 
 api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
 
