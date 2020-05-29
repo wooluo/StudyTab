@@ -1,0 +1,2071 @@
+work25
+1.并发
+合理运用锁，什么时候加锁什么时候解锁，防止脏数据；又要防止死锁活锁资源占用
+2.内存限制 ( 限制最大的可使用空间 )
+涉及到golang gc，缓存要对内存实际使用量做限制，内存激增同样会导致资源竞争问题
+Go 请求内存很容易，但释放给操作系统却很难。当碎片被清空的同时，goroutines 去访问 key 的时候，会开始分配内存空间，此时之前的内存空间并没有被完全释放，这导致内存的激增，甚至会出发 OOM 错误。
+我们没有意识到，访问的模式还受 Zipf 定律的束缚。最常访问的几个 key 仍然存在几个锁，因此产生 Goroutines 的竞争问题。这种方式不满足多核之间的扩展的需求。
+3.在多核和多 Goroutines 之间更好的扩展
+单机使用，或者只有一个请求者连续请求的情况下，缓存做到资源管理。多核多goroutine就会涉及到缓存动态扩展问题，业务量上来了怎么去迁移数据保证请求的资源最大限度发挥效用，往往会用到缓存分片
+4.在非随机密钥的情况下，很好地扩展 (eg. Zipf)
+齐夫定律可以表述为：在自然语言的语料库里，一个单词出现的频率与它在频率表里的排名成反比。所以，频率最高的单词出现的频率大约是出现频率第二位的单词的2倍，而出现频率第二位的单词则是出现频率第四位的单词的2倍。这个定律被作为任何与幂定律概率分布有关的事物的参考。搜索引擎经常用到这个定律。缓存这里可以想为zipf定律下如何合理分配缓存的key使得频率访问次数科学地使用缓存
+5.更高的缓存命中率
+由于内存速度比磁盘读写速度快很多，我们当然希望所有的请求热点数据都打到缓存上，充分利用内存以及CPU资源做到效益最大化
+涉及到gc处理
+
+
+go-cache
+安装方法：go get github.com/patrickmn/go-cache
+是一个运行在单机上的k/v缓存，相当于memcached，实现线程安全，可以带有过期时间访问清理。里面有cach0e和sharded cache两种，今年加入了单测可以看怎么去使用，value支持有限的数据类型不过可扩展，是一个比较老的实现，当成一个简单可用的demo是可以好的。
+
+FreeCache - A cache library for Go with zero GC overhead and high concurrent performance.
+https://github.com/coocood/freecache.git
+0gc过剩，支持高并发，支持lru，支持过期清理get，严格限制内存使用量，同时具有审计平均access时间，hitcount等功能，现在仍有活跃开发
+
+FreeCache 将缓存分成了 256 段，每段包括 256 个槽和一个 ring buffer 存储数据。set数据使用 hash 值下 8 位作为标识 id，通过使用 LSB 9-16 的值作为槽 ID。将数据分配到多个槽里面，有助于优化查询的时间 ( 分治策略 )。
+
+数据被存储在 每个槽的ring buffer 中，相当于一个排序的数组里面。如果 ring buffer 内存不足，则会利用 LRU 的策略在 ring buffer 逐个扫描，如果缓存的最后访问时间小于平均访问的时间，就会被删掉。要找到一个缓存内容，在槽中是通过二分查找法对一个已经排好的数据进行查询。
+
+sync包实现了两种锁Mutex （互斥锁）和RWMutex（读写锁）
+
+BIGCache
+https://github.com/allegro/bigcache.git
+参数如下，支持分片支持时间控制，支持最大cache空间限制，支持verbose开关 使用读写锁RWMUTEX读锁无消耗
+https://blog.csdn.net/chenbaoke/article/details/41957725
+Shards
+CleanWindow
+MaxEntriesInWindow
+MaxEntrySize
+Verbose
+HardMaxCacheSize
+OnRemove
+OnRemoveWithReason
+
+BigCache 会通过 Hash 的方式进行分片。 每个分片都包含一个 map 和一个 ring buffer。无论如何添加元素，都会将它放置在对应的 ring buffer 中，并将位置保存在 map 中。如果多次设置相同的元素，则 ring buffer 中的旧值则会被标记为无效，如果 ring buffer 太小，则会进行扩容。
+
+每个 map 的 key 都是一个 uint32 的 hash 值，每个值对应一个存储着元数据的 ring buffer。如果 hash 值碰撞了，BigCache 会忽略旧 key，然后把新的值存储到 map 中。预先分配更少，更大的 ring buffer，使用 map [uint32] uint32 是避免支付 GC 扫描成本的好方法
+
+BigCache 不能有效地利用缓冲区，并且可能会在缓冲区中为同一个键存储多个条目。
+BigCache 不更新访问 ( 读 ) 条目，因此会导致最近访问的键被删除
+
+GroupCache
+https://github.com/golang/groupcache.git
+星标最多的cache 支持shardByKey，P2P形式形成一个分布式缓存，更好的cachefilling，得益于p2p，cache不命中时只需要在其中的某个cache添加data即可，同时抛弃版本号的概念并支持把super-hot key备份到所有节点
+
+GroupCache 使用链表和 Map 实现了一个精准的 LRU 删除策略的缓存。为了进行公平的比较，我们在 GroupCache 的基础上，实现了一个包括 256 个分片的切片结构。
+
+for _, value := range result.Rows {
+			schema := value[0].ToString()
+			if strings.ToLower(schema) != "_vt" && strings.ToLower(schema) != "information_schema" && strings.ToLower(schema) != "mysql" &&
+				strings.ToLower(schema) != "vt__mfed" && strings.ToLower(schema) != "performance_schema" {
+				schemas = append(schemas, schema)
+			}
+		}
+
+mysql -h127.0.0.1 -P15307 -uvt_appdebug -pvtappdebug_password
+
+工作周报 - 李镇邦 20200413 ~ 20200417
+
+完成：
+1. WARP-43659: [guardian] ResourceManager单测提升 提升中需要一段时间夯实
+2. WARP-43107: [guardian] AccessToken添加admin权限 guardian3.1和3.2版本 本地已测过3.2
+3. WARP-43853: [kundb] ldap接口缓存优化，增加过期处理
+4. WARP-44290: [kundb]grant在schema不分片创建表时时报错表不存在
+5. WARP-41378: [kundb]schema处理后show database未赋权可见
+
+
+本周：
+1. 对kundb权限修改的部分进行审核 添加单测
+2. WARP-43659有些resource不存在的情况下更好的方法实现测试，启动配置
+3. 继续跟进guardian accesstoken权限完成后的测试 以及这个功能滚动升级可能存在的问题
+
+
+ ps aux | grep mariadb
+ mysql -h127.0.0.1 -P17800 -uroot -pTranswarp!
+
+https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_alter
+http://172.16.1.168:8090/pages/viewpage.action?pageId=23490750
+
+
+db1: vt_insert_test
+
+testTb1
+testTb2
+v
+nightly test
+docker run -it --rm --network host 172.16.1.99/kundb-ci/x86_64/bootstrap-ci:go1.14
+git clone http://172.16.1.41:10080/lishinho/kundb.git --depth=1 -b WARP-44346
+mv kundb vitess
+cd vitess && source dev.env
+GO111MODULE=off make build
+python privileges_test.py -v --skip-teardown --keep-logs --skip-build
+python mysqlalias_test.py -v --skip-teardown --keep-logs --skip-build
+
+[1]+  Stopped                 python privileges_test.py -v --skip-teardown --keep-logs --skip-build
+kundb@transwarp-Latitude-5480:/vt/src/github.com/youtube/vitess/test$ python privileges_test.py -v --skip-teardown --keep-logs --skip-build
+-- 2020-04-20 12:49:05,065 mysql_flavor:212 DEBUG Using MySQL flavor: MySQL56, setting MYSQL_FLAVOR=MySQL56 (<class 'mysql_flavor.MySQL56'>)
+-- 2020-04-20 12:49:05,094 environment:237 DEBUG Using protocols flavor 'grpc'
+-- 2020-04-20 12:49:05,095 server:66 DEBUG Using topo server flavor 'zk2'
+-- 2020-04-20 12:49:05,095 gateway:69 DEBUG Using VTGate gateway flavor 'discoverygateway'
+-- 2020-04-20 12:49:05,095 environment:145 DEBUG run: ['/vt/bin/zkctl', '-log_dir', '/vt/vtdataroot/tmp', '-zk.cfg', '1@transwarp-Latitude-5480:15012:15013:15014', 'init'] 
+-- 2020-04-20 12:49:05,125 utils:80 INFO ===== ERROR
+-- 2020-04-20 12:49:05,126 utils:80 INFO ===== ======================================================================
+-- 2020-04-20 12:49:05,126 utils:80 INFO ===== ERROR: setUpModule (__main__)
+-- 2020-04-20 12:49:05,127 utils:80 INFO ===== ----------------------------------------------------------------------
+-- 2020-04-20 12:49:05,127 utils:80 INFO ===== Traceback (most recent call last):
+  File "privileges_test.py", line 29, in setUpModule
+    environment.topo_server().setup()
+  File "/vt/src/github.com/youtube/vitess/test/topo_flavor/zk2.py", line 51, in setup
+    'init'])
+  File "/vt/src/github.com/youtube/vitess/test/environment.py", line 157, in run
+    stderr)
+Exception: Command failed: /vt/bin/zkctl -log_dir /vt/vtdataroot/tmp -zk.cfg 1@transwarp-Latitude-5480:15012:15013:15014 init:
+E0420 12:49:05.101458    9698 zkctl.go:89] failed init: zk already inited
+
+
+-- 2020-04-20 12:49:05,128 utils:80 INFO ===== ----------------------------------------------------------------------
+-- 2020-04-20 12:49:05,128 utils:80 INFO ===== Ran 0 tests in 0.031s
+-- 2020-04-20 12:49:05,128 utils:80 INFO ===== FAILED
+-- 2020-04-20 12:49:05,129 utils:80 INFO ===== FAILED (errors=1)
+-- 2020-04-20 12:49:05,129 utils:187 WARNING Leaving temporary files behind (--keep-logs), please clean up before next run: /vt/vtdataroot
+kundb@transwarp-Latitude-5480:/vt/src/github.com/youtube/vitess/test$ 
+
+guardian admin-assign接口有问题
+ {
+    "dataSource": [
+      "org.apache.directory.fortress.core.impl.AdminMgrImpl"
+    ],
+    "action": "addUser",
+    "heritable": false,
+    "grantable": false,
+    "administrative": true
+  },
+
+ jdbc:kundb://dft:111@168.66.136.100:15991/abc?useSSL=true&trustAllCA=true&nullCatalogMeansCurrent=true&defaultIdleTimeout=36000000
+
+I0421 02:23:36.476831    4062 vtgate.go:426] SQLLog: Session Info: 74be1298-478d-4d60-a856-e66a03645b81 , Executed sql: rollback, BindVariables: map[], Cost: 14.619µs
+W0421 02:23:36.512210    4062 vtgate.go:459] unexpected error when executing sql[create database db2], err is target: _mfed.0.master, used tablet: test_nj-62346 (localhost), vttablet: rpc error: code = Unknown desc = Access denied; you need (at least one of) the SUPER privilege(s) for this operation (errno 1227) (sqlstate 42000) during query: DROP SERVER IF EXISTS `db2`, CallerID: u1
+
+mysql -h127.0.0.1 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+本地登陆kundb
+mysql -h172.16.1.236 -P15307 -uadmin -padmin --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+
+   # test create/drop privileges on database
+    params['user'] = 'u1'
+    params['passwd'] = 'u1'
+    conn = MySQLdb.Connect(**params)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('create database db2', {})
+        self.fail('Execute went through')
+    except MySQLdb.OperationalError, e:
+        s = str(e)
+        self.assertIn('denied', s)
+    conn.close()
+
+    params['user'] = 'vt_app'
+    params['passwd'] = 'vt_app'
+    conn = MySQLdb.Connect(**params)
+    cursor = conn.cursor()
+    cursor.execute('grant create, drop on *.* to u1', {})
+    conn.close()
+
+    params['user'] = 'u1'
+    params['passwd'] = 'u1'
+    conn = MySQLdb.Connect(**params)
+    cursor = conn.cursor()
+    cursor.execute('create database db2')
+    cursor.execute('drop database db2')
+    conn.close()
+
+
+create table customer (custid int primary key, custname varchar(20), age int) partition by HASH(custid) using hash;
+insert into customer(custid, custname, age) values (1, 'Zhang', 10), (2, 'Li', 20), (3,'Wang', 30), (4,'Zhao', 40);
+
+
+create table item1 (itemid int primary key, itemname varchar(100), price decimal ) partition by HASH(Itemid) using hash;
+insert into item1(itemid, itemname, price) values (1, 'Candy', 5), (2, 'Milk', 10), (3, 'Toy', 20);
+
+// CheckDbName returns a error if the given name contains underline
+func CheckDbName(dbName string) error {
+	if strings.ContainsAny(dbName, underline) {
+		return fmt.Errorf("not support '_' in the name of database, while the database's name is %s", dbName)
+	}
+	if dbName == "mysql" {
+		return fmt.Errorf("not support 'mysql' as the name of database")
+	}
+	return nil
+}
+Q1 db1 exists
+Q2 
+
+WARP-41378->review
+WARP-44290->review
+WARP-44415->修改case，支持oracle暂不支持select procedure
+WARP-44406->ing cyj
+WARP-44389->ing cyj
+WARP-44350->ing lgy
+
+
+先整理case 然后测一遍
+把WARP-43107 guardian3.1完成 联通项目出包
+
+\d //
+create procedure proc1 ()
+begin
+update FROM item1 WHERE itemid=3;
+end //
+\d ;
+show procedure status;
+
+call proc0();
+
+ERROR 1142 (42000): vtgate: http://tw-node1236:15001/: target: _mfed.80-.master, used tablet: transwarp-810 (tw-node1237), vttablet: TRIGGER command denied to user 'wangbin'@'%' for table 'item1' (errno 1142) (sqlstate 42000) during query: insert into item1 values (3, 'Toy', 20), CallerID: vt_app
+
+
+DELIMITER //  
+CREATE PROCEDURE demo_in_parameter(IN p_in int)  
+BEGIN   
+SELECT p_in;   
+SET p_in=2;   
+SELECT p_in;   
+END;   
+//  
+DELIMITER ;
+
+
+
+
+    if (!skipCheckAccessWithService &&
+        !AuthUtil.checkAdminAccess(session, serviceVo.getServiceName()) &&
+        !AuthUtil.checkPermission(session, AdminManager.ADMIN_MGR, ADD)) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE, ADD);
+    }
+
+      if (!(enableTokenAdminAccess && (AuthUtil.checkPermission(session, AdminManager.ADMIN_MGR, ADD_TOKEN_PERM)))) {
+
+
+
+create_testTb2 = '''create table testTb2 (
+custid bigint,
+custname varchar(64),
+age int,
+primary key (custid)
+) partition by HASH(custid) using hash'''
+
+\d //
+create procedure proc1 ()
+begin
+insert into testtb2 values(1, 'Kun', 33) ;
+update testtb2 set custid=2;
+end //
+\d ;
+
+  543  sudo rm -rf TDH-Client/
+  544  rm -rf tdh-client.tar 
+  545  ls
+  546  sudo tar -xvf tdh-client.tar
+  547  ls
+  548  cd TDH-Client/
+  549  ls
+  550  source init.sh 
+  551  cd ~/tmp
+  552  ls
+  553  cd TDH-Client/
+  554  ls
+  555  cat init.sh 
+  556  ps -aux
+  557  ps -aux | grep init
+  558  ps -aux | grep kerberos
+  559  ls
+  560  source init.sh 
+  561  cd ~/tmp
+  562  ls
+  563  cd TDH-Client/
+  564  ls
+  565  source init.sh 
+  566  ls
+  567  cd -
+  568  cd ~/tmp
+  569  ls
+  570  cd TDH-Client/
+  571  ls
+  572  cat init.sh 
+  573  cat init.sh  | grep exit
+  574  cat init.sh  | grep -a2 exit
+  575  ls
+  576  vi init.sh 
+  577  ls
+  578  ls -al
+  579  ls
+  580  cd ../
+  581  ls
+  582  sudo chown -R transwarp:transwarp TDH-Client/
+  583  cd TDH-Client/
+  584  ls
+  585  vi init.sh 
+  586  ls
+  587  source init.sh 
+  588  ls
+  589  klist
+  590  hadoop fs -ls /
+  591  history 20
+  592  history 50
+
+http://172.26.5.46:8180/#/dashboard/status
+
+lzb/123
+
+
+  627  vi hosts 
+  628  hadoop fs -ls /
+  629  vi hosts 
+  630  cd ..
+  631  rm -rf TDH-Client/
+  632  ls
+  633  rm -rf tdh-client.tar 
+  634  ls
+  635  ps -ef |grep mysql
+  636  vim /vt/vtdataroot/vt_793535492/vt_0000062346/my.cnf
+  637  docker ps 
+  638  docker exec -it 6c35e09e4724 bash
+  639  exit
+  640  docker ps -ef |grep mysql
+  641  docker ps
+  642  docker rm 6c35e09e4724       
+  643  docker ps -a
+  644  ps -ef |grep mysql
+  645  cd /home/transwarp/go/src/github.com/youtube/vitess/
+  646  source dev.env 
+  647  cd test/
+  648  python
+  649  python privileges_test.py  -v --skip-teardown --keep-logs --skip-build
+  650  sudo apt-get install python-mysqldb
+  651  pip install mysql-python
+  652  python privileges_test.py  -v --skip-teardown --keep-logs --skip-build
+  653  ps -ef 
+  654  ps -ef |grep mysql
+  655  vi /home/transwarp/go/vtdataroot/vt_0000062344/my.cnf
+  656  vim ~/go/config/mycnf/master_mysql56.cnf 
+  657  vim ~/go/config/mycnf/master_mysql80.cnf 
+  658  vim ~/go/config/mycnf/master_mariadb.cnf 
+  659  vim ~/go/config/mycnf/mfed.cnf 
+  660  vim ~/go/config/mycnf/binlog_statement.cnf 
+  661  vim privileges_test.py 
+  662  vim st.py 
+  663  history 40
+
+if !ok {
+						return "", vterrors.Errorf(vtrpcpb.Code_NOT_FOUND, "keyspace %s not found in vschema", ksName)
+					}
+
+
+create_trigger = '''drop trigger if exists "Tri_Item_Insert"
+delimiter $$
+CREATE TRIGGER Tri_Item_Insert BEFORE INSERT ON testTb1 FOR EACH ROW
+BEGIN
+insert into testTb1 values(6, 'paper', 35);
+END;$$
+delimiter ;'''
+
+create_routines = '''
+\d //
+create procedure proc1 ()
+begin
+DELETE FROM testTb1 WHERE itemid=3;
+end //
+\d ;'''
+
+E0423 11:58:28.548425   27760 vtgate.go:429] SQLLog: Session Info: 4cfbd124-745a-45a0-9370-82a8446e788d db1, Executed sql: call proc1() , BindVariables: map[], Cost: 4.415642ms, Error: vtgate: http://transwarp-Latitude-5480:15015/: target: _mfed.0.master, used tablet: test_nj-62346 (localhost), vttablet: SELECT command denied to user 'u1'@'localhost' for column 'itemid' in table 'testtb1' (errno 1143) (sqlstate 42000) during query: call proc1() , CallerID: u1
+
+
+create_testTb1 = '''create table testTb1 (
+itemid bigint auto_increment,
+itemname varchar(64),
+price int,
+primary key (itemid)
+) Engine=InnoDB'''
+
+create_testTb2 = '''create table testTb2 (
+custid bigint,
+custname varchar(64),
+age int,
+primary key (custid)
+) partition by HASH(custid) using hash'''
+
+
+hadoop fs -mkdir /inceptor1-encrypt
+
+transwarp@transwarp-Latitude-5480:~/tmp/TDH-Client$ hadoop fs -mkdir /inceptor1-encrypt
+2020-04-23 14:17:53,178 INFO  [main] util.KerberosUtil (KerberosUtil.java:getDefaultPrincipalPattern(81)) - Using principal pattern: HTTP/_HOST
+-mkdir: Fatal internal error
+io.transwarp.guardian.federation.utils.oauth2.configuration.InvalidOAuth2ConfigurationException: Failed to extract client credential from file /etc/hdfs1/conf/client-credential.jks
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.ClientCredentialExtractingTransformer.transform(ClientCredentialExtractingTransformer.java:41)
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.ClientCredentialExtractingTransformer.transform(ClientCredentialExtractingTransformer.java:9)
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.OAuth2Configuration.transform(OAuth2Configuration.java:61)
+	at io.transwarp.guardian.federation.utils.oauth2.configuration.OAuth2ConfigurationFactory.getConf(OAuth2ConfigurationFactory.java:21)
+	at org.apache.hadoop.security.SecurityUtil.getOAuth2Conf(SecurityUtil.java:674)
+	at org.apache.hadoop.security.SaslRpcServer.init(SaslRpcServer.java:202)
+	at org.apache.hadoop.ipc.RPC.getProtocolProxy(RPC.java:575)
+	at org.apache.hadoop.hdfs.NameNodeProxies.createNNProxyWithClientProtocol(NameNodeProxies.java:428)
+	at org.apache.hadoop.hdfs.NameNodeProxies.createNonHAProxy(NameNodeProxies.java:324)
+	at org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider.getProxy(ConfiguredFailoverProxyProvider.java:138)
+	at org.apache.hadoop.io.retry.RetryInvocationHandler.<init>(RetryInvocationHandler.java:73)
+	at org.apache.hadoop.io.retry.RetryInvocationHandler.<init>(RetryInvocationHandler.java:64)
+	at org.apache.hadoop.io.retry.RetryProxy.create(RetryProxy.java:58)
+	at org.apache.hadoop.hdfs.NameNodeProxies.createProxy(NameNodeProxies.java:181)
+	at org.apache.hadoop.hdfs.DFSClient.<init>(DFSClient.java:687)
+	at org.apache.hadoop.hdfs.DFSClient.<init>(DFSClient.java:628)
+/////////||////////////////////////////////////////////////////////////////////////////////////////////////////
+	at org.apache.hadoop.hdfs.DistributedFileSystem.initialize(DistributedFileSystem.java:149)
+	at org.apache.hadoop.fs.FileSystem.createFileSystem(FileSystem.java:2667)
+	at org.apache.hadoop.fs.FileSystem.access$200(FileSystem.java:93)
+	at org.apache.hadoop.fs.FileSystem$Cache.getInternal(FileSystem.java:2718)
+	at org.apache.hadoop.fs.FileSystem$Cache.get(FileSystem.java:2700)
+	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:372)
+	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:171)
+	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:356)
+	at org.apache.hadoop.fs.Path.getFileSystem(Path.java:295)
+	at org.apache.hadoop.fs.shell.PathData.expandAsGlob(PathData.java:325)
+	at org.apache.hadoop.fs.shell.Command.expandArgument(Command.java:235)
+	at org.apache.hadoop.fs.shell.Command.expandArguments(Command.java:218)
+	at org.apache.hadoop.fs.shell.Command.processRawArguments(Command.java:201)
+	at org.apache.hadoop.fs.shell.Command.run(Command.java:165)
+	at org.apache.hadoop.fs.FsShell.run(FsShell.java:287)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:70)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:84)
+	at org.apache.hadoop.fs.FsShell.main(FsShell.java:340)
+
+在使用HDFS的API进行读写操作前都会对FileSystem进行初始化。并且让客户端创建namenode的通信代理代理用于进行RPC通信。
+HADOOP_SECURITY_AUTHENTICATION_OAUTH2_ENABLED -》false
+
+      for (EntityPermissionVo epVo : perms2EntityPermissionVo(perms)) {
+        if (StringUtils.isNotEmpty(epVo.getName())) {
+          epVos.add(epVo);
+        }
+      }
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \ 
+   "isSystem": false, \ 
+   "password": "admin", \ 
+   "username": "admin" \ 
+ }' 'https://172.26.0.38:8380/api/v1/login'
+
+curl -X GET --header 'Accept: application/json' 'http://172.26.5.46:8380/api/v1/perms/component/inceptor1/dataSource/**?subtree=true&pageSize=-1&sorting=false'
+
+
+    List<Permission> findPermissionsByFilters( String contextId, String user, String role, String group,
+        PermFilterParams filter)
+        throws FinderException
+    {
+        List<Permission> permList = new ArrayList<>();
+        LdapConnection ld = null;
+        PermObj permObj = new PermObj( filter.getDataSource(), filter.getComponent() );
+        String permObjDn = getDn( permObj, contextId );
+
+        try
+        {
+            String _user = Rdn.escapeValue( user );
+            String _group = Rdn.escapeValue( group );
+            String _role = Rdn.escapeValue( role );
+            String _prefix = Rdn.escapeValue( filter.getPrefix() );
+            StringBuilder filterbuf = new StringBuilder();
+            filterbuf.append( GlobalIds.FILTER_PREFIX );
+            filterbuf.append( PERM_OP_OBJECT_CLASS_NAME );
+            filterbuf.append( ")" );
+
+            filterbuf.append(")");
+            ld = getAdminConnection( true );
+
+            SearchCursor searchResults;
+            if ( filter.getPageSize() >= 0 ) {
+                // Search paged result
+                searchResults = search( ld, permObjDn, filter.getScope(),
+                    filterbuf.toString(), PERMISSION_OP_ATRS, false, filter.getPagingCookie(), filter.getPageSize());
+            } else {
+                searchResults = search( ld, permObjDn,
+                    filter.getScope(), filterbuf.toString(), PERMISSION_OP_ATRS, false, 0 );
+            }
+
+            long sequence = 0;
+
+            while ( searchResults.next() )
+            {
+                permList.add( unloadPopLdapEntry( searchResults.getEntry(), sequence++, false ) );
+            }
+
+            pagedSearchDone( searchResults, filter );
+        }
+        catch ( LdapException e )
+        {
+            String error = "findAnyPermissions caught LdapException=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_SEARCH_FAILED, error, e );
+        }
+        catch ( CursorException e )
+        {
+            String error = "findAnyPermissions caught CursorException=" + e.getMessage();
+            throw new FinderException( GlobalErrIds.PERM_SEARCH_FAILED, error, e );
+        }
+        finally
+        {
+            closeAdminConnection( ld );
+        }
+        return permList;
+    }
+
+mysql binlog rbr sbr
+
+ if (session == null) {
+        throw new GuardianException(ErrorCodes.PARAMETERS_ERROR, "parameter owner is needed");
+      } else if (enableTokenAdminAccess && AuthUtil.checkPermission(session, AdminManager.ADMIN_MGR, FIND_TOKENS_PERM)) {
+        return tokenDao.getAccessTokenByOwner(owner);
+      }
+
+
+ database.  Cause: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'owner' in 'class java.lang.String'\n### Cause: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'owner' in 'class java.lang.String'",
+  "detailMessage": "org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'owner' in 'class java.lang.String'\n\tat org.apache.ibatis.reflection.Reflector.getGetInvoker(Reflector.java:422)\n\tat org.apache.ibatis.reflection.MetaClass.getGetInvoker(MetaClass.java:164)\n\tat org.apache.ibatis.reflection.wrapper.BeanWrapper.getBeanProperty(BeanWrapper.java:162)\n\tat org.apache.ibatis.reflection.wrapper.BeanWrapper.
+
+
+// Original user get owner from session if input owner is empty
+      if (session == null) {
+        throw new GuardianException(ErrorCodes.PARAMETERS_ERROR, "parameter owner is needed");
+      }
+      owner = session.getUserId();
+
+Client的通过RPC的Proxy与NameNode交互。在client端会有两个代理同时存在，分别代表与Active和Standby的NameNode的连接。由于Client端有Retry机制，当与Active NameNode正常通信的client proxy收到RPC返回的StandbyException时，说明这个Active NameNode已经变成了Standby模式，所以触发dfs.client.failover.proxy.provider.[nameservice ID]这个参数指定的类来做failover，目前唯一的实现是ConfiguredFailoverProxyProvider，实现方法就是下次开始把RPC发向另外一个NameNode。此后的RPC都是发往另外一个NameNode，也就是NameNode发生了主从切换。
+
+工作周报 - 李镇邦 20200420 ~ 20200424
+
+完成：
+1. WARP-44346: [Kundb] 增加权限审查单测去保证权限部分功能 nightly-regression test
+2. WARP-41378: [kundb] 修改实现方法，取schema和mfed取回结果交集
+3. WARP-44058: [TDH] 使用TDH-client的OAUth报错
+4. WARP-43781: [guardian] guardian server的search接口返空问题，在guardian-plugin修改
+5. WARP-43107: [guardian]修改使用方式 增加findtokens接口，赋给useradmin使用
+
+
+本周：
+1. 修改WARP-43339的升级脚本 联通DCOS出包
+2. 测试TDH-client的修改效果
+3. resource-manager单测覆盖修改提交
+
+
+020-04-26 13:48:08,310 INFO rest.HttpClient: Trying to perform authentication in PLAIN mode with username: admin, isSystem: false
+2020-04-26 13:48:09,230 INFO v2.PeriodCacheUpdater: Fetch change version: 16270
+2020-04-26 13:48:09,230 DEBUG v2.PeriodCacheUpdater: Change list size: #4
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,231 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}, NodeVo{type='TB', value='tb'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,356 DEBUG cache.PeriodCacheUpdater: PeriodCacheUpdater is running.
+2020-04-26 13:48:09,360 INFO cache.PeriodCacheUpdater: Fetch change version: 16251
+2020-04-26 13:48:09,360 DEBUG cache.PeriodCacheUpdater: Change list is empty
+2020-04-26 13:48:09,360 DEBUG cache.PeriodCacheUpdater: Change list is empty
+2020-04-26 13:48:09,382 INFO v2.PeriodCacheUpdater: Fetch change version: 16270
+2020-04-26 13:48:09,382 DEBUG v2.PeriodCacheUpdater: Change list size: #4
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='AUBoZRestClientQuotaCacheTesthdfs1', externalId=0}}]
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,382 DEBUG v2.ResourceTreeCache: Load change [QuotaChange{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DB', value='db'}, NodeVo{type='TB', value='tb'}], serviceType='INCEPTOR', serviceName='AUBoZRestClientQuotaCacheTestinceptor1', externalId=0}}]
+2020-04-26 13:48:09,916 INFO v2.ResourceTreeCache: Timed removing guardian cache invalid nodes
+2020-04-26 13:48:09,916 INFO v2.ResourceTreeCache: Remove invalid resource node count [0] for component [AUBoZRestClientQuotaCacheTesthdfs1]
+2020-04-26 13:48:09,916 INFO v2.ResourceTreeCache: Remove invalid resource node count [0] for component [AUBoZRestClientQuotaCacheTestinceptor1]
+
+NodeVo{type='DATABASE', value='default'}], serviceType='INCEPTOR', serviceName='metastoreId', externalId=0}, permActionVo=PermActionVo{action='SELECT'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestrequestUser], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DATABASE', value='default'}], serviceType='INCEPTOR', serviceName='metastoreId', externalId=0}, permActionVo=PermActionVo{action='CREATE'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestrequestUser], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DATABASE', value='system'}], serviceType='INCEPTOR', serviceName='metastoreId', externalId=0}, permActionVo=PermActionVo{action='SELECT'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,670 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='READ'}}, withGrantOption=false, cacheStatus=REVOKED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=GRANTED}]
+2020-04-26 13:47:34,671 DEBUG v2.ResourceTreeCache: Load change [UserPermChange{users=[NNTJeRestClientPermTestu], permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='DIR', value='/'}, NodeVo{type='DIR', value='tmp'}], serviceType='HDFS', serviceName='NNTJeRestClientPermTesthdfs1', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, withGrantOption=false, cacheStatus=REVOKED}]
+
+      // Token owner himself or READ_TOKEN_PERM user can read token with owner given
+// FIND_TOKEN_PERM user can read all tokens by giving owner with null
+
+HADOOP_SECURITY_AUTHENTICATION_OAUTH2_ENABLED
+
+
+    UserGroupInformation.AuthenticationMethod confAuthenticationMethod =
+        SecurityUtil.getAuthenticationMethod(conf);
+    if (confAuthenticationMethod == UserGroupInformation.AuthenticationMethod.OAUTHBEARER) {
+      oAuth2Conf = SecurityUtil.getOAuth2Conf(conf);
+      if (oAuth2Conf != null) {
+        Security.addProvider(new OAuth2Server.OAuth2SaslServerProvider());
+      }
+    }
+
+ 1005  source /etc/profile
+ 1008  JAVA_HOME=$JAVA_HOME_7
+
+jar tvf 
+
+ldif/adminPerms.ldif
+
+
+apacheds镜像[root@tw-node1237 guardian-apacheds]# ls
+apacheds-backend-guardian-3.1.3.jar  default-conf  lib  scripts
+r | grep adminPerms.ldifan-apacheds]# jar tvf apacheds-backend-guardian-3.1.3.jar
+ 93329 Thu Mar 05 19:25:00 CST 2020 ldif/adminPerms.ldif
+[root@tw-node1237 guardian-apacheds]# pwd
+/usr/lib/guardian-apacheds
+
+ jar tvf apacheds-backend-guardian-3.1.3.jar | grep adminPerms.ldif
+jar xvf apacheds-backend-guardian-3.1.3.jar  ldif/adminPerms.ldif
+jar uvf apacheds-backend-guardian-3.1.3.jar ldif/adminPerms.ldif
+
+api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 lib]# jar tvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar | grep m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+   355 Thu Mar 05 19:19:30 CST 2020 schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 lib]# jar xvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+/usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 ~]# jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 ~]# ls
+
+/guardian/data
+
+jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+GUARDIAN_ENABLE_TOKEN_ADMIN
+
+if (session != null && !session.getUserId().equals(accessTokenVo.getOwner()) && !checkTokenAdminPerm(session, ADD_TOKEN_PERM)) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE,
+          "User " + session.getUserId() + " has no permission to generate access token for user "
+              + accessTokenVo.getOwner());
+
+    if (sessionVo != null && !sessionVo.getUserId().equals(accessTokenVo.getOwner())
+        && !checkTokenAdminPerm(sessionVo, AdminPriv.CREATE_TOKEN)) {
+    if (session != null && !session.getUserId().equals(accessTokenVo.getOwner()) && !checkTokenAdminPerm(session, AdminPriv.CREATE_TOKEN)) {
+
+    if (session != null && !session.getUserId().equals(accessTokenVo.getOwner()) && !checkTokenAdminPerm(session, ADD_TOKEN_PERM)) {
+      throw new GuardianException(ErrorCodes.AUTHORIZED_FAILURE,
+          "User " + session.getUserId() + " has no permission to generate access token for user "
+              + accessTokenVo.getOwner());
+    }
+
+mvn test -Dtest=[ClassName]
+
+运行测试类中指定的方法：(这个需要maven-surefire-plugin:2.7.3以上版本才能支持)
+ 
+>mvn test -Dtest=[ClassName]#[MethodName]
+//[MethodName]为要运行的方法名，支持*通配符，范例：
+>mvn test -Dtest=MyClassTest#test1
+
+GUARDIAN_SERVER_PRINCIPAL
+>mvn test -Dtest=MyClassTest#*test*
+mvn test -Dtest=AccessTokenManagerV2Test
+
+、运行应用程序中的单元测试：mvn test或mvn test -Dtest=***Test， 其中“***Test"为被测试用例的类名（不需要输入.java）         打开控制台，进入测试工程所在目录：D:\workspace-sell\sell-qatest路径；输入mvn test命令后，开始执行sell-qatest中的所有测试脚本，并将信息输出到控制台。         如果要单独运行一个测试类里的用例，如 publishAuctionTest.java，则可以运行 mvn test -Dtest=publishAuctionTest2、清除目标目录中的生成结果：mvn clean（清除taget文件夹中内容）3、在本地repo中安装jar：mvn install。运行命令后工程根目录下生成target文件夹，文件夹内存放jar包，class文件夹等内容。本地仓库repo中生成工程jar包目录。4、将工程打包：mvn package。运行命令后工程根目录下生成target文件夹，文件夹内存放jar包，class文件夹等内容。5、生成Eclipse项目文件：mvn eclipse:eclipse。运行命令后生成eclipse工程，项目的根目录下产生.project、.classpath文件和target文件夹。将该工程导入到eclipse中：打开eclipse，通过file->import，导入到eclipse中。6、清除Eclipse工程：mvn eclipse:clean。.classpath和.project文件会被删除。7、在运行install 或package时，测试代码不被执行：第一种方法：在cmd运行mvn install 或mvn package 命令后加上-Dmaven.test.skip=true 。例如：mvn install -Dmaven.test.skip=true第二种方法：在pom.xml文件的maven-surefire-plugin插件中添加参数：<skip>true</skip><plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><inherited>true</inherited><configuration><skip>true</skip></configuration></plugin>
+
+mvn -Dtest=HdfsResourceMgrTest  -DfailIfNoTests=false test
+mvn test -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false
+Tests in error: 
+  getAccessTokenByIdTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test)
+  deleteAccessTokenTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test): ErrorCode: 403, ErrorMessage: Permission denied: All of permissions [[assignAdminRole]] required of user [GVLTfAccessTokenManagerV2Test-u1]
+  createAccessTokenTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test): ErrorCode: 403, ErrorMessage: Permission denied: User GVLTfAccessTokenManagerV2Test-u1 has no permission to generate access token for user GVLTfAccessTokenManagerV2Test-u2
+  updateAccessTokenByIdTest(io.transwarp.guardian.core.manager.v2.AccessTokenManagerV2Test): ErrorCode: 63100, ErrorMessage: Cannot find the access token of id 123456
+
+mvn -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false test
+
+services
+{"serviceName":"hdfs1","serviceType":"HDFS","description":"description","serviceHosts":["tw-node1237","tw-node1238"],"timestamp":1586427963065}]
+serviceMapping
+{"hdfs1":"hdfs1","inceptor1":"inceptor1","yarn1":"yarn1"}
+searchPrincipals?component=hdfs1&dataSource=GLOBAL&action=ADMIN
+{"users":["admin","hdfs"],"groups":[],"roles":[]}
+
+resourceLookupVo
+{
+  "resources": {
+"name": ["123","124"]},
+  "serviceName": "hdfs1",
+  "serviceType": "HDFS",
+  "userInput": "aaa"
+}
+
+io/transwarp/guardian/core/manager/v2/AccessTokenManagerV2Test.properties
+io/transwarp/guardian/core/manager/v2/AccessTokenManagerV2Test.properties
+
+resourcemanager里没有引用presistence中的apacheds导致bean初始化失败
+
+[root@tw-node1237 ou=attributetypes]# pwd
+/guardian/data/partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes
+
+ + for FILE in '$UPDATE_FILES'
++ '[' '!' -f /guardian/data//partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif ']'
++ jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar /guardian/data//partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
++ echo 'Adding /guardian/data//partitions/schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif'
+
+cd $DATA_DIR
+mkdir upgrade_backup
+[ -d backup ] && cp -r backup/ upgrade_backup/
+[ -d conf ] && cp -r conf/ upgrade_backup/
+[ -d log ] && cp -r log/ upgrade_backup/
+[ -d partitions ] && cp -r partitions/ upgrade_backup/
+[ -d run ] && cp -r run/ upgrade_backup/
+
+
+#Update password policy
+echo "Starting Upgrade for password policy"
+
+
+UPDATE_FILES="$LDIF_DIR/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+$LDIF_DIR/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+$LDIF_DIR/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.32.ldif
+$LDIF_DIR/ou=schema/cn=pwdpolicy/ou=attributetypes/m-oid=1.3.6.1.4.1.42.2.27.8.1.33.ldif
+$LDIF_DIR/ou=schema/cn=pwdpolicy/ou=objectclasses/m-oid=1.3.6.1.4.1.42.2.27.8.2.1.ldif
+$LDIF_DIR/ou=schema/cn=adsconfig/ou=objectclasses/m-oid=1.3.6.1.4.1.18060.0.4.1.3.900.ldif"
+jarSource=/usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+set -x
+#Add files
+for FILE in $UPDATE_FILES
+do
+  if [ ! -f "$FILE" ]; then
+    jar xvf $jarSource $FILE
+    echo "Adding $FILE"
+  fi
+done
+set +x
+
+
+mysql -h172.16.1.196 -P3306 -uroot -p
+
+{
+  "returnCode": 4002,
+  "errorMessage": "Failed to update password policy",
+  "detailMessage": "org.apache.directory.fortress.core.UpdateException: update name [default] caught LdapException=OBJECT_CLASS_VIOLATION: failed for MessageType : MODIFY_REQUEST\nMessage ID : 24\n    Modify Request\n        Object : 'ads-pwdid=default,ou=passwordPolicies,ads-interceptorid=authenticationInterceptor,ou=interceptors,ads-directoryserviceid=default,ou=config'\n            Modification[0]\n                Operation :  replace\n                Modification\nads-pwdMinAge: 0            Modification[1]\n                Operation :  replace\n                Modification\nads-pwdMaxAge: 0            Modification[2]\n                Operation :  replace\n                Modification\nads-pwdInHistory: 0            Modification[3]\n                Operation :  replace\n                Modification\nads-pwdCheckQuality: 1            Modification[4]\n                Operation :  replace\n                Modification\nads-pwdMinLength: 0            Modification[5]\n                Operation :  replace\n                Modification\nads-pwdExpireWarning: 600            Modification[6]\n                Operation :  replace\n                Modification\nads-pwdGraceAuthNLimit: 5            Modification[7]\n                Operation :  replace\n                Modification\nads-pwdLockout: TRUE          
+
+ads-pwdInHistoryDuration: 0org.apache.directory.api.ldap.model.message.ModifyRequestImpl@b629761a: ERR_277 Attribute ads-pwdMinClasses not declared in objectClasses of entry ads-pwdid=default,ou=passwordPolicies,ads-interceptorid=authenticationInterceptor,ou=interceptors,ads-directoryserviceid=default,ou=config
+        at org.apache.directory.api.ldap.model.message.ResultCodeEnum.processResponse(ResultCodeEnum.java:2083)
+        at org.apache.directory.ldap.client.api.LdapNetworkConnection.modify(LdapNetworkConnection.java:2328)
+        at org.apache.directory.ldap.client.api.LdapNetworkConnection.modify(LdapNetworkConnection.java:2337)
+        at org.apache.directory.ldap.client.api.LdapConnectionWrapper.modify(LdapConnectionWrapper.java:238)
+        at org.apache.directory.fortress.core.ldap.LdapDataProvider.modify(LdapDataProvider.java:284)
+        at org.apache.directory.fortress.core.impl.PolicyDAO.update(PolicyDAO.java:423)
+        ... 109 more
+2020-04-29 11:57:48,455 ERROR io.transwarp.guardian.server.boot.exception.GuardianExceptionHandler: Exception occurs and handled by GuardianExceptionHandler:
+2020-04-29 11:57:48,455 WARN io.transwarp.guardian.common.util.ResourceUtil: Can not find string by key 4002 in resource guardian-error
+io.transwarp.guardian.common.exception.GuardianException: ErrorCode: 4002, ErrorMessage: Failed to update password policy
+        at io.transwarp.guardian.core.manager.AdminManager.updatePasswordPolicy(AdminManager.java:384)
+        at io.transwarp.guardian.server.boot.controller.AdminController.updatePasswordPolicy(AdminController.java:246)
+        at io.transwarp.guardian.server.boot.controller.AdminController$$FastClassBySpringCGLIB$$80ed8f21.invoke(<generated>)
+        at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:204)
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/INTERNAL/GUARDIAN/guardian-3.1/IMAGE/centos-7/2020-05-08_05-07-44/GUARDIAN-Image-Registry-Transwarp-3.1.tar.gz" > /var/lib/docker/TDH.tar.gz
+
+http://172.16.1.112:8180/#/dashboard/status
+lzb/123
+
+020年 04月 29日 星期三 17:01:11 CST
+[root@tw-node1112 ~]# date -s "2020-04-29 18:13:30"
+2020年 04月 29日 星期三 18:13:30 CST
+[root@tw-node1112 ~]# date
+2020年 04月 29日 星期三 18:13:33 CST
+[root@tw-node1112 ~]# hwclock -w
+[root@tw-node1112 ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+
+    List<String> namespaces = new ArrayList<>();
+    namespaces.add("default");
+    List<String> tables = new ArrayList<>();
+    tables.add("default:tb2");
+    List<String> columnFamilies = new ArrayList<>();
+    columnFamilies.add("default:tb2:f_tb2_1");
+    Map<String, List<String>> existingResources = new HashMap();
+    existingResources.put("table", tables);
+    existingResources.put("column-family", columnFamilies);
+    existingResources.put("namespace", namespaces);
+    lookupContext.setResources(existingResources);
+    lookupContext.setUser("hbase");
+
+    lookupContext.setUserInput(("*"));
+    lookupContext.setResourceName("namespace");
+    List<String> list = rsMgr.lookupResource("hyperbase", "hyperbase1", context);
+    for(String result : list)
+      System.out.println(result);
+    System.out.println();
+
+    context.setUserInput("t*");
+    context.setResourceName("table");
+    List<String> list1 = rsMgr.lookupResource("hyperbase", "hyperbase1", context);
+    for(String result : list1)
+      System.out.println(result);
+    System.out.println();
+
+    context.setResourceName("column-family");
+    context.setUserInput("f");
+    List<String> list2 = rsMgr.lookupResource("hyperbase", "hyperbase1", context);
+    for(String result : list2)
+      System.out.println(result);
+
+spring读配置的过程
+guardian
+springapplication prepareEnvironment
+configurableEnv->guardian.site.xml
+
+io/transwarp/guardian/core/manager/v2/guardian.server.access.token.admin.perm.enabled=true] cannot be opened because it does not exist
+
+[root@tw-node1113 ou=passwordpolicies]# pwd
+/guardian/data/conf/ou=config/ads-directoryserviceid=default/ou=interceptors/ads-interceptorid=authenticationinterceptor/ou=passwordpolicies
+
+
+工作周报 - 李镇邦 20200427 ~ 20200430
+
+完成：
+1. WARP-43339: [guardian]简化密码复杂度相关升级脚本并测试
+2. WARP-43659: [guardian]提升resource-manager单测覆盖率，确定问题，删除了一些无用的case，增强可测试的case
+3. WARP-44058，WARP-43107: [功能验证]集群测试验证功能
+4. WARP-42372:[KunDB] 修复之前JDBC空闲时间线程始终挂起没有退出机制的问题
+
+
+本周：
+1. WARP-43107: token联通项目的出包
+2. 解决guardian项目ut环境动态配置问题
+3. 
+
+bootstrap.properties：位于jar包外的优先级最高
+
+application.properties：配置中心的文件 > 命令行配置 > 本地active指定文件 > 本地default文件，
+
+ 
+
+高优先级的会覆盖低优先级的 重复的 配置内容
+
+Spring Boot 不单单从 application.properties 获取配置，所以我们可以在程序中多种设置配置属性。按照以下列表的优先级排列：
+1.命令行参数
+2.java:comp/env 里的 JNDI 属性
+3.JVM 系统属性
+4.操作系统环境变量
+5.RandomValuePropertySource 属性类生成的 random.* 属性
+6.应用以外的 application.properties（或 yml）文件
+7.打包在应用内的 application.properties（或 yml）文件
+8.在应用 @Configuration 配置类中，用 @PropertySource 注解声明的属性文件
+9.SpringApplication.setDefaultProperties 声明的默认属性
+
+1）获取默认的配置文件路径，有4种。
+2）遍历所有的路径，拼装配置文件名称。
+3）再遍历解析器，选择yml或者properties解析，将解析结果添加到集合MutablePropertySources当中。
+
+GuardianVars.GUARDIAN_SERVER_ACCESS_TOKEN_ADMIN_PERM_ENABLED.varname=true
+
+
+Devtools global settings properties on your home directory (~/.spring-boot-devtools.properties when devtools is active).
+@TestPropertySource annotations on your tests.
+properties attribute on your tests. Available on @SpringBootTest and the test annotations for testing a particular slice of your application.
+Command line arguments.
+Properties from SPRING_APPLICATION_JSON (inline JSON embedded in an environment variable or system property).
+ServletConfig init parameters.
+ServletContext init parameters.
+JNDI attributes from java:comp/env.
+Java System properties (System.getProperties()).
+OS environment variables.
+A RandomValuePropertySource that has properties only in random.*.
+Profile-specific application properties outside of your packaged jar (application-{profile}.properties and YAML variants).
+Profile-specific application properties packaged inside your jar (application-{profile}.properties and YAML variants).
+Application properties outside of your packaged jar (application.properties and YAML variants).
+Application properties packaged inside your jar (application.properties and YAML variants).
+@PropertySource annotations on your @Configuration classes.
+Default properties (specified by setting SpringApplication.setDefaultProperties).
+
+/home/transwarp/Downloads/work/guardian-backend/guardian/guardian-core/src/main/java/io/transwarp/guardian/core/manager/v2/GuardianVars.java
+
+maven测试单个测试
+mvn -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false test
+spring boot解决配置测试粒度
+@TestPropertySource(properties = "guardian.server.access.token.admin.perm.enabled=true")
+spring解决注解注入问题->生成bean配置@Autowired
+@RunWith(SpringRunner.class)
+@ContextConfiguration(classes = TestConfiguration.class)
+
+guardianClient.addPerm(new PermVo(hdfsGlobal, GuardianConstants.ADMIN_PERM_ACTION));
+guardianClient.addPerm(new PermVo(hdfsPath, GuardianConstants.ADMIN_PERM_ACTION));
+private ResourceVo hdfsGlobal = ResourceVo.global(hdfs.getServiceType(), hdfs.getServiceName());
+  private ResourceVo hdfsRoot = hdfs.service().addNode(DIR, "/").build();
+  private ResourceVo hdfsPath = hdfsRoot.asParent().addNode(DIR_USR).build();
+
+[{"fullName":"/vdir","name":"vdir","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/srv","name":"srv","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/etc","name":"etc","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/var","name":"var","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/usr","name":"usr","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/run","name":"run","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/root","name":"root","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/tmp","name":"tmp","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/dev","name":"dev","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/.dockerenv","name":".dockerenv","type":"FILE","status":"NORMAL"},{"fullName":"/home","name":"home","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/anaconda-post.log","name":"anaconda-post.log","type":"FILE","status":"NORMAL"},{"fullName":"/bin","name":"bin","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/lib","name":"lib","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/lib64","name":"lib64","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/lost+found","name":"lost+found","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/media","name":"media","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/mnt","name":"mnt","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/opt","name":"opt","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/proc","name":"proc","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/sbin","name":"sbin","type":"DIRECTORY","status":"NORMAL"},{"fullName":"/sys","name":"sys","type":"DIRECTORY","status":"NORMAL"}
+
+//    guardianClient.addPerm(new PermVo(hdfsGlobal, GuardianConstants.ADMIN_PERM_ACTION));
+//    guardianClient.addPerm(new PermVo(hdfsPath, GuardianConstants.ADMIN_PERM_ACTION));
+
+  private ResourceVo hdfsUsr = hdfs.service().addNode(DIR, "/").addNode(DIR_USR).build();
+  private ResourceVo hdfsPath = hdfsUsr.asParent().addNode(new NodeVo(DIR, "new")).build();
+
+@TestPropertySource(properties = "guardian.server.access.token.admin.perm.enabled=true")
+
+conf.set("hive.server2.authentication", "kerberos");
+zookeeper.connect
+zookeeper.session.timeout.ms
+authorizer.zookeeper.connection.timeout.ms
+
+migration*
+
+Q1 error zk初始化问题 kafka找topic的资源时会调用zookeeper
+2020-05-07 20:42:20,215 INFO v2.ResourceChangeKeeper: Resource Cache of Guardian Service is not enabled. Skip cache update
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.084 sec <<< FAILURE! - in io.transwarp.guardian.resource.kafka.KafkaResourceMgrTest
+getKafkaResourcesTest(io.transwarp.guardian.resource.kafka.KafkaResourceMgrTest)  Time elapsed: 0.646 sec  <<< ERROR!
+java.lang.IllegalArgumentException: A HostProvider may not be empty!
+	at org.apache.zookeeper.client.StaticHostProvider.<init>(StaticHostProvider.java:82)
+	at org.apache.zookeeper.ZooKeeper.<init>(ZooKeeper.java:505)
+	at org.apache.zookeeper.ZooKeeper.<init>(ZooKeeper.java:438)
+	at org.apache.zookeeper.ZooKeeper.<init>(ZooKeeper.java:380)
+	at org.I0Itec.zkclient.ZkConnection.connect(ZkConnection.java:70)
+	at org.I0Itec.zkclient.ZkClient.connect(ZkClient.java:1228)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:157)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:131)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:127)
+	at org.I0Itec.zkclient.ZkClient.<init>(ZkClient.java:94)
+	at io.transwarp.guardian.resource.kafka.ZkUtil.<init>(ZkUtil.java:23)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgr.initZkUtil(KafkaResourceMgr.java:116)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgr.collectTopicEntries(KafkaResourceMgr.java:88)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgr.getKafkaResources(KafkaResourceMgr.java:72)
+	at io.transwarp.guardian.resource.kafka.KafkaResourceMgrTest.getKafkaResourcesTest(KafkaResourceMgrTest.java:89)
+
+Q2 warning 配置mysql预编译 ？表示字符串
+020-05-07 20:42:21,571 DEBUG ServiceMapper.insertOrUpdateConf: ==>  Preparing: INSERT INTO gs_service_conf (service_id, conf_key, conf_value) VALUES (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, ?) , (?, ?, 
+ON DUPLICATE KEY UPDATE conf_value = VALUES(conf_value) 
+2020-05-07 20:42:21,604 DEBUG ServiceMapper.insertOrUpdateConf: ==> Parameters: 76(Integer), mapreduce.jobtracker.address(String), local(String), 76(Integer), dfs.namenode.resource.check.interval(String), 5000(String), 76(Integer), mapreduce.jobhistory.client.thread-count(String), 10(String), 76(Integer), yarn.admin.acl(String), 
+
+Q3 warning  调整inceptor资源问题
+2020-05-07 20:42:22,964 WARN inceptor.InceptorResourceMgr: Exception encountered when requesting scheduler info: 
+java.lang.IllegalArgumentException: Host name may not be null
+	at org.apache.http.HttpHost.<init>(HttpHost.java:79)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgr.requestSchedulerInfo(InceptorResourceMgr.java:245)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgr.getSchedulerType(InceptorResourceMgr.java:186)
+	at io.transwarp.guardian.resource.inceptor.InceptorResourceMgrTest.getSchedulerType(InceptorResourceMgrTest.java:78)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+
+git reflog
+git reset –hard 63ee781
+
+1. sasl layer
+2. mysql prepared sql
+https://172.26.5.99:8380/#/home?dataSourcePrefix=PATH
+
+进apacheds镜像run，进入/bin替换脚本，
+
+------------------------------------------------spring boot------------------
+从设计模式到spring boot
+## 设计模式
+https://juejin.im/post/5ce69379e51d455d877e0ca0
+### 工厂模式
+Spring使用工厂模式可以通过 BeanFactory 或 ApplicationContext 创建 bean 对象。
+BeanFactory 仅提供了最基本的依赖注入支持，ApplicationContext 扩展了 BeanFactory ,除了有BeanFactory的功能还有额外更多功能，所以一般开发人员使用ApplicationContext会更多
+
+* 上下文：
+context是environment的snapshot.
+每一段程序都有很多外部变量。只有像Add这种简单的函数才是没有外部变量的。一旦你的一段程序有了外部变量，这段程序就不完整，不能独立运行。你为了使他们运行，就要给所有的外部变量一个一个写一些值进去。这些值的集合就叫上下文。
+### 观察者模式
+* 事件角色/事件监听者角色/事件发布者角色
+  applicationevent/applicationListener/applicationEventPublisher
+## environment配置注入
+https://www.ibm.com/developerworks/cn/java/j-lo-spring-boot/index.html#listing4
+http://www.throwable.club/2018/12/16/spring-boot-environment-configuration-spread/
+https://docs.spring.io/spring-boot/docs/2.1.0.RELEASE/reference/htmlsingle/#boot-features-command-line-runner
+jar包启动server
+springApllication.run
+/**
+	 * Static helper that can be used to run a {@link SpringApplication} from the
+	 * specified source using default settings.
+	 * @param primarySource the primary source to load
+	 * @param args the application arguments (usually passed from a Java main method)
+	 * @return the running {@link ApplicationContext}
+	 */
+	public static ConfigurableApplicationContext run(Class<?> primarySource,
+			String... args) {
+		return run(new Class<?>[] { primarySource }, args);
+	}
+
+  public static void main(String[] args) {
+    SpringApplication.run(GuardianServerBootApplication.class, args);
+  }
+
+springApplicationListener->
+AppEnvPrepareds->AppPrepareded->ready->started->starting
+
+run的时候自动创建好一系列事件，也可以去自己继承applicationevent写相应函数，创建发布者和监听者
+在run的情况下携带上下文运行，然后创建不同的listener去监听事件完成应用的初始化，
+在run的时候spring创建并帮助应用程序启动，1.获取创建listener (starting)2.创建参数。配置environment（envPrepared) 3.创建applicationContext 4.初始化上下文(contextPrepared)，加载配置(contextLoaded) 5.更新上下文(Started)，启动程序(running)
+注入env配置顺序
+Spring Boot lets you externalize your configuration so that you can work with the same application code in different environments. You can use properties files, YAML files, environment variables, and command-line arguments to externalize configuration. Property values can be injected directly into your beans by using the @Value annotation, accessed through Spring’s Environment abstraction, or be bound to structured objects through @ConfigurationProperties.
+
+Spring Boot uses a very particular PropertySource order that is designed to allow sensible overriding of values. Properties are considered in the following order:
+
+https://docs.spring.io/spring-boot/docs/2.1.0.RELEASE/reference/htmlsingle/#boot-features-command-line-runner
+
+1.Devtools global settings properties on your home directory (~/.spring-boot-devtools.properties when devtools is active).
+2.@TestPropertySource annotations on your tests.
+3.properties attribute on your tests. Available on @SpringBootTest and the test annotations for testing a particular slice of your application.
+4.Command line arguments.
+5.Properties from SPRING_APPLICATION_JSON (inline JSON embedded in an environment variable or system property).
+6.ServletConfig init parameters.
+7.ServletContext init parameters.
+8.JNDI attributes from java:comp/env.
+9.Java System properties (System.getProperties()).
+10.OS environment variables.
+11.A RandomValuePropertySource that has properties only in random.*.
+12.Profile-specific application properties outside of your packaged jar (application-{profile}.properties and YAML variants).
+13.Profile-specific application properties packaged inside your jar (application-{profile}.properties and YAML variants).
+14.Application properties outside of your packaged jar (application.properties and YAML variants).
+15.Application properties packaged inside your jar (application.properties and YAML variants).
+16.@PropertySource annotations on your @Configuration classes.
+17.Default properties (specified by setting SpringApplication.setDefaultProperties).
+To provide a concrete example, suppose you develop a @Component that uses a name property, as shown in the following example:
+
+@TestPropertySource(properties = "guardian.server.access.token.admin.perm.enabled=true")
+.properties//.yaml
+@PropertySource
+
+---------------------------------------------------------spring boot------------
+get uri加参数 ->一般发送一个tcp请求包
+post请求体body携带数据 ->一般发送报文头返回100 再发送body数据
+在HTTP中，PUT被定义为idempotent的方法，POST则不是，这是一个很重要的区别。
+   “Methods can also have the property of "idempotence" in that (aside from error or expiration issues) the side-effects of N > 0 identical requests is the same as for a single request.”
+上面的话就是说，如果一个方法重复执行多次，产生的效果是一样的，那就是idempotent的。
+
+492
+ private List<Resource> getInheritDataNodes(SqlSession session, List<Long> resourceIds, List<String> groupNames, String action) {
+    if (CollectionUtils.isEmpty(groupNames)) {
+      return Collections.emptyList();
+    }
+    List<Resource> resources = new ArrayList<>();
+    PermMapper permMapper = session.getMapper(PermMapper.class);
+    List<Resource> inheritedResourcesFromGroup = permMapper.selectGroupsAuthorizedDataNodeResources(groupNames, resourceIds, action);
+    if (CollectionUtils.isNotEmpty(inheritedResourcesFromGroup)) {
+      resources.addAll(inheritedResourcesFromGroup);
+    }
+
+    GroupMapper groupMapper = session.getMapper(GroupMapper.class);
+    List<String> roleNames = groupMapper.selectGroupsRoles(groupNames);
+    if (CollectionUtils.isNotEmpty(roleNames)) {
+      List<Resource> inheritedResourcesFromGroupRole = permMapper.selectRolesAuthorizedDataNodeResources(roleNames, resourceIds, action);
+      if (inheritedResourcesFromGroupRole != null) {
+        resources.addAll(inheritedResourcesFromGroupRole);
+      }
+    }
+
+    return resources;
+  }
+
+  private List<ResourcePerm> getInheritedResourcePerms(SqlSession session, PermFilterParams filterParams) {
+    if (CollectionUtils.isEmpty(filterParams.getPrincipals())) {
+      return Collections.emptyList();
+    }
+    List<ResourcePerm> resourcePerms = new ArrayList<>();
+    PermMapper permMapper = session.getMapper(PermMapper.class);
+    List<ResourcePerm> inheritedResourcePermsFromGroup = permMapper.selectServicePermsByGroups(filterParams);
+    if (CollectionUtils.isNotEmpty(inheritedResourcePermsFromGroup)) {
+      resourcePerms.addAll(inheritedResourcePermsFromGroup);
+    }
+
+    GroupMapper groupMapper = session.getMapper(GroupMapper.class);
+    List<String> roleNames = groupMapper.selectGroupsRoles(filterParams.getPrincipals());
+    if (CollectionUtils.isNotEmpty(roleNames)) {
+      filterParams.setPrincipals(roleNames);
+      List<ResourcePerm> inheritedResourcePermsFromGroupRole = permMapper.selectServicePermsByGroupsRoles(filterParams);
+      if (CollectionUtils.isNotEmpty(inheritedResourcePermsFromGroupRole)) {
+        resourcePerms.addAll(inheritedResourcePermsFromGroupRole);
+      }
+    }
+    return resourcePerms;
+  }
+
+
+@Override
+  public List<NodeVo> getAuthorizedDataNodes(PrincipalVo principalVo, PermFilterParams filterParams, boolean includeInherited) throws GuardianException {
+    Assert.assertLegal(principalVo);
+    ResourceVo parentResourceVo = filterParams.getResourceVo();
+    Assert.assertLegal(parentResourceVo);
+    try (SqlSession session = sqlSessionFactory.openSession()) {
+      PermMapper permMapper = session.getMapper(PermMapper.class);
+      String princ = principalVo.getPrincipal();
+      PrincipalType princType = principalVo.getPrincipalType();
+
+      ResourceServiceMapper resourceServiceMapper = session.getMapper(ResourceServiceMapper.class);
+      ResourceMapper resourceMapper = session.getMapper(ResourceMapper.class);
+      List<Long> resourceIds = new ArrayList<>();
+      List<ResourceNode> resourceNodes = filterParams.getScope() == Scope.ONE_LEVEL ? ResourceStorage.getChildNodes(resourceServiceMapper, resourceMapper, parentResourceVo)
+          : ResourceStorage.getDescendantNodes(resourceServiceMapper, resourceMapper, parentResourceVo);
+      for (ResourceNode resourceNode : resourceNodes) {
+        if (resourceNode.getResourceId() != null) {
+          resourceIds.add(resourceNode.getResourceId());
+        }
+      }
+      String action = filterParams.getAction();
+
+      switch (princType) {
+        case USER:
+          UserMapper userMapper = session.getMapper(UserMapper.class);
+          User user = userMapper.selectUserWithCategory(princ);
+          if (user == null || !UserUtil.userPresentable(user)) {
+            return Collections.emptyList();
+          }
+
+          List<Resource> userResources = new ArrayList<>();
+          List<Resource> userSelfResources = permMapper.selectUserAuthorizedDataNodeResources(princ, resourceIds, action);
+          if (CollectionUtils.isNotEmpty(userSelfResources)) {
+            userResources.addAll(userSelfResources);
+          }
+          if (includeInherited) {
+            List<Resource> userInheritedResourcesFromRole = permMapper.selectRoleAuthorizedDataNodeResourcesByUser(princ, resourceIds, action);
+            if (userInheritedResourcesFromRole != null) {
+              userResources.addAll(userInheritedResourcesFromRole);
+            }
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            userResources.addAll(getInheritDataNodes(session, resourceIds, groupNames, action));
+          }
+
+          Set<NodeVo> userAuthorizedNodes = new HashSet<>();
+          if(CollectionUtils.isNotEmpty(userResources)) {
+            userResources.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                userAuthorizedNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+          return new ArrayList<>(userAuthorizedNodes);
+        case ROLE:
+          List<NodeVo> roleAuthorizedDataNodes = new ArrayList<>();
+          List<Resource> roleSelfDataNodes = permMapper.selectRoleAuthorizedDataNodeResources(princ, resourceIds, action);
+          if(CollectionUtils.isNotEmpty(roleSelfDataNodes)) {
+            roleSelfDataNodes.forEach(resource -> {
+              if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                roleAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+              }
+            });
+          }
+          return roleAuthorizedDataNodes;
+        case GROUP:
+          Set<NodeVo> groupAuthorizedDataNodes = new HashSet<>();
+          if (includeInherited) {
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            List<Resource> groupDataNodes = new ArrayList<>(getInheritDataNodes(session, resourceIds, groupNames, action));
+            if(CollectionUtils.isNotEmpty(groupDataNodes)) {
+              groupDataNodes.forEach(resource -> {
+                if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                  groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+                }
+              });
+            }
+            return new ArrayList<>(groupAuthorizedDataNodes);
+          } else {
+            List<Resource> groupDataNodes = permMapper.selectGroupAuthorizedDataNodeResources(princ, resourceIds, action);
+            if(CollectionUtils.isNotEmpty(groupDataNodes)) {
+              groupDataNodes.forEach(resource -> {
+                if (StringUtils.containsKeyword(resource.getDataSource(), filterParams.getSearchValue())) {
+                  groupAuthorizedDataNodes.add(resource.getDataSource().get(resource.getDataSource().size() - 1));
+                }
+              });
+            }
+            return new ArrayList<>(groupAuthorizedDataNodes);
+          }
+      }
+      return Collections.emptyList();
+    } catch (PersistenceException pe) {
+      LOG.error(String.format("Failed to get authorized data nodes of principal [%s] of dataSource [%s] due to persistence exception", principalVo, filterParams.getResourceVo().toString()), pe);
+      throw new GuardianException(ErrorCodes.GUARDIAN_SERVER_PERSISTENCE_EXCEPTION, "failed to get authorized datanodes");
+    }
+  }
+
+  private List<PrincPermVo> getInheritedPerms(SqlSession session, PrincipalVo principalVo,
+                                              Map<Long, ResourceVo> resources, Collection<Long> resourceIds, List<String> groupNames, String action) {
+
+    List<PrincPermVo> princPerms = new ArrayList<>();
+    if (CollectionUtils.isEmpty(groupNames)) {
+      return princPerms;
+    }
+
+    String princ = principalVo.getPrincipal();
+    PrincipalType princType = principalVo.getPrincipalType();
+    PermMapper permMapper = session.getMapper(PermMapper.class);
+
+switch (princType) {
+        case USER:
+          UserMapper userMapper = session.getMapper(UserMapper.class);
+          User user = userMapper.selectUserWithCategory(princ);
+          if (user == null || !UserUtil.userPresentable(user)) {
+            return Collections.emptyList();
+          }
+          Set<Resource> userResources = new HashSet<>();
+          List<Resource> userSelfResources = permMapper.selectUserAuthorizedResources(princ, serviceName, action);
+          if (userSelfResources != null) {
+            userResources.addAll(userSelfResources);
+          }
+          if (includeInherited) {
+            List<Resource> userInheritedResourcesFromRole = permMapper.selectRoleAuthorizedResourcesByUser(princ, serviceName, action);
+            if (userInheritedResourcesFromRole != null) {
+              userResources.addAll(userInheritedResourcesFromRole);
+            }
+
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            userResources.addAll(getInheritedResources(session, serviceName, action, groupNames));
+          }
+          // should put serviceName into resourceVo?
+          return userResources.stream().map(resource -> new ResourceVo.Builder().dataSource(resource.getDataSource()).build())
+              .collect(Collectors.toList());
+        case ROLE:
+          List<Resource> roleSelfResources = permMapper.selectRoleAuthorizedResources(princ, serviceName, action);
+          // should put serviceName into resourceVo?
+          return roleSelfResources.stream().map(resource -> new ResourceVo.Builder().dataSource(resource.getDataSource()).build())
+              .collect(Collectors.toList());
+        case GROUP:
+          Collection<Resource> groupResources;
+          if (includeInherited) {
+            List<String> groupNames = getPrincParentGroups(session, principalVo);
+            groupResources = getInheritedResources(session, serviceName, action, groupNames);
+          } else {
+            groupResources = permMapper.selectGroupAuthorizedResources(princ, serviceName, action);
+          }
+          // should put serviceName into resourceVo?
+          return groupResources.stream().map(resource -> new ResourceVo.Builder().dataSource(resource.getDataSource()).build())
+              .collect(Collectors.toList());
+      }
+      return Collections.emptyList();
+    } catch (PersistenceException pe) {
+      LOG.error(String.format("Failed to get authorized resources of principal [%s] of service [%s] due to persistence exception", principalVo, serviceName), pe);
+      throw new GuardianException(ErrorCodes.GUARDIAN_SERVER_PERSISTENCE_EXCEPTION, "failed to get authorized resources");
+    }
+1. 代码注释量
+2. Vo & node
+
+curl -X GET --header 'Accept: application/json' 'http://localhost:8380/api/v1/perms/dataNodes/user/admin?component=inceptor1&inheritance=false'
+
+
+curl -k -X GET --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \ 
+   "dataSource": [ \ 
+     { \ 
+       "type": "DIR", \ 
+       "value": "/" \ 
+     } \ 
+   ], \ 
+  \ 
+   "serviceName": "hdfs1", \ 
+   "serviceType": "HDFS" \ 
+ }' 'http://localhost:8380/api/v2/perms/authorized-dataNodes?princ=admin&princType=USER&inheritance=false&subtree=false'
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ \\ 
+   "isSystem": false, \\ 
+   "password": "123", \\ 
+   "username": "admin" \\ 
+ }' 'http://localhost:8380/api/v2/login'
+
+
+---------------success-----------------------
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -D cookies.txt -d '{"username": "admin","password": "123","isSystem": false}' 'http://localhost:8380/api/v2/login'
+
+curl -X GET --header 'Content-Type: application/json' --header 'Accept: application/json' -b cookies.txt -d '{"dataSource": [ { "type": "GLOBAL","value": "*"}],"serviceName": "inceptor1", "serviceType": "INCEPTOR" }' 'http://localhost:8380/api/v2/perms/authorized-dataNodes?princ=admin&princType=USER&inheritance=false&subtree=false'
+-------------------------------------------------
+
+ jar tvf apacheds-backend-guardian-3.1.3.jar | grep adminPerms.ldif
+jar xvf apacheds-backend-guardian-3.1.3.jar  ldif/adminPerms.ldif
+jar uvf apacheds-backend-guardian-3.1.3.jar ldif/adminPerms.ldif
+jar cvf xxx.jar
+
+api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 lib]# jar tvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar | grep m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+   355 Thu Mar 05 19:19:30 CST 2020 schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 lib]# jar xvf api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+/usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar
+
+[root@tw-node1237 ~]# jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.940.ldif
+ inflated: schema/ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+[root@tw-node1237 ~]# ls
+
+/guardian/data
+
+jar xvf /usr/lib/guardian-apacheds/lib/api-ldap-schema-data-1.0.0-RC1-guardian-3.1.3.jar ou=schema/cn=adsconfig/ou=attributetypes/m-oid=1.3.6.1.4.1.18060.0.4.1.2.939.ldif
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/GUARDIAN/guardian-3.1.1-final/IMAGE/centos-7/GUARDIAN-Image-Registry-Transwarp-3.1.1-final.tar.gz" > /var/lib/docker/guardian-3.1.1.tar.gz
+
+pwd:123!@#lzb
+
+
+resourceVo是显示层对象，传过来的vo是一个整体，容易提取整个的datasource；
+resourceNode便于在数据库底层查找某个具体资源的信息
+问题：VO是否准备在persistence层做提取datasource的作用
+getAuthorizedDataNodes完全可以写成两个接口
+getAuthorizedDataNodes太大了->显示层的VO提取 各种vo的判空 resource的转化 -> dao层分担过重 -> 
+1.  在dao层没有判空 直接抛出异常 导致dao层需要大量的判空 dao层抛错要返回到manager层 getAuthorizedDataNodes 6个判空 控制异常完全可以上一层判空？
+2.  
+getDescendantResources resourceVo->datasource->path->resources->datasources->resultList(subtree)
+getChildNodes resourceVo->dataSource->cache? resource includeself?(one level)
+
+
+0511
+8:30-11:30
+tue 
+工作周报李镇邦 20200506~20200509
+1. WARP-43339: [guardian]升级脚本修改，用户旧版本升级到新版本 密码策略可直接简单修改生效
+2. WARP-43659: [guardian]整理resource-manager单测提升版本提交
+3. WARP-41627: [guardian]修改getAuthorizedDataNodes接口，取消使用性能低的接口
+
+本周：
+1. guardian项目提升
+2. 开始做sla支持
+
+
+jdbc:mysql://tw-node599:8320,tw-node597:8320,tw-node598:8320/guardian?allowMultiQueries=true&useUnicode=true&amp;characterEncoding=utf8&autoReconnect=true
+
+
+jdbc:mysql://172.26.5.99:8320/guardian?characterEncoding=UTF-8&allowMultiQueries=true
+
+unset {http,https,ftp}_proxy
+
+$ env | grep -i proxy
+NO_PROXY=localhost,127.0.0.0/8,127.0.1.1
+http_proxy=http://192.168.1.250:8080/
+FTP_PROXY=ftp://192.168.1.250:8080/
+ftp_proxy=ftp://192.168.1.250:8080/
+all_proxy=socks://192.168.1.250:8080/
+ALL_PROXY=socks://192.168.1.250:8080/
+HTTPS_PROXY=https://192.168.1.250:8080/
+https_proxy=https://192.168.1.250:8080/
+no_proxy=localhost,127.0.0.0/8,127.0.1.1
+HTTP_PROXY=http://192.168.1.250:8080/  
+
+cas怎么读guardian-cas配置的
+cas-configuration-server-env.sh覆盖配置 在etc/guardian/conf路径下
+覆盖guardian-cas的cas.properties属性
+
+
+http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/INTERNAL/KUNDB/kundb-1.3/IMAGE/centos-7/2020-03-30_00-07-30/KUNDB-Image-Registry-Transwarp-1.3.tar.gz
+
+docker pull 172.16.1.99/transwarp/guardian-gencerts:guardian-3.1.2-final
+
+本地登陆kundb
+mysql -h172.16.1.236 -P15307 -uadmin -padmin --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+
+测试kundb登陆与guatdian
+研究cas与guardian-cas的配置
+支持
+
+kundb1.2-final
+guardian界面新建用户vt_app登陆
+mysql -h172.26.2.15 -P15307 -ut_app -p123 --enable-cleartext-plugin -A
+show databases;指令正常
+create user kundb_test;
+mysql -h172.26.2.15 -P15307 -ukundb_test -p123 --enable-cleartext-plugin -A
+登陆成功
+
+kundb1.3-final
+vt_app登陆
+mysql -h172.26.2.15 -P15307 -uvt_app -p123 --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+show databases;指令正常
+create user kundb_test;
+mysql -h172.26.2.15 -P15307 -ukundb_test -p123 --enable-cleartext-plugin --ssl-ca=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/ca-cert.pem --ssl-cert=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-cert.pem --ssl-key=/home/transwarp/go/src/github.com/youtube/vitess/examples/local_mfed/sub_scripts/kungate-client-key.pem --ssl-mode=VERIFY_CA
+登陆成功
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /root/Kundb-1.3.0-final.tar.gz
+
+2. 在其中通过export环境变量的方式加入下列环境变量
+例：export CAS_AUTHN_JDBC_QUERY_URL="jdbc:mysql://IP:PORT/DB_NAME?autoReconnect=true&useSSL=false"
+
+安装teamviewer--sudo apt-get update
+sudo apt-get install -f
+Errors were encountered while processing:
+ mysql-common
+touch /etc/mysql/my.cnf.fallback
+sudo dpkg -i teamviewer_15.5.3_amd64.deb 
+
+cas-server-env.sh改变配置->guardian-cas(cas.properties.tmpl)->getenv
+
+cas本身是sso
+guardian client支持ha，http分布式session对性能会有影响 
+
+sudo apt-get install docker-ce=5:19.03.8~3-0~ubuntu-xenial docker-ce-cli=5:19.03.8~3-0~ubuntu-xenial containerd.io
+5:19.03.8~3-0~ubuntu-xenial
+
+docker run -d -p 3305:3306 --name transwarp-mysql -e MYSQL_ROOT_PASSWORD=Transwarp01! -d 172.16.1.99/gold/mysql:transwarp-5.1
+
+- /srv/guardian:/srv/guardian  /srv/guardian/server.keystore:/srv/guardian/server.keystore
+1. tdc参数怎么在guardian里做映射
+2. cas
+
+
+
+spring boot/apacheds-ldap/hdfs/hbase/yarn/cas/kerberos/kms/bash/mysql/http
+java/golang
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/TDH.tar.gz
+
+docker pull 172.16.1.99/transwarp/hdfs:transwarp-6.2.1-final
+docker tag tw-node1236:5000/transwarp/hdfs:transwarp-6.2.1-final
+docker push
+
+
+docker pull tw-node1236:5000/transwarp/workflow:transwarp-6.2.0-final
+
+harbor帐号lishinho@asagi.waseda.jp
+
+yarn 自带了两个支持多用户、多队列的调度器，分别是 Capacity Scheduler（容量调度器） 和 Fair Scheduler（公平调度器)
+Capacity Scheduler 资源分配策略
+资源分配策略也就是当出现空闲资源时，应该在哪个队列给哪个 Application 分配资源。Capacity Scheduler 采用三级资源分配策略，它会一次选择队列、应用程序和 Container 使用该资源
+其中Fair Scheduler是资源池机制，进入到里面的应用是共享pool里面的资源；只有当资源配比发生紧张的时候，才会根据权重来进行调整；
+　　Capacity则是基于队列的，每个队列都会被分配资源比例，这种资源比例是固定；所以没有资源共享的概念
+
+　　Fair Scheduler是一个池子的概念，就是来了一个应用就扔到这个池子里面，大家共享这个池子里面的资源；Fair Scheduler提供了一种Weigth的概念，就是比重，最后鬼根据比重来为各个池子分配资源（本质和Capacity里面的capacity一样）；同时她还提供了max resource，min resource的可选配置，就是制定资源下限和上限；这个属性的配置是可以覆盖weigth（权重）的。但是并不推荐使用max min资源配置，因为不够灵活；
+　　Capacity Scheduler是一个队列概念，来了一个应用，如果发现资源不够了，则根据FIFO规则排队；什么时候资源够了，再用。
+　　Fair Scheduler可以配置自动创建pool，但是Capacity则无法创建队列；其实本质差别就是在于一个是pool共享资源的概念（YARN-3319），一个是queue队列形式利用资源。或者这么解释，对于Fair而言，可以使用资源池中未被使用的资源，但是Capacity则不允许；所以前者比较灵活，后者相对古板。但是通过看到Capacity有计划也实现一版fairness appliction；如果真是这样，那么两者区别就变得很小了。
+
+比较新的tdc版本guardian server的配置
+配额添加队列激活队列在guardian上可用么
+ 13  kinit test
+   14  kinit test1
+   15  klist
+   16  yarn node -all -list
+   17  kinit admin
+   18  kinit test1
+   19  klist
+   20  yarn node -all -list
+   21  kinit vt_app
+   22  yarn application -list -appStates ALL
+   23  hadoop fs -ls /
+   24  hadoop fs -mkdir -p /tmp/wordcount
+   25  touch 1.txt
+   26  ls
+   27  hadoop fs -put ./1.txt /tmp/wordcount
+   28  hadoop fs -ls /tmp/wordcount
+   29  ls /
+   30  find / -name hadoop-map*
+   31  hadoop jar /usr/lib/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.2-transwarp-6.2.1.jar wordcount /tmp/wordcount /tmp/wordcount_output
+   32  history 20
+yarn application -list -appStates ALL
+
+
+hadoop jar /usr/lib/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.2-transwarp-6.2.1.jar wordcount /tmp/wordcount /tmp/wordcount_output
+
+对于global对象无access权限的用户在guardian界面上看不到yarn资源，但在集群通过kerberos认证可以执行yarn node -all -list,执行yarn rmadmin指令报没权限
+
+对于global对象有access权限的用户在guardian界面上可见yarn资源，在集群通过kerberos认证可以执行yarn node -all -list, 执行yarn rmadmin指令报没权限
+
+对于global对象有admin权限的用户在guardian界面上可见yarn资源，在集群通过kerberos认证可以执行yarn node -all -list, 可以执行yarn rmadmin指令
+
+对queue/global有submit权限的可以提交任务到队列
+对queue有admin权限的用户 可以赋予本队列及其子队列的权限给其他principal
+对queue没有admin权限的用户 不可以赋予本队列及其子队列的权限给其他principal
+有关创建队列的submit权限 和queue对象admin权限的“可以杀掉本队列的任务，及其子队列的任务” 和配额界面创建队列没有测
+Q：
+可以给自己取消权限？
+对global没有access权限可以对queue有admin权限？
+可以杀掉本队列的任务，及其子队列的任务？
+
+goroutine是用户态的线程切换，java采用的是系统线程切换，用汇编语言描述是一个(java)调用int 80软中断,一个没有。 意味着goroutine更轻量级，可以同时相应成千上万的线程切换，java你创造上千个线程就有些吃力了。
+
+cas/guardian-cas
+tdh/application-metainfo
+tdc/application-helmcharts
+
+1. 语言的强类型弱类型
+2. yarn队列
+3. 单点登陆SSO
+
+
+单系统登录解决方案的核心是cookie，cookie携带会话id在浏览器与服务器之间维护会话状态。但cookie是有限制的，这个限制就是cookie的域（通常对应网站的域名），浏览器发送http请求时会自动携带与该域匹配的cookie，而不是所有cookie
+可行并不代表好，共享cookie的方式存在众多局限。首先，应用群域名得统一；其次，应用群各系统使用的技术（至少是web服务器）要相同，不然cookie的key值（tomcat为JSESSIONID）不同，无法维持会话，共享cookie的方式是无法实现跨语言技术平台登录的，比如java、php、.net系统之间；第三，cookie本身不安全。
+
+io.transwarp.guardian:guardian-client:jar:guardian-3.1.3
+[INFO] +- io.transwarp.guardian:guardian-common:jar:guardian-3.1.3:compile
+[INFO] |  \- io.swagger:swagger-annotations:jar:1.5.9:compile
+[INFO] +- org.apache.httpcomponents:httpclient:jar:4.2.5:compile
+[INFO] |  +- commons-logging:commons-logging:jar:1.1.1:compile
+[INFO] |  \- commons-codec:commons-codec:jar:1.6:compile
+[INFO] +- org.apache.httpcomponents:httpcore:jar:4.2.5:compile
+[INFO] +- com.fasterxml.jackson.core:jackson-core:jar:2.9.5:compile
+[INFO] +- com.fasterxml.jackson.core:jackson-databind:jar:2.9.5:compile
+[INFO] +- com.fasterxml.jackson.core:jackson-annotations:jar:2.9.5:compile
+[INFO] +- com.google.guava:guava:jar:18.0:compile
+[INFO] +- commons-io:commons-io:jar:2.4:compile
+[INFO] +- org.apache.hadoop:hadoop-common:jar:2.7.2-transwarp-6.0.0:provided
+[INFO] |  +- org.jasig.cas.client:cas-client-core:jar:3.5.1-guardian-3.1.3:provided (version managed from 3.5.1-transwarp-6.0.0-SNAPSHOT)
+[INFO] |  +- org.apache.hadoop:hadoop-annotations:jar:2.7.2-transwarp-6.0.0:provided
+[INFO] |  |  \- jdk.tools:jdk.tools:jar:1.8:system
+[INFO] |  +- io.netty:netty-all:jar:4.1.5.transwarp:provided
+[INFO] |  +- org.apache.commons:commons-math3:jar:3.1.1:provided
+[INFO] |  +- xmlenc:xmlenc:jar:0.52:provided
+[INFO] |  +- commons-httpclient:commons-httpclient:jar:3.1:provided
+[INFO] |  +- commons-net:commons-net:jar:3.1:provided
+[INFO] |  +- commons-collections:commons-collections:jar:3.2.2:provided
+[INFO] |  +- javax.servlet:servlet-api:jar:2.5:provided
+[INFO] |  +- org.mortbay.jetty:jetty:jar:6.1.26:provided
+[INFO] |  +- org.mortbay.jetty:jetty-util:jar:6.1.26:provided
+[INFO] |  +- org.mortbay.jetty:jetty-sslengine:jar:6.1.26:provided
+[INFO] |  +- javax.servlet.jsp:jsp-api:jar:2.1:provided
+[INFO] |  +- com.sun.jersey:jersey-core:jar:1.9:provided
+[INFO] |  +- com.sun.jersey:jersey-json:jar:1.9:provided
+[INFO] |  |  +- org.codehaus.jettison:jettison:jar:1.1:provided
+[INFO] |  |  +- com.sun.xml.bind:jaxb-impl:jar:2.2.3-1:provided
+[INFO] |  |  |  \- javax.xml.bind:jaxb-api:jar:2.2.2:provided
+[INFO] |  |  |     \- javax.xml.stream:stax-api:jar:1.0-2:provided
+[INFO] |  |  +- org.codehaus.jackson:jackson-jaxrs:jar:1.8.3:provided
+[INFO] |  |  \- org.codehaus.jackson:jackson-xc:jar:1.8.3:provided
+[INFO] |  +- com.sun.jersey:jersey-server:jar:1.9:provided
+[INFO] |  |  \- asm:asm:jar:3.1:provided
+[INFO] |  +- log4j:log4j:jar:1.2.17:provided
+[INFO] |  +- net.java.dev.jets3t:jets3t:jar:0.9.0:provided
+[INFO] |  |  \- com.jamesmurty.utils:java-xmlbuilder:jar:0.4:provided
+[INFO] |  +- commons-lang:commons-lang:jar:2.6:provided
+[INFO] |  +- commons-configuration:commons-configuration:jar:1.6:provided
+[INFO] |  |  +- commons-digester:commons-digester:jar:1.8:provided
+[INFO] |  |  |  \- commons-beanutils:commons-beanutils:jar:1.9.2:provided (version managed from 1.7.0)
+[INFO] |  |  \- commons-beanutils:commons-beanutils-core:jar:1.8.0:provided
+[INFO] |  +- org.slf4j:slf4j-log4j12:jar:1.7.7:provided (version managed from 1.7.10)
+[INFO] |  +- org.codehaus.jackson:jackson-core-asl:jar:1.9.13:provided
+[INFO] |  +- org.codehaus.jackson:jackson-mapper-asl:jar:1.9.13:provided
+[INFO] |  +- org.apache.avro:avro:jar:1.7.4:provided
+[INFO] |  |  +- com.thoughtworks.paranamer:paranamer:jar:2.3:provided
+[INFO] |  |  \- org.xerial.snappy:snappy-java:jar:1.0.4.1:provided
+[INFO] |  +- com.google.protobuf:protobuf-java:jar:2.5.0:provided
+[INFO] |  +- com.google.code.gson:gson:jar:2.2.4:provided
+[INFO] |  +- org.apache.hadoop:hadoop-auth:jar:2.7.2-transwarp-6.0.0:provided
+[INFO] |  |  \- net.java.dev.jna:jna:jar:4.2.1:provided
+[INFO] |  +- com.jcraft:jsch:jar:0.1.54:provided
+[INFO] |  +- org.apache.curator:curator-client:jar:2.7.1:provided
+[INFO] |  +- org.apache.curator:curator-recipes:jar:2.7.1:provided
+[INFO] |  +- com.google.code.findbugs:jsr305:jar:3.0.1:provided (version managed from 3.0.0)
+[INFO] |  +- org.apache.htrace:htrace-core:jar:3.1.0-incubating:provided
+[INFO] |  +- org.apache.zookeeper:zookeeper:jar:3.4.5-transwarp:provided
+[INFO] |  +- org.apache.commons:commons-compress:jar:1.4.1:provided
+[INFO] |  |  \- org.tukaani:xz:jar:1.0:provided
+[INFO] |  +- dnw:dnw:jar:1.0.7:provided
+[INFO] |  \- sk:sk:jar:0.0.1:provided
+[INFO] +- org.jetbrains:annotations:jar:13.0:compile
+[INFO] +- org.apache.directory.fortress:fortress-core:jar:1.0.0-guardian-3.1.3:test
+[INFO] |  +- org.openldap:accelerator-api:jar:1.0-RC41:test
+[INFO] |  +- org.openldap:accelerator-impl:jar:1.0-RC41:test
+[INFO] |  +- org.apache.curator:curator-framework:jar:2.9.0:test
+[INFO] |  +- org.json:json:jar:20090211:test
+[INFO] |  +- net.sf.ehcache:ehcache-core:jar:2.6.11:test
+[INFO] |  +- org.apache.commons:commons-pool2:jar:2.4.3:test
+[INFO] |  +- org.apache.cxf:cxf-api:jar:2.7.18:test
+[INFO] |  |  +- org.codehaus.woodstox:woodstox-core-asl:jar:4.4.1:test
+[INFO] |  |  |  \- org.codehaus.woodstox:stax2-api:jar:3.1.4:test
+[INFO] |  |  +- org.apache.ws.xmlschema:xmlschema-core:jar:2.1.0:test
+[INFO] |  |  +- org.apache.geronimo.specs:geronimo-javamail_1.4_spec:jar:1.7.1:test
+[INFO] |  |  \- wsdl4j:wsdl4j:jar:1.6.3:test
+[INFO] |  +- javax.ws.rs:javax.ws.rs-api:jar:2.0.1:test
+[INFO] |  +- org.apache.directory.api:api-ldap-client-api:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  +- org.apache.directory.api:api-ldap-schema-data:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  +- org.apache.directory.api:api-ldap-codec-core:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  +- org.apache.directory.api:api-ldap-extras-aci:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  +- org.apache.directory.api:api-ldap-extras-codec:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  +- org.apache.directory.api:api-ldap-extras-codec-api:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  \- org.apache.mina:mina-core:jar:2.0.13:test
+[INFO] |  +- org.apache.directory.api:api-ldap-codec-standalone:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  \- org.apache.directory.api:api-ldap-net-mina:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  +- org.apache.ant:ant:jar:1.9.6:test
+[INFO] |  |  \- org.apache.ant:ant-launcher:jar:1.9.6:test
+[INFO] |  +- org.jasypt:jasypt:jar:1.9.2:test
+[INFO] |  +- org.jgrapht:jgrapht-core:jar:0.9.1:test
+[INFO] |  \- javax:javaee-api:jar:7.0:test
+[INFO] |     \- com.sun.mail:javax.mail:jar:1.5.0:test
+[INFO] |        \- javax.activation:activation:jar:1.1:test
+[INFO] +- org.apache.directory.server:apacheds-kerberos-codec:jar:2.0.0-M23-guardian-3.1.3:test
+[INFO] |  +- org.apache.directory.server:apacheds-i18n:jar:2.0.0-M23-guardian-3.1.3:test
+[INFO] |  +- org.apache.directory.api:api-asn1-api:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  +- org.apache.directory.api:api-asn1-ber:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  +- org.apache.directory.api:api-i18n:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  +- org.apache.directory.api:api-ldap-model:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  |  \- org.apache.servicemix.bundles:org.apache.servicemix.bundles.antlr:jar:2.7.7_5:test
+[INFO] |  +- org.apache.directory.api:api-util:jar:1.0.0-RC1-guardian-3.1.3:test
+[INFO] |  \- net.sf.ehcache:ehcache:jar:2.8.5:test
+[INFO] +- com.nimbusds:nimbus-jose-jwt:jar:3.10:test
+[INFO] |  +- net.jcip:jcip-annotations:jar:1.0:test
+[INFO] |  +- net.minidev:json-smart:jar:1.3.1:test
+[INFO] |  \- org.bouncycastle:bcprov-jdk15on:jar:1.52:test
+[INFO] +- org.slf4j:slf4j-api:jar:1.7.7:compile
+[INFO] \- junit:junit:jar:4.11:test
+[INFO]    \- org.hamcrest:hamcrest-core:jar:1.3:test
+
+[INFO] --- maven-dependency-plugin:2.1:tree (default-cli) @ guardian-common ---
+[INFO] io.transwarp.guardian:guardian-common:jar:guardian-3.1.3
+[INFO] +- io.swagger:swagger-annotations:jar:1.5.9:compile
+[INFO] +- org.slf4j:slf4j-api:jar:1.7.7:compile
+[INFO] \- junit:junit:jar:4.11:test
+[INFO]    \- org.hamcrest:hamcrest-core:jar:1.3:test
+
+
+1. com.google.guava:guava:jar:18.0:compile -> 24.1.1  
+2. jackson-databind-2.9.5.jar ->2.9.10.4
+3. org.apache.httpcomponents:httpclient:jar:4.2.5->4.3.6
+
+
+
+<version>4.3.6</version>
+
+huntress
+          <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>5.2.4</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>mysql</groupId>
+                        <artifactId>mysql-connector-java</artifactId>
+                        <version>5.1.48</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <enableExperimental>true</enableExperimental>
+                    <databaseDriverName>com.mysql.jdbc.Driver</databaseDriverName>
+                    <connectionString>jdbc:mysql://172.26.0.104:33306/dependencycheck?useSSL=false</connectionString>
+                    <databaseUser>dcscanner</databaseUser>
+                    <databasePassword>Dependencycheck@123</databasePassword>
+                    <failBuildOnAnyVulnerability>true</failBuildOnAnyVulnerability>
+                    <autoUpdate>false</autoUpdate>
+                    <versionCheckEnabled>false</versionCheckEnabled>
+                    <pathToGo>/path/to/go</pathToGo>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+ mvn dependency-check:check
+
+[root@tw-node1236 ~]# hadoop version
+Hadoop 2.7.2-transwarp-6.2.1
+Subversion http://172.16.1.41:10080/hadoop/hadoop-2.7.2-transwarp.git -r 18d4007c75c725022c85024f3d4d26862d98be7c
+Compiled by jenkins on 2019-11-12T08:03Z
+Compiled with protoc 2.5.0
+From source with checksum 42cb923f1631e3c548d6b7e572aa6962
+This command was run using /usr/lib/hadoop/hadoop-common-2.7.2-transwarp-6.2.1.jar
+
+kernel->shell
+
+Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName) ：每一个Thread都有一个context classloader与之对应，这个contextloader类是由父进程提供的，默认的contextloader为父进程的context classloader。如果在整个Thread结构中，你都没有通过Thread类的构造函数初始化某个Thread 的context classloader的话，那么，整个Thread的context classloader都将默认是system classloader。
+
+
+
+
+
+
+
+
+// get component version info
+            Properties info = new Properties();
+            String versionInfoFile = "inceptor-version-info.properties";
+            InputStream is = null;
+            try {
+              is = Thread.currentThread().getContextClassLoader()
+                  .getResourceAsStream(versionInfoFile);
+              if (is == null) {
+                throw new IOException("Resource not found");
+              }
+              info.load(is);
+            } catch (IOException ex) {
+              LogFactory.getLog(getClass()).warn("Could not read '" +
+                  versionInfoFile + "', " + ex.toString(), ex);
+            } finally {
+              IOUtils.closeStream(is);
+            }
+            configs.put("version", info.getProperty("version", "Unknown"));
+
+
+docker-compose -f docker-compose-simple.yml up -d(同一目录下docker-compose文件与指定yaml合并）
+docker-compose up -d
+docker-compose config
+
+
+// get component version info
+    var versionInfo = new Properties()
+    val versionInfoFile = "kafka-version-info.properties"
+    var is = null
+     try {
+       is = Thread.currentThread().getContextClassLoader()
+         .getResourceAsStream(versionInfoFile);
+       if (is == null) {
+         authorizerLogger.error(s"Resource not found")
+       }
+       versionInfo.load(is)
+     } catch {
+       case e : IOException =>
+         authorizerLogger.warn(s"Could not read ${versionInfoFile}, ${e.toString}")
+     } finally {
+
+     }
+     configs.put("version", info.getProperty("version", "Unknown"))
+
+
+<executions>
+          <execution>
+            <id>version-info</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>version-info</goal>
+            </goals>
+            <configuration>
+              <source>
+                <directory>${basedir}/src/main</directory>
+                <includes>
+                  <include>java/**/*.java</include>
+                  <include>proto/**/*.proto</include>
+                </includes>
+              </source>
+            </configuration>
+          </execution>
+<executions>
+MAVEN属性
+事实上有六种类型的Maven属性：
+
+内置属性：主要有两个常用内置属性——${basedir}表示项目根目录，即包含pom.xml文件的目录;${version}表示项目版本。
+POM属性：pom中对应元素的值。例如${project.artifactId}对应了<project><artifactId>元素的值。具体有哪些POM属性可以用，可以查看本页末的附件——超级POM
+自定义属性：在pom中<properties>元素下自定义的Maven属性。例如
+ 
+
+<project>  
+        <properties>  
+            <my.prop>hello</my.prop>  
+        </properties>  
+    </project>
+Settings属性：与POM属性同理。如${settings.localRepository}指向用户本地仓库的地址。
+Java系统属性：所有Java系统属性都可以使用Maven属性引用，例如${user.home}指向了用户目录。可以通过命令行mvn help:system查看所有的Java系统属性
+环境变量属性：所有环境变量都可以使用以env.开头的Maven属性引用。例如${env.JAVA_HOME}指代了JAVA_HOME环境变量的值。也可以通过命令行mvn help:system查看所有环境变量。
+ 
+
+资源过滤
+maven的properties filter功能可以帮你自动替换配置文件中以$｛｝包裹的变量。
+
+为了方便构建不同的环境，我们通常将不同的配置以properties形式配置在pom 中。
+
+默认情况下，Maven属性只有在POM中才会被解析。资源过滤就是指让Maven属性在资源文件(src/main/resources、src/test/resources)中也能被解析。
+
+在POM中添加下面的配置便可以开启资源过滤
+
+
+hbase.defaults.for.version
+META-INF/maven/groupId/artifactId/pom.properties
+
+jackson fasterxml mavenVersionFor
+    String version = VersionUtil.mavenVersionFor(GuardianAuthManager.class.getClassLoader(), "io.transwarp.guardian", "hyperbase-plugin").toString();
+
+META-INF
+相当于一个信息包，目录中的文件和目录获得Java 2平台的认可与解释，用来配置应用程序、扩展程序、类加载器和服务manifest.mf文件，在用jar打包时自动生成
+
+
+0518
+
+工作周报 - 李镇邦 20200511 ~ 20200515
+
+完成：
+1. 【测试】guardian与 kunDB，yarn组件的功能测试
+2.  WARP-45083：【guardian】减少guardian-3.1工程的CVE数量并验证
+3.  WARP-44993：【guardian】plugin组件注册时传入对应版本号
+4.  WARP-43034：【HDFS】修改支持SM4算法的提交并merge
+
+其他：
+1. 组内支持了docker-compose文件起guardian的问题和manager升级guardian遇到的问题
+
+
+本周：
+1. WARP-44993 更好实现方式完成pom属性注入
+2. WARP-45040 增加guardian server可以暴露配置项的API
+如何打开ant项目：
+ant eclipse
+通过new import from resource打开eclipse项目
+
+zk拿到version信息
+zookeeper 379行 build.xml 用java指令执行vergen的命令 生成了info.java接口文件 version继承这个接口 zk四字commands使用
+    <target name="version-info" depends="ver-gen,git-revision">
+        <mkdir dir="${src_generated.dir}" />
+        <java classname="org.apache.zookeeper.version.util.VerGen" fork="true" 
+                dir="${src_generated.dir}">
+            <arg value="${version}" />
+            <arg value="${lastRevision}" />
+            <arg value="${build.time}" />
+            <classpath>
+                <pathelement path="${build.classes}" />
+            </classpath>
+        </java>
+    </target>
+
+hdfs对比
+通过pom资源过滤，造成资源文件使用pom属性，通过当前线程查找classpath下的资源文件，拿到属性
+
+Bring component/plugin version to Guardian when registering
+
+工厂模式？？？GuardianDaoFactory
+
+
+WARP-44961
+    以下jar包已升级
+    1. com.google.guava:guava:jar:18.0:compile -> 24.1.1
+    2. jackson-databind-2.9.5.jar ->2.9.10.4
+    以下jar包未升级
+    1. org.apache.httpcomponents:httpclient:jar:4.2.5->4.3.6
+    涉及cve：CVE-2014-3577 CVE-2015-5262
+
+git remote update --prune
+
+gaurdian-common
+guardian-query-client有10个cve 
+ search-query-guardian-3.2.0.jar: CVE-2019-13423, CVE-2019-13422, CVE-2019-13421, CVE-2019-13417, CVE-2019-13416, CVE-2019-13415, CVE-2019-13419, CVE-2019-13418, CVE-2018-20698, CVE-2019-13420
+
+
+1. com.google.guava:guava:jar:18.0:compile -> 24.1.1  
+2. jackson-databind-2.9.5.jar ->2.9.10.4
+3. mysql.connector.version 5.1.36 ->5.1.48
+
+3. search-query-guardian-3.2.0 ? ->改不了
+4. org.apache.httpcomponents:httpclient:jar:4.2.5->4.3.6 4.3.5
+
+http://172.26.0.104:8888/config/guardian/guardian/guardian-guardian-3.2.0-suppression.xml
+
+<suppressionFiles>
+ <suppressionFile>http://172.26.0.104:8888/config/guardian/guardian/guardian-guardian-3.2.0-suppression.xml</suppressionFile>
+ </suppressionFiles>
+
+                       <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>5.2.4</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>mysql</groupId>
+                        <artifactId>mysql-connector-java</artifactId>
+                        <version>5.1.48</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <enableExperimental>true</enableExperimental>
+                    <databaseDriverName>com.mysql.jdbc.Driver</databaseDriverName>
+                    <connectionString>jdbc:mysql://172.26.0.104:33306/dependencycheck?useSSL=false</connectionString>
+                    <databaseUser>dcscanner</databaseUser>
+                    <databasePassword>Dependencycheck@123</databasePassword>
+                    <failBuildOnAnyVulnerability>false</failBuildOnAnyVulnerability>
+                    <autoUpdate>false</autoUpdate>
+                    <versionCheckEnabled>false</versionCheckEnabled>
+                    <pathToGo>/path/to/go</pathToGo>
+                    <failOnError>false</failOnError>
+		    <skipProvidedScope>true</skipProvidedScope>
+                    <skipRuntimeScope>true</skipRuntimeScope>
+                    <skipSystemScope>true</skipSystemScope>
+                    <suppressionFiles>
+                        <suppressionFile>http://172.26.0.104:8888/config/guardian/guardian/guardian-guardian-3.2.0-suppression.xml</suppressionFile>
+                    </suppressionFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+mvn dependency-check:aggregate
+mvn dependency-check:aggregate -Ddependency-check.skip=false
+CWE-611 Improper Restriction of XML External Entity Reference ('XXE')
+
+maven测试单个测试
+mvn -Dtest=AccessTokenManagerV2Test -DfailIfNoTests=false test
+
+
+cas-client-core-3.5.1-guardian-3.1.3.jar
+CWE-611: Improper Restriction of XML External Entity Reference ('XXE')
+The software processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control, causing the product to embed incorrect documents into its output.
+shaded jackson-databind
+
+io.transwarp.guardian.common:search-query:jar:guardian-3.2.0:compile
+org.jasig.cas.client:cas-client-core:jar:3.5.1-guardian-3.2.0:provided (version managed from 3.5.1-transwarp-6.0.0-SNAPSHOT)
+-------com.fasterxml.jackson.core:jackson-databind:jar:2.8.8.1:compile
+
+org.apache.directory.server:apacheds-server-annotations:jar:2.0.0-M23-guardian-3.2.0:compile
+ +- org.quartz-scheduler:quartz:jar:2.3.0:compile (version managed from 2.2.1)
+CVE-2019-13990 (OSSINDEX)  suppress
+initDocumentParser in xml/XMLSchedulingDataProcessor.java in Terracotta Quartz Scheduler through 2.3.0 allows XXE attacks via a job description.
+
+hive
++- org.apache.hive:hive-jdbc:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  +- org.apache.hive:hive-common:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  |  +- org.apache.hive:hive-shims:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  |  |  +- org.apache.hive.shims:hive-shims-common:jar:0.12.0-transwarp-6.0.0:compile
+[INFO] |  |  |  |  |  +- log4j:apache-log4j-extras:jar:1.2.17:compile->
+CVE-2019-17571  suppress
+Included in Log4j 1.2 is a SocketServer class that is vulnerable to deserialization of untrusted data which can be exploited to remotely execute arbitrary code when combined with a deserialization gadget when listening to untrusted network traffic for log data. This affects Log4j versions up to 1.2 up to 1.2.17.
+
+
+ +- org.scala-lang:scala-library:jar:2.10.4:compile ->
+CVE-2017-15288  suppress
+The compilation daemon in Scala before 2.10.7, 2.11.x before 2.11.12, and 2.12.x before 2.12.4 uses weak permissions for private files in /tmp/scala-devel/${USER:shared}/scalac-compile-server-port, which allows local users to write to arbitrary class files and consequently gain privileges.
+
+com.thoughtworks.xstream:xstream:jar:1.4.9:compile
+CVE-2017-7957
+
+
+federation-utils-guardian-3.2.0.jar (shaded: com.fasterxml.jackson.core:jackson-databind:2.9.6)
+cas-client-core
+es
+
+search-query-guardian-3.2.0.jar: CVE-2019-13423, CVE-2019-13422, CVE-2019-13421, CVE-2019-13417, CVE-2019-13416, CVE-2019-13415, CVE-2019-13419, CVE-2019-13418, CVE-2018-20698, CVE-2019-13420
+[ERROR] commons-beanutils-1.9.2.jar: CVE-2019-10086
+
+CVE-2019-10086  suppress
+In Apache Commons Beanutils 1.9.2, a special BeanIntrospector class was added which allows suppressing the ability for an attacker to access the classloader via the class property available on all Java objects. We, however were not using this by default characteristic of the PropertyUtilsBean.
+
+
+xercesImpl-2.9.1.jar
+
+hadoop-common
+ io.netty:netty-all:jar:4.1.5.transwarp:compile
+====================================
+guardian-3.1
+1. com.google.guava:guava:jar:18.0:compile -> 24.1.1  
+2. jackson-databind-2.9.5.jar ->2.9.10.4
+3. mysql.connector.version 5.1.36 ->5.1.48 影响模块guardian-persistence
+4. jetty-security 9.2.17.v20160517-> 9.2.27.v20190403 影响guardian-extensible/jetty-tools
+5. dom4j-1.6.1.jar ->org.dom4j-2.1.3
+6. 
+
+未处理
+httpclient-4.2.5.jar->4.3.6
+commons-beanutils-core-1.8.0.jar 在net.sf.json-lib:json-lib:jar:jdk15:2.4:compile影响 影响较小 CVE-2014-0114 CVE-2019-10086
+
+hadoop-common
+ io.netty:netty-all:jar:4.1.5.transwarp:compile ->4.1.46
+ jackson-mapper-asl-1.9.13.jar ->2.9.10.4 #
+
+cas-client
+CWE-611
+cas-client-core-3.5.1-guardian-3.2.0.jar (shaded: com.fasterxml.jackson.core:jackson-databind:2.8.8.1)mvn de
+
+hive
++- org.apache.hive:hive-jdbc:jar:0.12.0-transwarp-6.0.0:compile
+log4j-1.2.17.jar->CVE-2019-17571 CVE-2020-9488 
+apache-log4j-extras-1.2.17.jar CVE-2019-17571 CVE-2020-9488
+scala-library-2.10.4.jar CVE-2017-15288 
+derby-10.4.2.0.jar CVE-2018-1313
+libfb303-0.9.2.jar CVE-2019-3565
+hive-ant-0.12.0-transwarp-6.0.0.jar CVE-2018-1314
+groovy-all-2.1.6.jar CVE-2016-6814 (OSSINDEX) 
+xstream-1.4.9.jar CVE-2017-7957
+jsp-2.1-6.1.14.jar CVE-2011-4461
+
+zookeeper-3.4.5-transwarp.jar->3.4.13
+
+hdfs
+xercesImpl-2.9.1.jar->CVE-2009-2625 2.12.0
+
+federation
+
+
+hbase-client-1.3.1-transwarp-6.0.0.jar CVE-2018-8025
+
+hadoop-yarn-server-common-2.7.2-transwarp-6.0.0.jar
+
+
+http://172.26.0.104:8888/config/guardian/guardian/guardian-${project.version}-suppression.xml
+
+guardian-util--
+search-query-guardian-3.2.0.jar
+guardian--
+httpclient-4.2.5.jar
+spring-core-5.0.6.RELEASE.jar
+fotress--
+cxf-api-2.7.18.jar
+apacheds--
+api-ldap-codec-core-1.0.0-RC1-guardian-3.2.0.jar
+quartz-2.2.1.jar
+c3p0-0.9.1.1.jar
+bcprov-jdk15on-1.53.jar
+api-i18n-1.0.0-RC1-guardian-3.2.0.jar
+cas-client--
+cas-client-core-3.5.1-guardian-3.2.0.jar
+hive--
+netty-all-4.1.5.transwarp.jar
+
+resourceservicemanager重写
+guava-jre和android的区别
+
+@RestController
+使用@Controller注解的Controller类中的函数可以返回具体的页面。比如直接返回的String类型Jsp，html页面名字。
+但是如果使用@Controller注解的Controller类中的函数想要返回json类型的数据，则需要在函数上面添加一个注解@ResponseBody。如果一个类中所有的方法返回的都是json类型数据，那么我们可以使用@RestController注解。
+@RestController=@ResponseBody+@Controller，该注解类下的所有函数都返回的是json类型数据，不再返回页面。
+
+@Api swagger用覆盖路径值打tag description一直可用
+@Configuration
+Spring的@Bean注解用于告诉方法，产生一个Bean对象，然后这个Bean对象交给Spring管理。产生这个Bean对象的方法Spring只会调用一次，随后这个Spring将会将这个Bean对象放在自己的IOC容器中。
+@Autowired
+@Component
+
+@NestedConfigurationProperty，该注解会为basicProperties生成单独的一个属性组。如果不添加该注解，则不会生成单独的属性组，而是形成如下的一个属性节点：
+@JsonUnwrapped @JsonUnwrapped: 作用在属性字段或方法上，用来将子JSON对象的属性添加到封闭的JSON对象。
+@RestController注解相当于@ResponseBody ＋ @Controller合在一起的作用。
+如果只是使用@RestController注解Controller，则Controller中的方法无法返回jsp页面，配置的视图解析器InternalResourceViewResolver不起作用，返回的内容就是Return 里的内容。例如：本来应该到success.jsp页面的，则其显示success. 
+如果需要返回到指定页面，则需要用 @Controller配合视图解析器InternalResourceViewResolver才行。
+如果需要返回JSON，XML或自定义mediaType内容到页面，则需要在对应的方法上加上@ResponseBody注解。
+
+@ConfigurationProperties适用与注入配置文件整个对应bean的全部属性，而@Value正如其名称一样，适合注入配置文件单个值
+desc table
+
+Spring中的环境属性管理的源码个人认为是最清晰和简单的：从文件中读取数据转化为key-value结构，key-value结构存放在一个PropertySource实例中，然后得到的多个PropertySource实例存放在一个CopyOnWriteArrayList中，属性访问的时候总是遍历CopyOnWriteArrayList中的PropertySource进行匹配。可能相对复杂的就是占位符的解析和参数类型的转换，后者牵连到Converter体系
+
+mvn help:system查看所有环境变量。
+
+1. guardianconf解决默认值问题
+2. 正则过滤密码
+.*(username|password|keytab).*
+
+@SwaggerDefinition(tags = {
+	@Tag(name = "foo", description = "some description of foo controller")
+})
+
+guardianHiveAuthorizor
+
+http://172.16.1.168:8090/pages/viewpage.action?pageId=23471650
+麻烦先试着换下inceptor和guardian-plugin的包，分别是
+inceptor-exec-8.0.1.jar	 
+inceptor-metastore-8.0.1.jar		 
+inceptor-plugin-transwarp-6.2.1.jar
+
+
+不开插件检查db/tb owner：
+grantPrivileges
+revokePrivileges
+grantQuota
+showQuota
+grantFacl
+revokeFacl
+showFacl
+grantRowPermission
+revokeRowPermission
+showPermission
+grantColumnPermission
+revokeColumnPermission
+showPrivileges
+
+开插件检查db/tb owner:
+showPrivileges
+filterDatabaseByPrivileges
+filterTablesByPrivileges
+
+"returnCode":500,"errorMessage":"Could not write JSON: java.lang.Boolean cannot be cast to java.lang.String; nested exception is com.fasterxml.jackson.databind.JsonMappingException: java.lang.Boolean cannot be cast to java.lang.String (through reference chain: java.util.Properties[\"guardian.server.tls.enabled\"])","detailMessage":"com.fasterxml.jackson.databind.JsonMappingException: java.lang.Boolean cannot be cast to java.lang.String (through reference chain: java.util.Properties[\"guardian.server.tls.enabled\"])\n\tat com.fasterxml.jackson.databind.JsonMappingException.wrapWithPath(JsonMappingException.java:391)\n\tat com.fasterxml.jackson.databind.JsonMappingException.wrapWithPath(JsonMappingException.java:351)\n\tat com.fasterxml.jackson.databind.ser.std.StdSerializer.wrapAndThrow(StdSerializer.java:316)\n\tat com.fasterxml.jackson.databind.ser.std.MapSerializer.serializeOptionalFields(MapSerializer.java:780)\n\tat com.fasterxml.jackson.databind.ser.std.MapSerializer.serialize(MapSerializer.java:635)\n\tat com.fasterxml.jackson.databind.ser.std.MapSerializer.serialize(MapSerializer.java:33)\n\tat com.fasterxml.jackson.databind.ser.DefaultSerializerProvider._serialize(DefaultSerializerProvider.java:480)\n\tat com.fasterxml.jackson.databind.ser.DefaultSerializerProvider.serializeValue(DefaultSerializerProvider.java:400)\n\tat com.fasterxml.jackson.databind.ObjectWriter$Prefetch.serialize(ObjectWriter.java:1392)\n\tat com.fasterxml.jackson.databind.ObjectWriter.writeValue(ObjectWriter.java:913)\n\tat org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.writeInternal(AbstractJackson2HttpMessageConverter.java:286)\n\tat org.springframework.http.converter.AbstractGenericHttpMessageConverter.write(AbstractGenericHttpMessageConverter.java:102)\n\tat org.springframework.web.servlet.mvc.method.annotation.AbstractMessageConverterMethodProcessor.writeWithMessageConverters(AbstractMessageConverterMethodProcessor.java:272)\n\tat org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.handleReturnValue(RequestResponseBodyMethodProcessor.java:180)\n\tat 

@@ -1,0 +1,416 @@
+0525
+工作周报 - 李镇邦 20200518 ~ 20200522
+
+完成：
+1. WARP-44993:[guardian-plugin] 在guardian-plugin中可以携带组件版本号到guardian server
+2. WARP-45040:[guardian]增加暴露服务端配置的API
+3. WARP-44961, WARP-45083:[guardian]升级guardian-3.2部分的CVE依赖，结果可见：http://172.16.0.244:8080/browse/WARP-44961
+
+其他：
+1. WARP-45079: 整理开关插件情况下inceptor检查db/table owner的接口
+2. 关于Kerberos重连机制的代码并实现重连可用
+
+本周：
+1. 讨论WARP-45079和WARP-45092关于inceptor开插件时的实现方式并实现
+2. 修改review代码 同步resource-manager上的单测改动
+3. kerberos重连demo多线程测试通过可用化
+
+1.
+MIN_TIME_BEFORE_RELOGIN 默认10min
+clockskew 默认5min
+-> ticker-lifetime > 10 min
+
+2. 锁问题
+
+3. 多线程
+
+2020-05-25 12:29:44,341 TRACE org.apache.hadoop.ipc.ProtobufRpcEngine: 10: Exception <- tw-node597/172.26.5.97:8020: getListing {java.io.IOException: Failed on local exception: java.io.IOException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)]; Host Details : local host is: "transwarp-lishinho-5480/127.0.1.1"; destination host is: "tw-node597":8020; }
+2020-05-25 12:29:44,347 DEBUG org.apache.hadoop.security.UserGroupInformation: PrivilegedActionException as:admin@TDH (auth:KERBEROS) cause:java.io.IOException: Failed on local exception: java.io.IOException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)]; Host Details : local host is: "transwarp-lishinho-5480/127.0.1.1"; destination host is: "tw-node597":8020; 
+2020-05-25 12:29:45,034 DEBUG org.apache.hadoop.security.UserGroupInformation: Initiating logout for admin@TDH
+2020-05-25 12:29:45,035 DEBUG org.apache.hadoop.security.UserGroupInformation: OAuth2 token logout
+2020-05-25 12:29:45,035 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop logout
+2020-05-25 12:29:45,035 DEBUG org.apache.hadoop.security.UserGroupInformation: Initiating re-login for admin@TDH
+2020-05-25 12:29:45,057 DEBUG org.apache.hadoop.security.UserGroupInformation: No OAuth2 token is set via ENV.
+2020-05-25 12:29:45,057 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop login
+2020-05-25 12:29:45,059 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop login commit
+2020-05-25 12:29:45,059 DEBUG org.apache.hadoop.security.UserGroupInformation: using existing subject:[admin@TDH, admin@TDH]
+2020-05-25 12:29:45,060 DEBUG org.apache.hadoop.security.UserGroupInformation: PrivilegedAction as:admin@TDH (auth:KERBEROS) from:io.transwarp.UgiTest.executeWithRetry(UgiTest.java:67)
+2020-05-25 12:29:45,061 TRACE org.apache.hadoop.ipc.ProtobufRpcEngine: 10: Call -> tw-node597/172.26.5.97:8020: getListing {src: "/" startAfter: "" needLocation: true}
+2020-05-25 12:29:45,061 DEBUG org.apache.hadoop.ipc.Client: The ping interval is 60000 ms.
+
+
+2020-05-25 12:30:00,565 DEBUG org.apache.hadoop.security.UserGroupInformation: Initiating logout for test01@TDH
+2020-05-25 12:30:00,565 DEBUG org.apache.hadoop.security.UserGroupInformation: OAuth2 token logout
+2020-05-25 12:30:00,565 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop logout
+2020-05-25 12:30:00,566 DEBUG org.apache.hadoop.security.UserGroupInformation: Initiating re-login for admin@TDH
+2020-05-25 12:30:00,584 DEBUG org.apache.hadoop.security.UserGroupInformation: No OAuth2 token is set via ENV.
+2020-05-25 12:30:00,585 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop login
+2020-05-25 12:30:00,586 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop login commit
+2020-05-25 12:30:00,586 DEBUG org.apache.hadoop.security.UserGroupInformation: using existing subject:[test01@TDH, admin@TDH]
+
+
+/**
+   * Re-Login a user in from the ticket cache.  This
+   * method assumes that login had happened already.
+   * The Subject field of this UserGroupInformation object is updated to have
+   * the new credentials.
+   * @throws IOException on a failure
+   */
+  @InterfaceAudience.Public
+  @InterfaceStability.Evolving
+  public synchronized void reloginFromTicketCache() throws IOException {
+    if (!isSecurityEnabled()
+        || user.getAuthenticationMethod() != AuthenticationMethod.KERBEROS
+        || !isKrbTkt) {
+      return;
+    }
+    LoginContext login = getLogin();
+    if (login == null) {
+      throw new IOException("login must be done first");
+    }
+    long now = Time.now();
+    if (!hasSufficientTimeElapsed(now)) {
+      return;
+    }
+    // register most recent relogin attempt
+    user.setLastLogin(now);
+    try {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Initiating logout for " + getUserName());
+      }
+      //clear up the kerberos state. But the tokens are not cleared! As per 
+      //the Java kerberos login module code, only the kerberos credentials
+      //are cleared
+      login.logout();
+      //login and also update the subject field of this instance to 
+      //have the new credentials (pass it to the LoginContext constructor)
+      login = 
+        newLoginContext(HadoopConfiguration.USER_KERBEROS_CONFIG_NAME, 
+            getSubject(), new HadoopConfiguration());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Initiating re-login for " + getUserName());
+      }
+      login.login();
+      fixKerberosTicketOrder();
+      setLogin(login);
+    } catch (LoginException le) {
+      throw new IOException("Login failure for " + getUserName(), le);
+    } 
+  }
+
+ugi用到了jaas的subject，keytab会添加user
+
+ormation: PrivilegedActionException as:test01@TDH (auth:KERBEROS) cause:javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)]
+2020-05-25 17:04:27,056 DEBUG org.apache.hadoop.security.UserGroupInformation: PrivilegedAction as:test01@TDH (auth:KERBEROS) from:org.apache.hadoop.ipc.Client$Connection.handleSaslConnectionFailure(Client.java:658)
+2020-05-25 17:04:27,068 DEBUG org.apache.hadoop.security.UserGroupInformation: No OAuth2 token is set via ENV.
+2020-05-25 17:04:27,069 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop login
+2020-05-25 17:04:27,070 DEBUG org.apache.hadoop.security.UserGroupInformation: hadoop login commit
+2020-05-25 17:04:27,070 DEBUG org.apache.hadoop.security.UserGroupInformation: using kerberos user:null
+2020-05-25 17:04:27,074 DEBUG org.apache.hadoop.security.UserGroupInformation: using local user:UnixPrincipal: transwarp
+2020-05-25 17:04:27,074 DEBUG org.apache.hadoop.security.UserGroupInformation: Using user: "UnixPrincipal: transwarp" with name transwarp
+2020-05-25 17:04:27,074 DEBUG org.apache.hadoop.security.UserGroupInformation: User entry: "transwarp"
+2020-05-25 17:04:27,074 DEBUG org.apache.hadoop.security.UserGroupInformation: Assuming keytab is managed externally since logged in from subject.
+2020-05-25 17:04:27,076 DEBUG org.apache.hadoop.security.UserGroupInformation: UGI loginUser:transwarp (auth:KERBEROS)
+
+if (this.transactionContext == null) {
+    this.transactionContext = new ThreadLocal<>();
+  }
+  this.transactionContext.set(ts);
+
+
+test01@TDH
+transwarp (auth:KERBEROS)
+test01@TDH
+transwarp (auth:KERBEROS)
+state-00000000000000001430.log
+
+grantQuota
+showQuota
+grantFacl
+revokeFacl
+showFacl
+五个接口加上dbowner的权限
+
+    // First authorize the call
+    Boolean isAdminOrOwner = guardianAuthorizer.isUserAdmin(currentUserName) || SQLAuthorizationUtils.isOwner(
+            mClient, currentUserName, getCurrentRoleNames(), privObj);
+if (!isAdminOrOwner) {
+        throw new HiveAccessControlException(ErrorMsg.ERROR_20428, ErrorMsgUtil.toString(currentUserName), ErrorMsgUtil.toString(ADMIN_ONLY_MSG));
+      }
+
+
+7.3.1. 设置用户/组对某张表的FACL
+语法：设置用户/组对某张表的FACL
+
+GRANT
+  FACL '<permissions>' 
+  ON TABLE <table>
+  TO USER|GROUP <user_or_group_name>; 
+
+
+grantFacl: 
+ADMIN 和表owner可以将任意权限赋予任何人或者组。
+普通用户只能赋权自己对该表的FACL。
+revokeFacl: 
+ADMIN 和表的Owner可以将任意用户/组对该表的FACL取消。
+普通用户只能取消自己对该表的FACL。
+showFacl:
+查看某张表上的所有FACL所需权限
+ADMIN 表owner有权限执行该命令。
+grantQuota:
+对某个database设置数据空间配额(执行者须为database的owner或具有admin角色)
+为某个用户设置使用某个Database数据空间的配额 (执行者须为database的owner或具有admin角色)
+为某个用户设置临时空间配额（执行者须有admin角色）
+设置所有临时空间总的配额（执行者须有admin角色）
+showQuota:
+查看某个database数据空间配额(执行者须为database的owner或具有admin角色)
+查看某个用户使用某个database数据空间的配额 (执行者须为database的owner或具有admin角色)
+查看某个用户具有的临时空间配额（执行者须是目标用户或者有admin角色）
+查看所有临时空间总的配额（执行者须有admin角色）
+
+
+WARP-45092
+GRANT QUOTA-
+grant 
+
+
+
+
+
+
+
+对某个database设置数据空间配额(执行者须为database的owner或具有admin角色)
+
+GRANT QUOTA double_value(K|M|G|T) ON DATABASE db_name;
+
+为某个用户设置使用某个Database数据空间的配额 (执行者须为database的owner或具有admin角色)
+
+GRANT QUOTA double_value(K|M|G|T) ON DATABASE db_name TO USER user_name;
+
+if (database.equals("__TEMP_SPACE__")) {
+      datasource.add("TEMPORARY");
+    }
+
+IMetaStoreClient mClient = metastoreClientFactory.getHiveMetastoreClient();
+    boolean isAdminOrOwner = guardianAuthorizer.isUserAdmin(userName) || SQLAuthorizationUtils.isOwner(
+        mClient, userName, getCurrentRoleNames(), new HivePrivilegeObject(HivePrivilegeObject.HivePrivilegeObjectType.DATABASE, database, null));
+    if (!isAdminOrOwner) {
+      throw new HiveAccessControlException(ErrorMsg.ERROR_20428, ErrorMsgUtil.toString(userName), ErrorMsgUtil.toString(ADMIN_ONLY_MSG));
+    }
+
+throw new HiveAuthzPluginException(ErrorMsg.INVALID_TABLE, hivePrivObject.getDbname())
+
+JAAS强调的是通过验证谁在运行代码以及他／她的权限来保护系统面受用户的攻击。它让你能够将一些标准的安全机制，例如Solaris NIS（网络信息服务）、Windows NT、LDAP（轻量目录存取协议），Kerberos等通过一种通用的，可配置的方式集成到系统中。本文首先向你介绍JAAS验证中的一些核心部分，然后通过例子向你展示如何开发登录模块。
+JAAS怎么读取kerberosmodeule的认证信息
+
+keytab验证相当于密码，在旧版本hadoop-common中loginreturnugi（为了不影响所有登陆user的信息）会把所有从keytab上获取的信息user 通过JAASlogin然后把目前ugi的keytab换到第一个ugi登陆使用的keytab，导致relogin的时候直接通过subject login使用了第一个keytab得到ticket，认证的时候都是使用第一个keytab的信息，当前用户的subject login。造成后面的都是第一个人的proxy user。如果第一个人没有hdfs集群的proxy user权限则重连失败
+1. 服务开始时建立特殊用户的keytab连接
+2. 新版本不会出现这一问题
+3. 
+
+if [ `grep -c "throws" $UPDATE_PWD_CONF_FILE` -eq '0' ]; then
+    sed -i '$i\ads-pwdMinClasses: 0\' $UPDATE_PWD_CONF_FILE
+fi
+
+
+sed -i 's/ throws.*//g' testv2
+删除匹配throws字符后面的字符串
+sed -i '/^$/d' testv2
+删除空行
+sed -i '/\*/d' testv2 
+删除带*的行
+sed -i '/^\s*$/d' testv2
+删除带空格的空行
+wc -l testv2
+统计文件行数
+grep -i '.*group.*' testv1
+查找存在group的行
+
+WARP-44916
+Map<String, List<String>> getAdminPermissions()
+
+  @GetMapping("/permissions")
+  @ApiOperation(value = "Return list of admin permissions", notes = "login is needed")
+  @Auditable(field = AuditField.ADMINISTRATION, requestClass = "ListAdminPermsRequest", level = AuditLevel.READ,
+      operationFormat = "list all administrative permissions")
+  public Map<String, List<String>> getAdminPerms() throws GuardianException {
+    throw new GuardianException(ErrorCodes.API_V1_NOT_SUPPORTED, Constants.API_V1 + "/permissions");
+  }
+
+
+List<PermissionVo> getGrantedPermissions(String adminRole)
+ @GetMapping("/roles/{roleName}/permissions")
+  @ApiOperation(value = "find admin role permissions", notes = "login is needed")
+  @ExtractSession
+  @Auditable(field = AuditField.ADMINISTRATION, requestClass = "AdminRolePermRequest" ,level = AuditLevel.READ,
+      operationFormat = "get admin permissions of administrative role [%s]")
+  public List<PermissionVo> findRolePermissions(@InjectValue @ApiIgnore SessionVo sessionVo,
+                                                @PathVariable("roleName") String roleName) throws GuardianException {
+    return adminManager.getAdminRolePerms(sessionVo, roleName).stream()
+        .map(adminPermVo -> {
+          PermissionVo permissionVo = new PermissionVo(null, Collections.emptyList(), adminPermVo.getAction());
+          permissionVo.setAdministrative(true);
+          return permissionVo;
+        }).collect(Collectors.toList());
+  }
+
+
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/TDH.tar.gz
+
+
+
+UUID=676ae25f-e7bc-4d66-a205-c908d044b841 /var/lib/docker ext4 defaults 0 0
+
+172.26.2.2 linux-du02
+172.26.2.3 linux-du03
+172.26.2.4 linux-du04
+
+fdisk -l
+uabentu centos
+
+明天baidu网盘传 周末打印一份税收 拿一份社保记录
+
+curl -# -O http://172.16.1.46/InnerOS/ISOS/suse12sp3/SLE-12-SP3-Server-DVD-x86_64-GM-DVD1.iso
+
+groupManager.getOwnedGroups
+
+List<PrincGroupVo> findOwnedGroups(String username, boolean inherited) throws GuardianClientException;
+
+621 312
+beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/linux-du04@TDH"
+
+DROP TABLE IF EXISTS tb1 ;
+CREATE TABLE tb1 (
+    name             STRING,
+    acc_num          STRING,
+    password         STRING,
+    citizen_id       STRING,
+    bank_acc         STRING,
+    reg_date         DATE,
+    acc_level        STRING
+);
+
+
+grant facl 'rwx' on table test1 to user lzb;
+revoke facl on table test1 from user lzb;
+show facl user lzb on table test1; 自己可以
+
+show quota on database db1;
+show quota user lzb on database db1;
+GRANT QUOTA 2T ON DATABASE db1;
+grant quota unlimited on database db1;
+GRANT QUOTA 1T ON DATABASE db1 TO USER user1;
+
+GRANT QUOTA unlimited ON TEMPORARY SPACE;
+GRANT QUOTA unlimited ON DATABASE db_name;
+
+show quota on database db1;
+// 界面显示
+show quota user lzb on database db1;
+//界面不显示
+
+GRANT QUOTA 500G ON TEMPORARY SPACE TO USER user1;
+
+SHOW QUOTA USER user1 ON TEMPORARY SPACE;
+Error: EXECUTION FAILED: Task DDL error HiveAccessControlException: [Error 20413] Quota can only be showed by ADMIN or database owner. (state=08S01,code=20413)
+
+grant select on database db2 to user lzb//db2不存在
+
+改之前
+测yarn 可以的OK
+inceptor quota facl grant不存在的db
+
+改之后
+
+
+①${var:-string}和${var:=string}：若变量var为空，则用在命令行中用string来替换${var:-string}，否则变量var不为空时，则用变量var的值来替换${var:-string}；不同之处是${var:=string}常用于判断var是否赋值，没有的话则给var赋上一个默认值。
+
+
+
+grant facl有问题
+grant不存在的数据库 报错有问题
+
+
+boolean isAdminOrOwner = guardianAuthorizer.isUserAdmin(userName) || SQLAuthorizationUtils.isOwner(
+          mClient, userName, getCurrentRoleNames(), new HivePrivilegeObject(HivePrivilegeObject.HivePrivilegeObjectType.DATABASE, database, null));
+      if (!isAdminOrOwner) {
+
+inceptor插件判断的admin是有global的admin权限还是有guardian的admin角色的权限
+
+99
+String msg = "Failed to get object from metastore while checking existence with " + hivePrivObject;
+394
+    boolean isAdminOrOwner = guardianAuthorizer.isUserAdmin(username)
+        || SQLAuthorizationUtils.isOwner(metastoreClient, username, getCurrentRoleNames(), hivePrivObject);
+397-9
+    if (!isAdminOrOwner) {
+      if (!target.equals(username) || hivePrincipal.getType() != HivePrincipal.HivePrincipalType.USER) {
+
+
+产生的构件的文件名，默认值是${artifactId}-${version}
+
+Manifest
+Manifest-Version: 1.0
+Implementation-Title: guardian-client
+Implementation-Version: guardian-3.1.3
+Built-By: root
+Build-Revision: de032df943d27650842ab4612a4fdafed54447b8
+Implementation-Vendor-Id: io.transwarp.guardian
+Build-Time: 2020-05-28 18:20:44
+BuildScmBranch: UNKNOWN
+Created-By: Apache Maven 3.3.3
+Build-Jdk: 1.8.0_131
+
+
+git.branch
+
+<echo message="buildnumber-maven-plugin properties:"/>
+                                <echo message="  $${scmBranch}:                  ${scmBranch}" />
+                                <echo message="  $${buildNumber}:                ${buildNumber}" />
+                                <echo message="  $${timestamp}:                  ${timestamp}" />
+
+
+
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.4</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+包含branch、编译时间、版本号信息
+If you are using Jenkins or some automated CI tool, Its most likely that the commit was checked out in a detached state. In detached state, HEAD won't have the branch information
+
+mvn \
+  -DbuildScmBranch=${CODEBUILD_GIT_BRANCH} \
+  -DbuildNumber=${CODEBUILD_GIT_COMMIT_SHORT} \
+  clean package
+
+<plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Build>$\{buildNumber}</Implementation-Build>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+
+In my case, the fix was to set the buildScmBranch and buildNumber system properties to match those values provided by my CI pipeline, instead of relying on the buildnumber-maven-plugin to extract these values via git:
