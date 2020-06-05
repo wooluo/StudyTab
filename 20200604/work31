@@ -1,0 +1,254 @@
+工作周报 - 李镇邦  20200525 ~ 20200529
+
+完成：
+1. WARP-45092:[guardian-plugin] 添加grant过程前检查metastore是否存在此数据库的过程 判读grant quota的页面显示问题
+2. WARP-45079:[guardian-plugin]给若干inceptor开插件接口加上判断db/tb owner权限
+3. WARP-44916:[guardian]添加guardian v2对比v1缺失的接口
+4. WARP-45428:[guardian]编译生成的jar包需要包含branch、编译时间、版本号信息
+
+进行中：
+WARP-45792: txsql含密码的配置项不暴露到外界
+
+其他：
+1. 实现Kerberos重连机制多线程版本的代码并实现重连可用
+2. 支持sla2-7362 guardian页面配额未激活
+
+本周：
+1. 完成WARP-45792: txsql含密码的配置项不暴露到外界
+2. 完善之前代码 
+
+env显示所有的环境变量
+
+IP_REGEX="[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"
+
+transwarp/txsql                                 guardian-3.1.2-final      8c7c01e2c24a        About an hour ago   552MB
+linux-du02:5000/transwarp/txsql                 guardian-3.1.2-final      8c7c01e2c24a        About an hour ago   552MB
+
+
+transwarp/txsql                                 guardian-3.1.2-final      3f93e1e1e2e0        12 months ago       552MB 99
+linux-du02:5000/transwarp/txsql                 guardian-3.1.2-final      3f93e1e1e2e0        12 months ago       552MB
+
+adf31
+
+ldapdelete -h 
+
+KundbProtocolNegotiator->newHandler->KundbAuthHandler(userEventTriggered)->sendAuth->channelRead->AuthCompletionEvent(userEventTriggered)->
+
+$ false && echo howdy!
+
+$ true && echo howdy!
+howdy!
+$ true || echo howdy!
+
+$ false || echo howdy!
+howdy!
+
+sed -i '/xxxxxx/d' 
+
+1. docker-compose是否影响
+
+application.properties.tmpl
+
+/etc/yarn1/conf/yarn.keytab
+/etc/inceptor1/conf/inceptor.keytab
+/etc/dbaservice1/conf/dba_service.keytab
+/etc/zookeeper1/conf/zookeeper.keytab
+/etc/hdfs1/conf/hdfs.keytab
+/etc/guardian/conf/guardian.keytab
+/etc/search1/instancegroup1/conf/search.keytab
+/etc/search1/conf/search.keytab
+/etc/hyperbase1/conf/hyperbase.keytab
+/etc/kafka1/conf/kafka.keytab
+/etc/catalog1/conf/catalog.keytab
+/etc/transporter1/conf/transporter.keytab
+/etc/kundb1/shard1/conf/kundb.keytab
+/etc/kundb1/conf/kundb.keytab
+
+jvm 
+
+jstack是jdk自带的线程堆栈分析工具，使用该命令可以查看或导出 Java 应用程序中线程堆栈信息。
+主要分为两个功能： 
+
+a．  针对活着的进程做本地的或远程的线程dump； 
+
+b．  针对core文件做线程dump。
+
+jstack用于生成java虚拟机当前时刻的线程快照。线程快照是当前java虚拟机内每一条线程正在执行的方法堆栈的集合，生成线程快照的主要目的是定位线程出现长时间停顿的原因，如线程间死锁、死循环、请求外部资源导致的长时间等待等。 线程出现停顿的时候通过jstack来查看各个线程的调用堆栈，就可以知道没有响应的线程到底在后台做什么事情，或者等待什么资源。
+jstack命令主要用来查看Java线程的调用堆栈的，可以用来分析线程问题（如死锁）
+线程状态
+
+想要通过jstack命令来分析线程的情况的话，首先要知道线程都有哪些状态，下面这些状态是我们使用jstack命令查看线程堆栈信息时可能会看到的线程的几种状态：
+
+    NEW,未启动的。不会出现在Dump中。
+
+    RUNNABLE,在虚拟机内执行的。运行中状态，可能里面还能看到locked字样，表明它获得了某把锁。
+
+    BLOCKED,受阻塞并等待监视器锁。被某个锁(synchronizers)給block住了。
+
+    WATING,无限期等待另一个线程执行特定操作。等待某个condition或monitor发生，一般停留在park(), wait(), sleep(),join() 等语句里。
+
+    TIMED_WATING,有时限的等待另一个线程的特定操作。和WAITING的区别是wait() 等语句加上了时间限制 wait(timeout)。
+
+    TERMINATED,已退出的。
+
+
+频繁GC问题或内存溢出问题
+
+一、使用jps查看线程ID
+
+二、使用jstat -gc 3331 250 20 查看gc情况，一般比较关注PERM区的情况，查看GC的增长情况。
+
+三、使用jstat -gccause：额外输出上次GC原因
+
+四、使用jmap -dump:format=b,file=heapDump 3331生成堆转储文件
+
+五、使用jhat或者可视化工具（Eclipse Memory Analyzer 、IBM HeapAnalyzer）分析堆情况。
+
+六、结合代码解决内存溢出或泄露问题。
+
+ 
+死锁问题
+
+一、使用jps查看线程ID
+
+二、使用jstack 3331：查看线程情况
+
+http://benjr.tw/27676
+
+ldapdelete -hxxx -pxxx -Dxxx -W -x xxx
+ldapsearch -h -p -x -b -D -w
+
+垃圾回收
+
+
+题目2：
+二分查找元素在有序数组中的位置，如果不存在，输出-1，如果存在，输出下标（存在多个，输出下标最小的）。
+
+def getPos(arr,val):
+    n=len(arr)
+    l=0
+    r=n-1
+    while l<r:
+        mid=(l+r)//2
+        if arr[mid]>=val:
+            r=mid
+        else:
+            l=mid+1
+    if arr[l]!=val:
+        return -1
+    return l
+
+grant label on object
+
+
+grant level 1 to user vt_app;   #重复执行会报grant already exists
+grant level 1 to label l1;      #重复执行会报grant already exists
+grant label l1 on table db1.t1;   #重复执行会报grant already exists
+grant label l1 on column db1.t1.c1;   #重复执行会报grant already exists
+grant label l1 on view db1.v1;   #重复执行会报grant already exists
+
+
+show level for user vt_app;
+show level for label l1;     ///
+show label for table db1.t1;
+show label for column db1.t1.c1;
+show label for view db1.v1;
+
+
+
+revoke level from user vt_app;  #删除不存在的grant不会报错
+revoke level from label l1;     #删除不存在的grant不会报错
+revoke label on table db1.t1;   #删除不存在的grant不会报错
+revoke label on column db1.t1.c1;    #删除不存在的grant不会报错
+revoke label on view db1.v1;       #删除不存在的grant不会报错
+
+
+user label有level（）
+文件table  column view有label（自由？）
+
+1. 验证mac语法
+
+
+q2 create user 出错
+q3 开关 是不是要关闭DAC
+
+q4 q5 不支持show levels和show labels 没有指定level和label的范围
+q6 grant level to不存在的user不报错
+q7 label对object是n对n的关系
+q8 可以grant level to 不存在的user level label
+q9 mysql> grant level 133 to user ll;
+ERROR 1264 (22003): vtgate: http://transwarp-lishinho-5480:15001/: target: kundb1.0.master, used tablet: test-100 (transwarp-lishinho-5480), vttablet: Out of range value for column 'level' at row 1 (errno 1264) (sqlstate 22003) during query: insert into mysql.user_level(user, `level`) values ('ll', 133)/* vtgate:: filtered_replication_unfriendly */, CallerID: vt_app
+mysql> 
+level范围0-127
+
+q10 
+
+2. 修理mac语法抛错
+3. 增加三个方法分别判断select/create/delete的时候对mac关系的控制
+4. 增加mac开关
+5. create user 实现不了
+
+
+
+1. create user 实现不了
+1.1 revoke level from user lzb;sou	
+完成
+2. 验证mac语法
+完成
+
+3. 同一个object不可以多个label
+完成
+
+4. 增加三个方法分别判断select/create/delete的时候对mac关系的控制
+
+
+
+5. 修理mac语法抛错
+
+6. 增加mac开关
+7. show users for level 1;
+   show label for level 1;
+   show mac grants;
+
+
+mysql> create view v as select * from tb1;
+Query OK, 0 rows affected (0.08 sec)
+
+
+select * 
+from mysql.table_or_view_label obj 
+left join mysql.label_level ll 
+on ll.label = obj.label 
+left join mysql.user_level ul 
+on ul.level = ll.level
+where obj.xxx = xxx
+and ul.user = xxx;
+
+
+
+select *  from mysql.table_or_view_label obj  left join mysql.label_level ll  on ll.label = obj.label  left join mysql.user_level ul  on ul.level = ll.level where db = 'db1' and user = 'vt_app';
+
+select *  from mysql.table_or_view_label obj  left join mysql.label_level ll  on ll.label = obj.label  left join mysql.user_level ul  on ul.level = ll.level where db = 'db1' and user = 'vt_app';
+
+
+
+	
+	// user queries[0], database queries[1], table queries[2], column queries[3], is_view queries[4],
+	sql := "select *  from mysql.table_or_view_label tvl  " +
+		"left join mysql.label_level ll  on ll.label = tvl.label  " +
+		"left join mysql.user_level ul  on ul.level = ll.level "
+	switch len(queries) {
+	case 3:
+		sql = fmt.Sprintf(sql + "where user = '%s' and db = '%s' and `table` = '%s'", queries[0], queries[1], queries[2])
+	case 4:
+		sql = fmt.Sprintf(sql + "where user = '%s' and db = '%s' and `table` = '%s' and `column` = '%s'", queries[0], queries[1], queries[2], queries[3])
+	case 5:
+		
+	default:
+		return false, fmt.Errorf("MAC parameter error")
+	}
+	res, err := e.handleExec(ctx, session, sql, sqlInfo, bindVars, target)
+	if err != nil {
+		return false, err
+	}
+	return res != nil, nil

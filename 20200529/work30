@@ -255,7 +255,7 @@ List<PermissionVo> getGrantedPermissions(String adminRole)
   }
 
 
-curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/TDH/transwarp-6.2.1-final/IMAGE/centos-7/TDH-Image-Registry-Transwarp-6.2.1-final.tar.gz" > /var/lib/docker/TDH.tar.gz
+curl -X GET -u zhenbang.li:123456 "http://172.16.1.97:8080/remote.php/webdav/TRANSWARP_RELEASES/OFFICIAL/KUNDB/kundb-1.3.1-X86_64-final/IMAGE/centos-7/KUNDB-Image-Registry-1.3.1-X86_64-final.tar.gz" > /var/lib/docker/kundb.tar.gz
 
 
 
@@ -414,3 +414,28 @@ mvn \
     </plugins>
 
 In my case, the fix was to set the buildScmBranch and buildNumber system properties to match those values provided by my CI pipeline, instead of relying on the buildnumber-maven-plugin to extract these values via git:
+
+/bin/boot.sh
+
+注意点：
+1. 第3步带有密码的配置文件不要生成在主机挂载进来的目录，如 /etc/<service_sid>/conf
+2. 修改脚本和配置需要考虑到对TDC环境的影响，需要做到兼容
+3. 建议新出一个版本，而不是基于原来final的tag进行修改，否则会带来后续维护和升级的成本
+
+
+
+Guardian的TxSQL密码明文存储在 /etc/guardian/conf/db.properties 中
+硬链接：硬链接实际上是为文件建一个别名，链接文件和原文件实际上是同一个文件。可以通过ls -i来查看一下，这两个文件的inode号是同一个，说明它们是同一个文件。
+
+软链接：通过软链接建立的链接文件与原文件并不是同一个文件，相当于原文件的快捷方式。具体理解的话，链接文件内存储的是原文件的inode，也就是说是用来指向原文件文件，这两个文件的inode是不一样的。
+
+复制：相当于将原文件进行一个拷贝，为另一个全新的文件，与原文件没有关系了。修改任何一个都不会影响另一个。
+
+57行
+88行
+
+F11添加bootmark
+DBPASS=$TXSQL_ROOT_PASSWORD
+
+grep password "$DB_PASSWD_FILE"
+

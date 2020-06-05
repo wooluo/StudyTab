@@ -1,0 +1,36 @@
+version: '2'
+
+services:
+  guardian-federation-server:
+    image: transwarp/guardian-federation
+    network_mode: "host"
+    working_dir: /usr/lib/federation/scripts
+    volumes:
+      - ./volumes/federation/conf:/etc/federation/conf
+      - ./volumes/federation/log:/var/log/federation
+    command: ./bootstrap.sh
+    environment:
+      # configuration server
+      - FEDERATION_CONFIG_DIR=/etc/federation/conf
+      - FEDERATION_LOG_DIR=/var/log/federation
+      - SERVER_PORT=9000
+      - SERVER_SERVLET_CONTEXTPATH=/federation-server
+      - DEBUG=true
+      - LOGGING_LEVEL_ORG_SPRINGFRAMWORK=DEBUG
+      # database
+      - TXSQL_SERVERS=127.0.0.1:3306
+      - MYSQL_DATABASE=federation
+      - FEDERATION_SERVICE_DATASOURCE_USERNAME=root
+      - FEDERATION_SERVICE_DATASOURCE_PASSWORD=Transwarp01!
+      - FEDERATION_SERVICE_DATASOURCE_DRIVER_CLASS=com.mysql.jdbc.Driver
+      # configuration oauth2
+      - OAUTH2_TOKEN_EVICTION_ENABLED=true
+      - OAUTH2_TOKEN_EVICTION_START_DELAY=PT6H
+      - OAUTH2_TOKEN_EVICTION_REPEAT_INTERVAL=PT6H
+      - OAUTH2_LOGIN_TENANT_NAME_AUTO_FILLED=false
+      # captcha
+      - FEDERATION_SERVICE_CAPTCHA_COOKIE_SECURE=false
+      - FEDERATION_SERVICE_USER_ADMIN_USE_PLAIN_PASSWORD=true
+      # audit
+      - FEDERATION_SERVICE_AUDIT_LEVEL=ALL
+      - FEDERATION_SERVICE_AUDIT_ENABLED=true
