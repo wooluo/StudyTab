@@ -149,7 +149,7 @@ grant label l1 on view db1.v1;   #重复执行会报grant already exists
 
 
 show level for user vt_app;
-show level for label l1;     ///
+show level for label l1;     /// -> show label for level xxx
 show label for table db1.t1;
 show label for column db1.t1.c1;
 show label for view db1.v1;
@@ -157,7 +157,7 @@ show label for view db1.v1;
 
 
 revoke level from user vt_app;  #删除不存在的grant不会报错
-revoke level from label l1;     #删除不存在的grant不会报错
+revoke level from label l1;     #删除不存在的grant不会报错 
 revoke label on table db1.t1;   #删除不存在的grant不会报错
 revoke label on column db1.t1.c1;    #删除不存在的grant不会报错
 revoke label on view db1.v1;       #删除不存在的grant不会报错
@@ -207,9 +207,30 @@ q10
 
 6. 增加mac开关
 7. show users for level 1;
-   show label for level 1;
-   show mac grants;
+   show label for level 1; 
+   // show mac grants;
 
+
+1. create user 实现不了
+2. 验证mac语法
+3. 同一个object不可以多个label
+4. 增加三个方法分别判断select/create/delete的时候对mac关系的控制
+5. 修理mac语法抛错
+6. 增加mac开关
+7. drop 删掉之前的mac逻辑
+8. 加一个语法
+9. 加索引 host
+
+q1 可以grant level to 不存在的user level label
+q2
+不该写在executor
+
+提一个mr kadmin.guardian
+
+
+1. drop 删掉之前的mac逻辑
+2. 语法修改
+3. 
 
 mysql> create view v as select * from tb1;
 Query OK, 0 rows affected (0.08 sec)
@@ -252,3 +273,43 @@ select *  from mysql.table_or_view_label obj  left join mysql.label_level ll  on
 		return false, err
 	}
 	return res != nil, nil
+
+
+func (e *Executor) handleDropOnMac(ctx context.Context, session *vtgatepb.Session, bindVars map[string]*querypb.BindVariable, target querypb.Target, schema string, tableOrView string, is_view bool) error {
+	ksName, err := getFirstKeyspace(ctx, e.topServ, e.cell)
+	if err != nil {
+		return err
+	}
+
+	_, target.Shard, err = getFirstShard(ctx, e.serv, e.cell, ksName, topodatapb.TabletType_MASTER)
+	if err != nil {
+		return err
+	}
+
+	internalSql := "delete from mysql.table_or_view_label where db = '%s' and `table` = '%s'"
+	if is_view {
+		internalSql += " and is_view = 'Y'"
+	} else {
+		internalSql += " and is_view = 'N'"
+	}
+	sqlInfo, err := getSQLInfo(internalSql)
+	if err != nil {
+		return err
+	}
+
+	nsf := NewSafeSession(session)
+	if err = e.beginAndAcquireGxid(ctx, nsf, internalSql); err != nil {
+		return err
+	}
+
+	_, err = e.handleExec(ctx, session, fmt.Sprintf(internalSql, schema, tableOrView), sqlInfo, bindVars, querypb.Target{Keyspace: ksName, Shard: target.Shard, TabletType: topodatapb.TabletType_MASTER})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+1. 判断vt_app
+2. 加wiki
+
+

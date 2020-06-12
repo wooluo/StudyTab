@@ -1,15 +1,14 @@
 #!/bin/bash
 
-
-FEDERATION_SERVICE_DATASOURCE_USERNAME=true
-
+TXSQL_DB_PASSWORD=111
+TXSQL_MYSQL_CRED="db.properties"
 echo "line break"
 echo -e "\n" >> application.properties
 
-echo "generate secret properties"
-[ X"${FEDERATION_SERVICE_DATASOURCE_USERNAME}" == X"" ] || {
-  echo "find FEDERATION_SERVICE_DATASOURCE_USERNAME properties, generate it."
-  sed -i '/spring.datasource.username/d' application.properties
-  echo "spring.datasource.username=${FEDERATION_SERVICE_DATASOURCE_USERNAME}" >> application.properties
-}
+if [ -n "$TXSQL_DB_PASSWORD" ]; then
+    TXSQL_MYSQL_ADMIN_PASS=$TXSQL_DB_PASSWORD
+  else
+    TXSQL_MYSQL_ADMIN_PASS=222
+  fi
 
+echo -e "$TXSQL_MYSQL_ADMIN_PASS" >> application.properties

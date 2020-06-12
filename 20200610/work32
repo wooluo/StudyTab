@@ -1,0 +1,514 @@
+work32
+
+工作周报 - 李镇邦 20200601 ~ 20200605
+
+完成：
+1. WARP-45792:[txsql]改动txsql的含密码的配置项不暴露到容器外配置文件
+2. WARP-45428:[guardian]guardian-apacheds和guardian-plugin编译生成的jar包需要包含branch、编译时间、版本号信息
+3. [kundb]修改kundb MAC的语法报错 增加三个查询level和label关系的接口 增加MAC控制开关
+4. WARP-45977:[kundb]修改JDBC认证阶段不能抛出正确异常
+
+其他：
+1. review并验证 guardian-federation部分的密码暴露
+2. 协助支持sla-7663出包
+3. 
+
+
+本周：
+1. kundb mac控制协助完成
+2. guardian支持
+
+CREATE TABLE IF NOT EXISTS mysql.table_or_view_label (
+  `db` VARCHAR(60) NOT NULL,
+  `table` VARCHAR(64) NOT NULL,
+  `column` VARCHAR(64) NOT NULL DEFAULT '',
+  `label` VARCHAR(32) NOT NULL,
+  `is_view` ENUM('N','Y') DEFAULT 'N',
+  PRIMARY KEY (`db`, `table`, `column`, `is_view`),
+  KEY `label_idx` (`label`))
+  ENGINE = MyISAM
+  DEFAULT CHARACTER SET = utf8
+  COLLATE=utf8_bin
+  COMMENT = 'Table/view/column-label relation';
+
+
+ "SELECT *  from mysql.label_level ll full outer join mysql.table_or_view_label tvl  on tvl.label = ll.label full outer join mysql.user_level ul  on ul.level = ll.level  "
+
+
+"SELECT *  from mysql.table_or_view_label tvl left join mysql.label_level ll  on ll.label = tvl.label  " +
+		"left join mysql.user_level ul  on ul.level = ll.level "
+
+select *
+from (select 
+
+SELECT ul.user, ll.label, ll.level, tvl.* from mysql.label_level ll left join mysql.table_or_view_label tvl on tvl.label = ll.label left join mysql.user_level ul  on ll.level = ul.level
+
+
+SELECT *  from mysql.label_level ll full join mysql.table_or_view_label tvl  on tvl.label = ll.label full join mysql.user_level ul  on ul.level = ll.level
+
+SELECT *  from mysql.label_level ll left join mysql.table_or_view_label tvl  on tvl.label = ll.label
+union all 
+SELECT *  from mysql.label_level ll right join mysql.table_or_view_label tvl  on tvl.label = ll.label
+
+
+SELECT *  from mysql.label_level ll left join mysql.table_or_view_label tvl  on tvl.label = ll.label
+union all
+SELECT *  from mysql.user_level ul left join mysql.label_level ll  on ul.level = ll.level
+
+select * from 
+
+
+SELECT  from mysql.label_level ll left join mysql.table_or_view_label tvl  on tvl.label = ll.label left join mysql.user_level ul  on ul.level = ll.level 
+
+
+
+sql.y -> token.go ->ast.go
+
+if err = e.txConn.Commit(ctx, nsf, false); err != nil {
+			return nil, err
+		}
+
+[root@tw-node595 ~]# kadmin.guardian -b admin -w admin -q 'ktadd -k /tmp/server.keytab server/tdh@TDH'
+usage: kadmin
+ -H <arg>   The host of guardian service, the default is localhost
+ -P <arg>   The port of guardian service, the default is 8380
+ -p <arg>   The user used to connect to the guardian service, such as
+            admin
+ -q <arg>   The kadmin query, must be xst, addprinc, listprincs, addent
+ -r <arg>   The realm of the kerberos, such as TDH
+ -T         Whether TLS should be used
+ -w <arg>   The password used to connect to the guardian service
+
+Sub command used for kadmin in the -q argument
+
+List principals
+usage: list_principals/listprincs
+
+Export keytab for the principal
+usage: ktadd/xst
+ -k <arg>   Specify the path for generated keytab
+
+Add principal to kdc
+usage: add_principal/addprinc
+ -pw <arg>   specify the password for principal
+ -randkey    Generate random password for the principal
+
+Delete principals
+usage: delete_principals/delprinc
+
+Generate keytab for principal using password
+usage: add_entry/addent
+ -k <arg>    specify the path for generated keytab
+ -p <arg>    specify principal
+ -pw <arg>   specify password
+
+Change principal's password
+usage: change_password/cpw
+ -pw <arg>   specify new password
+ -randkey    use random password
+The sub query must be specified
+Supported commands are ktadd(xst), add_principal(addprinc), list_principals(listprincs) or add_entry(addent)
+usage: kadmin
+ -H <arg>   The host of guardian service, the default is localhost
+ -P <arg>   The port of guardian service, the default is 8380
+ -p <arg>   The user used to connect to the guardian service, such as
+            admin
+ -q <arg>   The kadmin query, must be xst, addprinc, listprincs, addent
+ -r <arg>   The realm of the kerberos, such as TDH
+ -T         Whether TLS should be used
+ -w <arg>   The password used to connect to the guardian service
+
+
+
+
+
+
+
+Sub command used for kadmin in the -q argument
+
+List principals
+usage: list_principals/listprincs
+
+Export keytab for the principal
+usage: ktadd/xst
+ -k <arg>   Specify the path for generated keytab
+
+Add principal to kdc
+usage: add_principal/addprinc
+ -pw <arg>   specify the password for principal
+ -randkey    Generate random password for the principal
+
+Delete principals
+usage: delete_principals/delprinc
+
+Generate keytab for principal using password
+usage: add_entry/addent
+ -k <arg>    specify the path for generated keytab
+ -p <arg>    specify principal
+ -pw <arg>   specify password
+
+Change principal's password
+usage: change_password/cpw
+ -pw <arg>   specify new password
+ -randkey    use random password
+[root@tw-node595 ~]# 
+
+immediateCallerID := callerid.ImmediateCallerIDFromContext(ctx)
+ctx = callerid.NewContext(ctx, callerid.EffectiveCallerIDFromContext(ctx), callerid.NewImmediateCallerID("vt_app"))
+
+if *enableMandatoryAccessControl {
+			user := callerid.ImmediateCallerIDFromContext(ctx).GetUsername()
+			if  user == "vt_app" {
+				return e.showMacPrivs(ctx, session, sql, bindVars, target)
+			}
+			return nil, vterrors.Errorf(vtrpcpb.Code_PERMISSION_DENIED, "Access denied for %s to use MAC strategies", user)
+		}
+		return nil, vterrors.Errorf(vtrpcpb.Code_UNIMPLEMENTED, "MAC strategy is not enabled in this service")
+
+ kadmin.guardian -b admin -w 123 -r TDH-TRUSTED -q "listprincs"
+
+
+create database db1;
+use db1
+create table tb1(a int);
+craete user lzb;
+grant 
+
+keyspace:shard@target
+
+ 关于等保三要求的口令长度和更换周期等默认都有限制 密码复杂度在3.1.3支持
+
+mysql -h localhost -utranswarp -plHAwG__KmO -S /var/run/mariadb/transwarp-manager-db.sock -Dtranswarp_manager
+
+
+	result, err := e.handleExec(ctx, session, macCheckSQL, sqlInfo, bindVars,
+		querypb.Target{Keyspace: ksName, Shard: target.Shard, TabletType: topodatapb.TabletType_MASTER})
+
+           1 |         1 |         0 |         0 |
+| 15 |         1 | TRANSPORTER     | NULL                 | studio-1.4.0-final      | INSTALLED     | transporter1 | Transporter1 | KUBERNETES     |              1 |         1 |         0 |         0 |
+| 24 |      NULL | GUARDIAN        | guardian-3.1.2-final | guardian-3.2.0-rc1      | INSTALLED     | guardian     | Guardian     | KUBERNETES     |              0 |         1 |         1 |         0 |
+| 28 |         1 | KUNDB           | NULL                 | kundb-1.3.1-final       | INSTALLED     | kundb2       | kundb2       | KUBERNETES     |              0 |         1 |         0 |         0 |
+| 29 |         1 | KUNDB           | NULL                 | kundb-1.3.1-final       | INSTALLED     | kundb3       | kundb1       | KUBERNETES     |              0 |         1 |         1 |         0 |
+
+
+
+kadmin.guardian -b admin -w admin -H 172.26.2.3 -P8830 -q "listprincs"
+
+kadmin.guardian -w 123 -r TDH -q "addprinc -pw 123456 simple/tw-node593"
+
+ kadmin.guardian -b admin -w 123 -r TDH-TRUSTED -q "listprincs"
+
+
+可用
+进server pod
+[root@linux-du03 ~]# 
+
+kadmin.guardian -wadmin -rTDH -H172.26.2.3 -P8380 -T -q "listprincs"
+kadmin.guardian -wadmin -rTDH -H172.26.2.3 -P8380 -T -q "addprinc -pw 123456 test000"
+kadmin.guardian -wadmin -rTDH -T -q"addprinc -pw 123456 test000@TDC"
+kadmin.guardian -wadmin -rTDH -T -q"delprinc test000"
+
+  private void processDelPrincsCmd(String subCmd) throws Exception {
+    String princ = subCmd
+            .replace("delprinc", "")
+            .replace("delete_principal", "")
+            .trim();
+    Kadmin kadmin = getKadmin();
+    kadmin.delPrincipal(princ);
+  }
+
+show grant user xxx on xxx
+SHOW PERMISSION ON TABLE finances_orc;
+SHOW GRANT ON db.*;
+
+create user xxx
+drop user xxx
+create user xxx
+
+
+[root@linux-158-32 ~]# kadmin.local
+Authenticating as principal krbtgt/admin@ATDH with password.
+kadmin.local:  admin
+kadmin.local: Unknown request "admin".  Type "?" for a request list.
+kadmin.local:  admin
+kadmin.local: Unknown request "admin".  Type "?" for a request list.
+kadmin.local:  listprincs
+K/M@ATDH
+krbtgt/ATDH@ATDH
+kadmin/admin@ATDH
+kadmin/linux-158-32@ATDH
+kiprop/linux-158-32@ATDH
+kadmin/changepw@ATDH
+kadmin/history@ATDH
+admin@ATDH
+saslauthd/linux-158-32@ATDH
+saslauthd/linux-158-33@ATDH
+HTTP/linux-158-32@ATDH
+zookeeper/linux-158-32@ATDH
+HTTP/linux-158-33@ATDH
+zookeeper/linux-158-33@ATDH
+HTTP/linux-158-34@ATDH
+zookeeper/linux-158-34@ATDH
+host/linux-158-32@ATDH
+hdfs/linux-158-32@ATDH
+host/linux-158-33@ATDH
+hdfs/linux-158-33@ATDH
+host/linux-158-34@ATDH
+hdfs/linux-158-34@ATDH
+mapred/linux-158-32@ATDH
+yarn/linux-158-32@ATDH
+mapred/linux-158-33@ATDH
+yarn/linux-158-33@ATDH
+mapred/linux-158-34@ATDH
+yarn/linux-158-34@ATDH
+hive/linux-158-32@ATDH
+hive/linux-158-33@ATDH
+hive/linux-158-34@ATDH
+hive@ATDH
+hbase/linux-158-32@ATDH
+hbase/linux-158-33@ATDH
+hbase/linux-158-34@ATDH
+krbtgt/ATDH@TDHDEV
+krbtgt/TDHDEV@ATDH
+krbtgt/ATDH@ARGOTDH
+krbtgt/ARGOTDH@ATDH
+kadmin.local:  add_principal test1
+NOTICE: no policy specified for test1@ATDH; assigning "default"
+Enter password for principal "test1@ATDH": 
+Re-enter password for principal "test1@ATDH": 
+Principal "test1@ATDH" created.
+kadmin.local:  xst -k test.keytab -norandkey yarn/linux-158-32@ATDH
+Entry for principal yarn/linux-158-32@ATDH with kvno 4, encryption type aes256-cts-hmac-sha1-96 added to keytab WRFILE:test.keytab.
+Entry for principal yarn/linux-158-32@ATDH with kvno 4, encryption type aes128-cts-hmac-sha1-96 added to keytab WRFILE:test.keytab.
+Entry for principal yarn/linux-158-32@ATDH with kvno 4, encryption type des3-cbc-sha1 added to keytab WRFILE:test.keytab.
+Entry for principal yarn/linux-158-32@ATDH with kvno 4, encryption type arcfour-hmac added to keytab WRFILE:test.keytab.
+kadmin.local:  exit
+[root@linux-158-32 ~]# ls
+anaconda-ks.cfg                 derby.log    install.log.syslog  transwarp
+CentOS-6.5-x86_64-bin-DVD1.iso  install.log  test.keytab         transwarp-4.8.4-final-zh.el6.x86_64.tar.gz
+[root@linux-158-32 ~]# klist -kt test.keytab 
+Keytab name: FILE:test.keytab
+KVNO Timestamp           Principal
+---- ------------------- -----------------------------
+
+
+[root@linux-du03 ~]# kadmin.guardian -wadmin -rTDH -H172.26.2.3 -P8380 -T -q "listprincs"
+usage: kadmin
+ -H <arg>   The host of guardian service, the default is localhost
+ -P <arg>   The port of guardian service, the default is 8380
+ -p <arg>   The user used to connect to the guardian service, such as
+            admin
+ -q <arg>   The kadmin query, must be xst, addprinc, listprincs, addent
+ -r <arg>   The realm of the kerberos, such as TDH
+ -T         Whether TLS should be used
+ -w <arg>   The password used to connect to the guardian service
+
+------------------------------重复2遍-------------------------
+
+Sub command used for kadmin in the -q argument
+
+List principals
+usage: list_principals/listprincs
+
+Export keytab for the principal
+usage: ktadd/xst
+ -k <arg>   Specify the path for generated keytab
+
+Add principal to kdc
+usage: add_principal/addprinc
+ -pw <arg>   specify the password for principal
+ -randkey    Generate random password for the principal
+ -trust      add principal within trusted region
+
+Delete principals
+usage: delete_principals/delprinc
+ -trust      delete principal within trusted region
+
+Generate keytab for principal using password
+usage: add_entry/addent
+ -k <arg>    specify the path for generated keytab
+ -p <arg>    specify principal
+ -pw <arg>   specify password
+
+Change principal's password
+usage: change_password/cpw
+ -pw <arg>   specify new password
+ -randkey    use random password
+
+-----------------------------------------------------------------------------
+private void processAddPrincCmd(String subCmd) throws Exception {
+    CommandLineParser parser = new DefaultParser();
+    try {
+      CommandLine cmd = parser.parse(addPrincOpts, subCmd.split(" "));
+      boolean randkey = cmd.hasOption("randkey");
+      String userPwd = cmd.getOptionValue("pw");
+      List<String> args = cmd.getArgList();
+      args.remove("addprinc");
+      args.remove("add_principal");
+      if (args.size() != 1 || ((!randkey) && StringUtils.isEmpty(userPwd))) {
+orc 权限
+        usage();
+      } else {
+        Kadmin kadmin = getKadmin();
+        if (randkey) {
+          kadmin.addPrincipalWithRandkey(args.get(0));
+        } else {
+          kadmin.addPrincipal(args.get(0), userPwd);
+        }
+      }
+    } catch (ParseException e) {
+      System.out.println("Invalid argument for addprinc command");
+      usage();
+    }
+  }
+
+2020-06-11 10:47:59,060 DEBUG inceptor.GuardianHiveAuthorizationValidator: (GuardianHiveAuthorizationValidator.java:checkPrivileges(54)) [HiveServer2-Handler-Pool: Thread-191(SessionHandle=ea409886-0569-40cf-938e-f656cfebf9dc)] - Checking privileges for operation QUERY by user risk_alarm on  input objects [Object [type=TABLE_OR_VIEW, name=system.dual]] and output objects []. Context Info: HiveAuthzContext [userIpAddress=192.168.15.136, commandString=select to_char(trunc(from_unixtime(unix_timestamp() -2),'MI'),'yyyyMMddHHmmss') as endtime FROM system.dual]
+2020-06-11 10:47:59,060 DEBUG client.GuardianClient: (RestClientImpl.java:checkAccess(203)) [HiveServer2-Handler-Pool: Thread-191(SessionHandle=ea409886-0569-40cf-938e-f656cfebf9dc)] - Check Access Cache hit
+2020-06-11 10:47:59,060 DEBUG inceptor.GuardianHiveAuthorizationValidator: (GuardianHiveAuthorizationValidator.java:checkPrivileges(54)) [HiveServer2-Handler-Pool: Thread-187(SessionHandle=ccf3911f-a312-4941-8e70-9bdce85466aa)] - Checking privileges for operation QUERY by user test001 on  input objects [Object [type=TABLE_OR_VIEW, name=system.dual]] and output objects []. Context Info: HiveAuthzContext [userIpAddress=192.168.16.236, commandString=INSERT INTO fund_rec.t_marketing_orc partition(init_date = 20200102) SELECT '1','2',0.1,'3',0,'4' FROM system.dual]
+2020-06-11 10:47:59,061 DEBUG client.GuardianClient: (RestClientImpl.java:checkAccess(206)) [HiveServer2-Handler-Pool: Thread-187(SessionHandle=ccf3911f-a312-4941-8e70-9bdce85466aa)] - Check Access Cache miss
+2020-06-11 10:47:59,063 DEBUG client.GuardianClient: (RestClientImpl.java:checkAnyAccess(261)) [HiveServer2-Handler-Pool: Thread-191(SessionHandle=ea409886-0569-40cf-938e-f656cfebf9dc)] - Check Access Cache miss
+2020-06-11 10:47:59,064 DEBUG client.GuardianClient: (RestClientImpl.java:checkAnyAccess(261)) [HiveServer2-Handler-Pool: Thread-191(SessionHandle=ea409886-0569-40cf-938e-f656cfebf9dc)] - Check Access Cache miss
+2020-06-11 10:47:59,064 DEBUG client.GuardianClient: (RestClientImpl.java:checkAnyAccess(261)) [HiveServer2-Handler-Pool: Thread-191(SessionHandle=ea409886-0569-40cf-938e-f656cfebf9dc)] - Check Access Cache miss
+
+
+2020-06-11 10:47:59,088 DEBUG http.wire: (Wire.java:wire(77)) [HiveServer2-Handler-Pool: Thread-187(SessionHandle=ccf3911f-a312-4941-8e70-9bdce85466aa)] - >> "{"username":"test001", "permissions":[{"component":"inceptor1","dataSource":["GLOBAL"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false},{"component":"inceptor1","dataSource":["TABLE_OR_VIEW","system"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false},{"component":"inceptor1","dataSource":["TABLE_OR_VIEW","system","dual"],"action":"ADMIN","heritable":false,"grantable":false,"administrative":false}]}"
+
+
+2020-06-11 10:47:59,105 DEBUG http.wire: (Wire.java:wire(77)) [HiveServer2-Handler-Pool: Thread-187(SessionHandle=ccf3911f-a312-4941-8e70-9bdce85466aa)] - >> "{"username":"test001", "permissions":[{"component":"inceptor1","dataSource":["GLOBAL"],"action":"SELECT","heritable":false,"grantable":false,"administrative":false},{"component":"inceptor1","dataSource":["TABLE_OR_VIEW","system"],"action":"SELECT","heritable":false,"grantable":false,"administrative":false},{"component":"inceptor1","dataSource":["TABLE_OR_VIEW","system","dual"],"action":"SELECT","heritable":false,"grantable":false,"administrative":false}]}"
+
+2020-06-11 10:48:17,957 DEBUG inceptor.GuardianHiveAuthorizationValidator: (GuardianHiveAuthorizationValidator.java:checkPrivileges(54)) [HiveServer2-Handler-Pool: Thread-187(SessionHandle=ccf3911f-a312-4941-8e70-9bdce85466aa)] - Checking privileges for operation TRUNCATETABLE by user test001 on  input objects [] and output objects []. Context Info: HiveAuthzContext [userIpAddress=192.168.16.236, commandString=truncate table fund_rec.t_marketing_orc partition(init_date = 20200102)]
+2020-06-11 10:48:17,957 DEBUG client.GuardianClient: (RestClientImpl.java:checkAccess(203)) [HiveServer2-Handler-Pool: Thread-187(SessionHandle=ccf3911f-a312-4941-8e70-9bdce85466aa)] - Check Access Cache hit
+
+kadmin.guardian是kerberos-guardian的交互式命令行工具 使用方法
+描述
+主选项
+指令
+
+情形是orc分区表会解析hive权限input模型时为partition所以没有table_or_view的权限 导致insert和truncate的问题 和事务也不相关 只是metastore怎么识别一个object为partition的问题 i当时他们也没跟进 我觉得是orc表分区创建才会产生 在只针对这张表的权限时会触发 比如insert和truncate 而create drop这种权限是判给上一层的 是一个common问题 解决可以换tdh5.1.5的包或者还感兴趣的话拉下inceptor的on call来看什么时候判成hive partition
+
+
+
+https://172.16.1.237:8380/swagger-ui.html#/
+
+orc表分区表
+
+sla3-7805
+
+/*
+	Binary search implementation in Go
+*/
+package main
+
+func binarySearch(array []int, target int, lowIndex int, highIndex int) int {
+	if highIndex < lowIndex {
+		return -1
+	}
+	mid := int(lowIndex + (highIndex-lowIndex)/2)
+	if array[mid] > target {
+		return binarySearch(array, target, lowIndex, mid)
+	} else if array[mid] < target {
+		return binarySearch(array, target, mid+1, highIndex)
+	} else {
+		return mid
+	}
+}
+
+func iterBinarySearch(array []int, target int, lowIndex int, highIndex int) int {
+	startIndex := lowIndex
+	endIndex := highIndex
+	var mid int
+	for startIndex < endIndex {
+		mid = int(startIndex + (endIndex-startIndex))
+		if array[mid] > target {
+			endIndex = mid
+		} else if array[mid] < target {
+			startIndex = mid
+		} else {
+			return mid
+		}
+	}
+	return -1
+}
+
+ldapsearch -h localhost -p 10389 -D uid=admin,ou=system -w 123 -b ou=system -s one "ads-replconsumerid=replication" "+"
+
+apacheds主从切换
+kadmin
+
+
+2020-06-12 15:38:24,698 INFO  [main] osgi.DefaultLdapCodecService (DefaultLdapCodecService.java:loadStockControls(121)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.18
+2020-06-12 15:38:24,699 INFO  [main] osgi.DefaultLdapCodecService (DefaultLdapCodecService.java:loadStockControls(125)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.319
+2020-06-12 15:38:24,699 INFO  [main] osgi.DefaultLdapCodecService (DefaultLdapCodecService.java:loadStockControls(129)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.3
+2020-06-12 15:38:24,700 INFO  [main] osgi.DefaultLdapCodecService (DefaultLdapCodecService.java:loadStockControls(133)) - Registered pre-bundled control factory: 1.3.6.1.4.1.4203.1.10.1
+2020-06-12 15:38:24,701 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(102)) - Registered pre-bundled control factory: 1.3.6.1.4.1.18060.0.0.1
+2020-06-12 15:38:24,701 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(106)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.7
+2020-06-12 15:38:24,702 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(110)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.2
+2020-06-12 15:38:24,702 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(114)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.18
+2020-06-12 15:38:24,702 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(118)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.319
+2020-06-12 15:38:24,702 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(122)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.3
+2020-06-12 15:38:24,702 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(126)) - Registered pre-bundled control factory: 1.3.6.1.4.1.4203.1.10.1
+2020-06-12 15:38:24,704 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(130)) - Registered pre-bundled control factory: 1.3.6.1.4.1.42.2.27.8.5.1
+2020-06-12 15:38:24,705 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(135)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.9
+2020-06-12 15:38:24,708 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(140)) - Registered pre-bundled control factory: 2.16.840.1.113730.3.4.10
+2020-06-12 15:38:24,709 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(144)) - Registered pre-bundled control factory: 1.3.6.1.4.1.4203.1.9.1.3
+2020-06-12 15:38:24,709 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(148)) - Registered pre-bundled control factory: 1.3.6.1.4.1.4203.1.9.1.4
+2020-06-12 15:38:24,710 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(152)) - Registered pre-bundled control factory: 1.3.6.1.4.1.4203.1.9.1.1
+2020-06-12 15:38:24,711 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(156)) - Registered pre-bundled control factory: 1.3.6.1.4.1.4203.1.9.1.2
+2020-06-12 15:38:24,712 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(160)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.473
+2020-06-12 15:38:24,712 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(164)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.474
+2020-06-12 15:38:24,713 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(168)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.841
+2020-06-12 15:38:24,715 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(172)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.417
+2020-06-12 15:38:24,716 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(176)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.1413
+2020-06-12 15:38:24,717 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockControls(180)) - Registered pre-bundled control factory: 1.2.840.113556.1.4.528
+2020-06-12 15:38:24,719 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(189)) - Registered pre-bundled extended operation factory: 1.3.6.1.1.8
+2020-06-12 15:38:24,720 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(193)) - Registered pre-bundled extended operation factory: 1.3.6.1.4.1.18060.0.1.8
+2020-06-12 15:38:24,722 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(197)) - Registered pre-bundled extended operation factory: 1.3.6.1.4.1.18060.0.1.3
+2020-06-12 15:38:24,723 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(201)) - Registered pre-bundled extended operation factory: 1.3.6.1.4.1.18060.0.1.6
+2020-06-12 15:38:24,725 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(205)) - Registered pre-bundled extended operation factory: 1.3.6.1.4.1.18060.0.1.5
+2020-06-12 15:38:24,726 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(209)) - Registered pre-bundled extended operation factory: 1.3.6.1.4.1.4203.1.11.1
+2020-06-12 15:38:24,728 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(213)) - Registered pre-bundled extended operation factory: 1.3.6.1.4.1.4203.1.11.3
+2020-06-12 15:38:24,729 INFO  [main] standalone.CodecFactoryUtil (CodecFactoryUtil.java:loadStockExtendedOperations(217)) - Registered pre-bundled extended operation factory: 1.3.6.1.4.1.1466.20037
+2020-06-12 15:38:25,351 ERROR [main] api.LdapNetworkConnection (LdapNetworkConnection.java:writeRequest(4153)) - Message failed : something wrong has occurred
+Exception in thread "main" org.apache.directory.ldap.client.api.exception.InvalidConnectionException: Error while sending some message : the session has been closed
+
+
+guardian主备
+kadmin 3.1 
+本地guardian3.2 ->先3.1再3.2 要先clean一下
+
+https://www.cnblogs.com/kongzhongqijing/articles/3625574.html
+
+-------------------------------------------------------------------------------<
+
+2020-06-12 20:58:37,511 ERROR org.apache.directory.server.KERBEROS_LOG: ERR_153 Error in request monitor
+java.lang.NullPointerException
+        at org.apache.directory.server.kerberos.kdc.authentication.AuthenticationService.monitorRequest(AuthenticationService.java:732)
+        at org.apache.directory.server.kerberos.kdc.authentication.AuthenticationService.execute(AuthenticationService.java:113)
+        at org.apache.directory.server.kerberos.protocol.KerberosProtocolHandler.messageReceived(KerberosProtocolHandler.java:212)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain$TailFilter.messageReceived(DefaultIoFilterChain.java:1019)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain.callNextMessageReceived(DefaultIoFilterChain.java:650)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain.access$1300(DefaultIoFilterChain.java:49)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain$EntryImpl$1.messageReceived(DefaultIoFilterChain.java:1141)
+        at org.apache.mina.filter.codec.ProtocolCodecFilter$ProtocolDecoderOutputImpl.flush(ProtocolCodecFilter.java:437)
+        at org.apache.mina.filter.codec.ProtocolCodecFilter.messageReceived(ProtocolCodecFilter.java:256)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain.callNextMessageReceived(DefaultIoFilterChain.java:650)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain.access$1300(DefaultIoFilterChain.java:49)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain$EntryImpl$1.messageReceived(DefaultIoFilterChain.java:1141)
+        at org.apache.mina.core.filterchain.IoFilterAdapter.messageReceived(IoFilterAdapter.java:122)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain.callNextMessageReceived(DefaultIoFilterChain.java:650)
+        at org.apache.mina.core.filterchain.DefaultIoFilterChain.fireMessageReceived(DefaultIoFilterChain.java:643)
+        at org.apache.mina.transport.socket.nio.NioDatagramAcceptor.readHandle(NioDatagramAcceptor.java:307)
+        at org.apache.mina.transport.socket.nio.NioDatagramAcceptor.processReadySessions(NioDatagramAcceptor.java:270)
+        at org.apache.mina.transport.socket.nio.NioDatagramAcceptor.access$700(NioDatagramAcceptor.java:68)
+        at org.apache.mina.transport.socket.nio.NioDatagramAcceptor$Acceptor.run(NioDatagramAcceptor.java:181)
+        at org.apache.mina.util.NamePreservingRunnable.run(NamePreservingRunnable.java:64)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+        at java.lang.Thread.run(Thread.java:745)
+2020-06-12 20:58:37,512 DEBUG org.apache.directory.server.KERBEROS_LOG: --> Selecting the EncryptionType
+2020-06-12 20:58:37,512 DEBUG org.apache.directory.server.KERBEROS_LOG: Encryption types requested by client [aes256-cts-hmac-sha1-96 (18), aes128-cts-hmac-sha1-96 (17), des3-cbc-sha1-kd (16), rc4-hmac (23), des-cbc-crc (1), des-cbc-md5 (3)].
+
+
+node215
+
+
