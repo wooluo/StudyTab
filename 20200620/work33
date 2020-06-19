@@ -1,0 +1,194 @@
+0615
+
+
+工作周报 - 李镇邦 20200608 ~ 20200612
+
+完成：
+1. WARP-46294：[KunDB]支持强制访问语法show mac语句和metainfo
+2. WARP-46492:[guardian]kadmin.guardian增加互信域principal的增加和删除功能	
+
+其他：
+1.sla2-7772 tdh481与620互信失败
+2.sla3-7805 tdh512 inceptor orc表权限未审核
+3.sla2-7871 hdfs nn选主失败 报guardian的error
+4.sla-7878 扫描cve 添加身份验证hadoop的web ui
+5. 其他支持
+
+
+
+进行中：
+1. WARP-46359：guardian RM部分的review整理
+
+本周：
+guardian新jira，之前review的整改
+
+
+beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/tw-node598@TDH"
+
+apacheds:
+entIp='172.26.5.97', result=SUCCESS
+2020-06-15 12:20:33,857 INFO ApacheDSAuditLogger: 2020-06-15 12:20:33,033 operation='AS_REQ', principal='hive/tw-node597@TDH', serverName='null', clientIp='172.26.5.97', result=SUCCESS
+2020-06-15 12:20:33,872 INFO ApacheDSAuditLogger: 2020-06-15 12:20:33,033 operation='TGS_REQ', principal='null', serverName='hive/tw-node599@TDH', clientIp='172.26.5.97', result=SUCCESS
+2020-06-15 12:20:42,437 INFO ApacheDSAuditLogger: 2020-06-15 12:20:42,042 operation='AS_REQ', principal='yarn/tw-node597@TDH', serverName='null', clientIp='172.26.5.97', result=SUCCESS
+2020-06-15 12:20:42,447 INFO ApacheDSAuditLogger: 2020-06-15 12:orc20:42,042 operation='TGS_REQ', principal='null', serverName='yarn/tw-node598@TDH', clientIp='172.26.5.97', result=SUCCESS
+2020-06-15 12:20:43,977 INFO ApacheDSAuditLogger: 2020-06-15 12:20:43,043 operation='AS_REQ', principal='hive/tw-node597@TDH', serverName='null', clientIp='172.26.5.97', result=SUCCESS
+2020-06-15 12:20:43,985 INFO ApacheDSAuditLogger: 2020-06-15 12:20:43,043 operation='TGS_REQ', principal='null', serverName='hive/tw-node598@TDH', clientIp='172.26.5.97', result=SUCCESS
+
+guardian:
+ster server connection later. ReadOnly is on. Try next pool.
+2020-06-15 12:33:07,375 INFO org.apache.directory.fortress.core.impl.RoleUtil: loadGraph initializing ROLE context [HOME]
+2020-06-15 12:33:07,375 WARN org.apache.directory.fortress.core.ldap.connection.LdapConnectionProvider: Error getting admin connection : Will retry master server connection later. ReadOnly is on. Try next pool.
+2020-06-15 12:33:07,377 WARN org.apache.directory.fortress.core.ldap.connection.LdapConnectionProvider: Error getting user connection : Will retry master server connection later. ReadOnly is on. Try next pool.
+2020-06-15 12:33:07,380 WARN org.apache.directory.fortress.core.ldap.connection.LdapConnectionProvider: Error getting admin connection : Will retry master server connection later. ReadOnly is on. Try next pool.
+2020-06-15 12:33:07,382 WARN io.transwarp.guardian.server.boot.controller.AuthenticationController: Searching groups of a non-existing user guardian/guardian
+2020-06-15 12:33:27,769 ERROR org.apache.directory.ldap.client.api.DefaultLdapConnectionFactory: unable to bind connection: Cannot connect to the server: Connection refused
+
+
+  private void processDelPrincsCmd(String subCmd) throws Exception {
+    String princ = subCmd
+            .replace("delprinc", "")
+            .replace("delete_principal", "")
+            .trim();
+    KadminV2 kadmin = getKadmin();
+    kadmin.delPrincipal(princ);
+  }
+
+https://www.cnblogs.com/xxwtfw/p/6698182.html
+
+@DeleteMapping("/**")
+@ApiIgnore
+@ResolvePath
+@ExtractSession
+@Auditable(field = AuditField.USER, requestClass = "DeleteUserRequest", level = AuditLevel.DELETE,
+    operationFormat = "delete user [%s]")
+public void deleteSpecialUser(@InjectValue @ApiIgnore SessionVo sessionVo, @ResolveValue String resolvedParam) throws GuardianException {
+  try {
+    String username = URLDecoder.decode(resolvedParam, "UTF-8");
+    userManager.deleteUser(sessionVo, username);
+  } catch (UnsupportedEncodingException e) {
+    throw new GuardianException(ErrorCodes.ILLEGAL_CHARACTER, "", resolvedParam);
+  }
+}
+
+docker run -it --network=host bash使用主机网络
+
+ kadmin.guardian -w123 -rTDH -q"delprinc -pau test002/TDH@aaa"
+
+docker run -it --network=host
+docker build -t xx:xx
+
+
+Mon 修改kadmin.guardian WARP-45079 45428 部分修改resource manager
+Tue WARP-46697 晚上resource-manager
+WED sla-7772 WARP-46697
+THURS resource-manager WARP-46633
+FRI WARP-46600
+
+
+SELECT ul.user, ll.level, tvl.* from _vt.table_or_view_label tvl left join _vt.label_level ll on ll.label = tvl.label left join _vt.user_level ul on ul.level >= ll.level
+
+if pass, err = e.checkMacTableObjInternal(ctx, session, user, o.Db, o.Value1); err != nil {
+		return err
+	}
+
+akka的actor模型是非抢占式调度，换句话说，如果某个actor内部存在阻塞操作，如果采用默认dispatcher配置，那么可能导致actor不并发。
+akka系统需要从dispatcher中拿出线程资源来进行actor之间的调度以及协调。可是receive中的Future占用了系统的dispatcher资源，可能把系统的dispatcher给阻塞掉了，由此导致akka系统本身被阻塞。
+WARP-28451
+
+beeline -u "jdbc:hive2://localhost:10000/default;principal=hive/tw-node598@TDH"
+
+xecutions ：需要记住的是，插件可能有多个目标。每个目标可能有一个单独的配置，甚至可能将插件的目标完全绑定到不同的阶段。执行配置插件的目标的执行。
+
+id: 执行目标的标识。
+goals: 像所有多元化的 POM 元素一样，它包含单个元素的列表。在这种情况下，这个执行块指定的插件目标列表。
+phase: 这是执行目标列表的阶段。这是一个非常强大的选项，允许将任何目标绑定到构建生命周期中的任何阶段，从而改变 maven 的默认行为。
+inherited: 像上面的继承元素一样，设置这个 false 会阻止 maven 将这个执行传递给它的子代。此元素仅对父 POM 有意义。
+configuration: 与上述相同，但将配置限制在此特定目标列表中，而不是插件下的所有目标。
+
+Wed.
+并发与并行
+并发：分配时间片
+并行机制下的并发
+
+ Map<String, Object> props = new HashMap<>();
+    props.put("a", 111);
+
+    QuotaVo quota1 = new QuotaVo("quotaTest1", Arrays.asList("FURION_SCHEDULER", "root"));
+    quota1.setProperties(props);
+    admin.addQuota(quota1);
+
+    QuotaVo quota2 = new QuotaVo("quotaTest2", Arrays.asList("CAPACITY_SCHEDULER", "root"));
+    quota2.setProperties(props);
+    admin.addQuota(quota2);
+
+Assert.assertTrue(permManager.check(new PrincipalVo(PrincipalType.USER, "admin"), new PermVo(inceptorGlobal, new PermActionVo("SELECT")), false));
+
+[PrincPermVo{princ=PrincipalVo{principal='admin', principalType=USER}, permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='null', serviceName='jTLvgInceptorResMgrTestinceptor', externalId=0}, permActionVo=PermActionVo{action='SELECT'}}, grantOption=false}, PrincPermVo{princ=PrincipalVo{principal='admin', principalType=USER}, permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='null', serviceName='jTLvgInceptorResMgrTestinceptor', externalId=0}, permActionVo=PermActionVo{action='ADMIN'}}, grantOption=false}, PrincPermVo{princ=PrincipalVo{principal='tdt', principalType=USER}, permVo=PermVo{resourceVo=ResourceVo{id=0, dataSource=[NodeVo{type='GLOBAL', value='*'}], serviceType='null', serviceName='jTLvgInceptorResMgrTestinceptor', ex
+Cannot lookup inceptor table resource using cached connection
+
+sed -i 's/ throws.*//g' testv2
+删除匹配throws字符后面的字符串
+sed -i '/^$/d' testv2
+删除空行
+sed -i '/\*/d' testv2 
+删除带*的行
+sed -i '/^\s*$/d' testv2
+删除带空格的空行
+wc -l testv2
+统计文件行数
+grep -i '.*group.*' testv1
+查找存在group的行
+
+api
+v1 
+addQuota
+readQuota 
+UPdateQuota
+deleteQuota -> findQuota
+searchQuotas
+
+v2 
+addQuota
+updateQuota
+deleteQuota
+getQuota
+SearchQuota
+
+inf
+v1
+  void addQuota(QuotaVo quotaVo) throws GuardianClientException;
+  void updateQuota(QuotaVo quotaVo) throws GuardianClientException
+  void deleteQuota(QuotaVo quotaVo) throws GuardianClientException;
+  void deleteQuota(QuotaVo quotaVo, boolean recursive) throws GuardianClientException;
+  void deleteQuotaComponent(String component) throws GuardianClientException;
+  QuotaVo readQuota(QuotaVo quotaVo) throws GuardianClientException;
+  List<QuotaVo> listQuotas(String component, List<String> dataSource) throws GuardianClientException;
+v2
+  void addQuota(QuotaVo quotaVo) throws GuardianClientException;
+  
+  void updateQuota(QuotaVo quotaVo) throws GuardianClientException;
+  
+  void deleteQuota(ResourceVo resourceVo) throws GuardianClientException;
+  
+  QuotaVo getQuota(ResourceVo resourceVo) throws GuardianClientException;
+  
+  List<QuotaVo> getDescendantResourceQuotas(ResourceVo resourceVo) throws GuardianClientException;
+
+List<GroupVo> findOwnedGroups(String username, boolean inherited)
+
+@Pathvariable和@RequestParam之间的区别
+
+jps查看java进程
+jstat -gcutil pid 1000 5 近1s统计gc信息5次
+
+jmap -histo pid | more
+
+ps -efww | grep 
+
+nc -v ip port  netcat查看ip的port是否开启
+nc -l 5000 > my.jpg
+nc host 5000 < my.jpg netcat传输文件
+free -m 以MB为单位显示内存使用情况。
+top -c Linux top命令用于实时显示 process 的动态。
+
+

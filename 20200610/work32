@@ -471,7 +471,6 @@ kadmin
 2020-06-12 15:38:25,351 ERROR [main] api.LdapNetworkConnection (LdapNetworkConnection.java:writeRequest(4153)) - Message failed : something wrong has occurred
 Exception in thread "main" org.apache.directory.ldap.client.api.exception.InvalidConnectionException: Error while sending some message : the session has been closed
 
-
 guardian主备
 kadmin 3.1 
 本地guardian3.2 ->先3.1再3.2 要先clean一下
@@ -510,5 +509,11 @@ java.lang.NullPointerException
 
 
 node215
+ kadmin.guardian -w123 -rTDH -q"delprinc -pau test002/TDH@aaa"
+
+qr, err := e.handleExec(ctx, session, sql, sqlInfo, bindVars, target)
+		if err != nil {
+			return nil, err
+		}
 
 
