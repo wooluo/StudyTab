@@ -1,0 +1,142 @@
+work34
+
+getparentdatasource->
+list<nodeVo>
+  // [<database system>] -> [<database system>]
+  // [<table system.bucket_v>] -> [<database system>, <table bucket_v>]
+  // [<pool root.default] -> [<scheduler *>, <queue root>, <queue default>]
+type, value
+TABLE -> db1.tb1
+%%context.getParentDataSource()
+
+getResourcesFromParentDataSource -> 
+
+
+geturi -> aa.bb
+aa -> prefix
+%% queue/pool
+
+Arrays.asList(new NodeVo(INCEPTOR.DATABASE, ), new NodeVo(INCEPTOR.TABLE_OR_VIEW, dbAndTable[1]))
+
+工作周报 - 李镇邦 20200615 ~ 20200619
+
+完成：
+1. WARP-46697: [KunDB]修复与添加MAC功能
+2. WARP-46633: [guardian] 统计并增加guardian两个版本quota部分的api
+3. WARP-43659: [guardian]修复增加RM部分单测
+
+其他：
+1. 帮助修复整理上周遗留的sla-7772
+2. 修改review后的代码WARP-45079 45428
+
+
+进行中：
+1. WARP-46600: [guardian]guardian server国际化
+
+本周：
+1. 完成WARP-46600的工作 
+2. 整理提交之前merge requese的代码
+
+@TestPropertySource 补充env配置
+完成WARP-43659 WARP-46600
+
+bean
+初始化回调
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'tccResourceSvc' defined in file [/home/transwarp/Downloads/work/guardian-backend/guardian/resource-manager/target/classes/io/transwarp/guardian/resource/tcc/TccResourceSvc.class]: Could not resolve matching constructor (hint: specify index/type/name arguments for simple parameters to avoid type ambiguities)
+
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:243)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1274)
+
+o.transwarp.guardian.common.exception.GuardianException: ErrorCode: 56001, ErrorMessage: Service [serviceType=YARN, serviceName=IacptResourceServiceManagerTestyarn] is not registered
+
+	at io.transwarp.guardian.resource.ResourceServiceManager.getInactiveSchedulerNodes(ResourceServiceManager.java:259)
+	at io.transwarp.guardian.resource.ResourceServiceManagerTest.registerAndRemoveTest(ResourceServiceManagerTest.java:109)
+
+
+?lang=zh_CN
+
+Accept-Language: zh-CN;q=0.9,*;q=0.8,zh;q=0.7
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' --header 'Accept-Language: zh-CN;q=0.9,zh;q=0.7' -d '{"username": "admin","password": "333","isSystem": false}' 'http://localhost:8380/api/v2/login'
+
+curl -X GET --header 'Content-Type: application/json' --header 'Accept: application/json' -b cookies.txt -d '{"dataSource": [ { "type": "GLOBAL","value": "*"}],"serviceName": "inceptor1", "serviceType": "INCEPTOR" }' 'http://localhost:8380/api/v2/perms/authorized-dataNodes?princ=admin&princType=USER&inheritance=false&subtree=false'
+
+transwarp@transwarp-lishinho-5480:~$ curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' --header 'Accept-Language: zh-CN;q=0.9,*;q=0.8,zh;q=0.7' -D cookies.txt -d '{"username": "admin","password": "333","isSystem": false}' 'http://localhost:8380/api/v2/login'
+{"returnCode":1013,"errorMessage":"ç»éå¤±è´¥ï¼å¯ç éè¯¯","detailMessage":""}transwarp@transwarp-lishinho-5480:~$ 62;c
+62: command not found
+c: command not found
+
+Content-Language: de-DE
+
+{"returnCode":1013,"errorMessage":"ç»éå¤±è´¥ï¼å¯ç éè¯¯","detailMessage":""}
+inceptor/silpstream hdfs
+
+ template = locale == DEFAULT_LOCALE ? ResourceBundle.getBundle(rbName, locale).getString(resourceKey) :
+          new String(ResourceBundle.getBundle(rbName, locale).getString(resourceKey).getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+ 
+进程：
+
+message: 登录用户时缺少必要字段，请检查: corpId, userId, name, phone
+code: -1
+
+  int ADMIN_ROLE_ALREADY_EXIST = 53001;
+  int ADMIN_ROLE_NOT_FOUND = 53002;
+  int ADMIN_PERM_ALREADY_EXIST = 53003;
+  int ADMIN_PERM_NOT_FOUND = 53004;
+
+int PASSWORD_ERROR = 54011;
+  int AUTH_FAILED_USER_NOT_FOUND = 54012;
+  int INVALID_TOKEN = 54013;
+  int PWD_POLICY_VIOLATION = 54014;
+  int PWD_POLICY_MIN_AGE_TRIGGER = 54015;
+  int PWD_POLICY_MAX_AGE_TRIGGER = 54016;
+  int PWD_POLICY_MIN_LENGTH_TRIGGER = 54017;
+  int PWD_POLICY_IN_HISTORY_TRIGGER = 54018;
+  int PWD_POLICY_EXPIRE_WARNING_TRIGGER = 54019;
+  int PWD_POLICY_MAX_FAILURE_TRIGGER = 54020;
+  int PWD_POLICY_ALLOW_USER_CHANGE_TRIGGER = 54021;
+  int PWD_POLICY_LOCKOUT_DURATION_TRIGGER = 54022;
+  int PWD_POLICY_MIN_CLASSES_TRIGGER = 54023;
+
+
+    mvn install -DskipTests -DdistMgmtStagingId=public-transwarp-release \
+        -DdistMgmtStagingName=libs-release-local -DdistMgmtStagingUrl=http://172.16.1.168:8081/artifactory/libs-release-local \
+        -DdistMgmtSnapshotsId=public-transwarp-snapshots -DdistMgmtSnapshotsName=libs-snapshot \
+        -DdistMgmtSnapshotsUrl=http://172.16.1.168:8081/artifactory/libs-snapshot-local
+
+WARP-47032
+WARp-46600
+string matches优化 ->
+static方法是不是只加载一次
+
+IOC
+
+实例代码块会随着对象的创建而执行，即每个对象都会有自己的实例代码块，表现出来就是实例代码块的运行结果会影响当前对象的内容，并随着对象的销毁而消失(内存回收)；而静态代码块是当Java类加载到JVM内存中而执行的代码块，由于类的加载在JVM运行期间只会发生一次，所以静态代码块也只会执行一次。
+
+dummy := &ListNode{val : 0}
+dummy.next = head
+head = dummy
+
+var rmval int
+for head.next != nil && head.next.next != nil {
+  if head.next.val == head.next.next.val {
+    rmval = head.next.val
+    for head.next != nil && head.next.val == rmval {
+       head.next = head.next.next
+    }
+  } else {
+    head = head.next
+  }
+  return dummy.next
+}
+
+所以cas登录和OAuth2在流程上的最大区别就是，通过ST或者code去认证的时候，需不需要预先商量好的密码。
+
+- The `TGT` (Ticket Granting Ticket), stored in the `TGC` cookie, represents a SSO session for a user.
+- The `ST` (Service Ticket), transmitted as a `GET` parameter in urls, stands for the access granted by the CAS server to the *CASified* application for a specific user.
+
+
+
+
+
