@@ -136,7 +136,8 @@ for head.next != nil && head.next.next != nil {
 - The `TGT` (Ticket Granting Ticket), stored in the `TGC` cookie, represents a SSO session for a user.
 - The `ST` (Service Ticket), transmitted as a `GET` parameter in urls, stands for the access granted by the CAS server to the *CASified* application for a specific user.
 
-
-
-
+springf security+ shiro + Oauth2 + native filter
+29139
+27561
+34172
 

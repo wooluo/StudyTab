@@ -1,0 +1,235 @@
+
+工作周报 - 李镇邦 20200622 ~ 20200624
+
+完成：
+1. WARP-46600: [guardian]guardian server国际化
+2. WARP-47032: [guardian]修改Guardian中部分错误码和实际错误不对应
+
+进行中：
+1. WARP-27572: [guardian federation]federation支持SLO
+
+本周：
+1. 讨论federation支持SLO的方案并完成
+2. 整理提交之前merge requese的代码
+
+sed -i 's/ throws.*//g' testv2
+删除匹配throws字符后面的字符串
+sed -i '/^$/d' testv2
+删除空行
+sed -i '/\*/d' testv2 
+删除带*的行
+sed -i '/^\s*$/d' testv2
+删除带空格的空行
+wc -l testv2
+统计文件行数
+grep -i '.*group.*' testv1
+查找存在group的行
+
+整理V2新提供的resource的API--，确定已有的API是否需要保留/修改--都需要留？，是否有有需求的API遗漏--需求？
+ResourceServiceController
+
+register 
+listservices v1 v2
+lookupresource v1 v2
+removeService
+removeServices
+unregisterService
+refreshYarnQueues
+genYarnSchedulerXmlConf
+getSchedulerType v1 v2
+getInactiveSchedulerNodes V1 v2
+getEffectiveServiceName
+getServiceMapping
+
+ResourceController
+
+getChildNodes
+getDescendantResources
+renameNode
+deleteResource
+deleteServiceResource
+
+
+单点登出的原理是，服务端收到登出请求时（请求中肯定会带tgt cookie），会向通过此tgt登入成功的service url（也就是所有通过此tgt登录成功的客户端）发出登出请求，此请求会有特殊的标记被客户端的filter捕获到，也就登出了
+
+    A: 浏览器请求 豆瓣读书的 /logout，豆瓣读书 删除Session相关内容，即清除局部会话。
+
+    B: 豆瓣读书 引导浏览器重定向到 用户中心的 /logout，携带Cookie中的CASTGC
+
+    C: 清除全局会话，删除 Cookie中的CASTGC，注销 TGC对应的TGT
+
+    D: 认证服务器 通知所有已登录的业务系统清除局部会话，找到TGT签发的ST，即所有已登录的业务系统（豆瓣电影、音乐），在后台，通知 所有有关的业务系统（Fire & Forget），携带ST
+
+    E: 业务系统 接到通知后 清除局部会话，用ST 清除 对应的Session，即 清除对应的局部会话
+
+泛型的主要目的之一就是用来约定集合要存储什么类型的对象，并且通过编译器确保规约得以满足。
+因此，与其使用 Object ，我们更希望先指定一个类型占位符，稍后再决定具体使用什么类型。要达到这个目的，需要使用类型参数，用尖括号括住，放在类名后面。然后在使用这个类时，再用实际的类型替换此类型参数。
+你只需告诉编译器要使用什么类型，剩下的细节交给它来处理。
+
+
+https://172.26.2.2:8383/federation-server/#/account/login
+
+http://localhost:8011/federation-server/
+
+http://localhost:9111/oauth-client-demo-sso/login
+
+password,authorization_code,refresh_token,implicit
+
+
+SLO保证federation server后端token删除或不可用 && federation client中局部session失效
+问题：
+1. delegation是跨租户用户访问client的功能么 是否会有影响？ ++
+2. guardian server怎么调用federation api ++
+3. 采用shiro和dummy的service怎么清除局部session +++
+4. 如何验证slo ++
+5. 采用refresh token的时候是否会影响 +
+6. guardian spring session是什么 ++
+
+spring session
+对于HTTP协议来说，Spring Session定义了HttpSessionStrategy接口以及两个默认实现，即CookieHttpSessionStrategy和HeaderHttpSessionStrategy，其中前者使用HTTP cookie将请求与session id关联，而后者使用HTTP header将请求与session关联。
+
+例如，如果请求是通过HTTP传递进来的，那么session可以通过HTTP cookie或HTTP Header信息与请求进行关联。如果使用HTTPS的话，那么可以借助SSL session id实现请求与session的关联。如果使用JMS的话，那么JMS的Header信息能够用来存储请求和响应之间的session id。
+
+http://localhost:8011/federation-server/swagger-ui.html#!/
+
+logincontroller->authenticate->attemptAuthentication-session-filter
+
+rememberme
+
+
+cas tgt放在cookie里 存储对应service关系
+
+Our idea is:
+
+Enhance the access token with the current session id
+If apps A or B want to logout a user, they redirect him to the logout page of O
+If the user gets logged out from O, all access tokens belonging to the current session on O are removed and the user gets redirected back to A or B
+The session on A or B gets destroyed
+A and B check for the validity of their OAuth access token on each request and destroy their session if the token is not valid any more
+Do you think this is a valid use case for OAuth 2? How you would you implement single sign off differently?
+
+
+token --- sessionID
+维持一个token-sessionid的map server端logout的时候失效所有与之session有关的token(session是怎么生成的，是否唯一）重定向到logout -service 
+简化 只需要重定向到各service的logout即可？异步返回消息
+
+HttpSession原理
+当用户第一次访问Servlet时,服务器端会给用户创建一个独立的Session
+并且生成一个SessionID,这个SessionID在响应浏览器的时候会被装进cookie中,从而被保存到浏览器中
+当用户再一次访问Servlet时,请求中会携带着cookie中的SessionID去访问
+服务器会根据这个SessionID去查看是否有对应的Session对象
+有就拿出来使用;没有就创建一个Session(相当于用户第一次访问)
+
+域的范围:
+    Context域 > Session域 > Request域
+    Session域 只要会话不结束就会存在 但是Session有默认的存活时间(30分钟)
+
+token
+
+sessionID-user-client-token
+
+cas怎么把报文发送给其他客户端？
+其他客户端收到报文请求后如何响应处理？
+
+或者其他部分怎么对client集中发送请求操作，比如单点登陆（并没有
+
+1. 放在federation内存中 Map<String, Service> 用于识别sessionID对应的client service ，federation登出时使用
+记录通过这个session登陆的client
+2. 登出时 server发送请求给其他client 登出消息(只要是logout就行
+
+
+1. mac 表和zk下的vschema的性质相同，都属于客体下的附加属性，drop db的时候同时删去。现没有在mac控制下限制db的ddl，所以不做权限管控，只做客体消失后的权限清理
+2. 
+drop tb/view先删掉在外部的附加属性 如global index 再删掉shard以及mfed下的表 
+按照这个逻辑处理 事务发生错误按当前方法一般处理，
+加上mac权限限制报错 防止没有mac权限的用户drop/alter table/view
+3.
+alter只删除表/视图 列上的权限且不删除表/视图本身的权限 
+
+https://suse02:8383/federation-server/TDH/oauth/authorize?client_id=guardian-TDH-HSswJ&redirect_uri=https%3A%2F%2F172.26.2.2%3A8380%2F&response_type=code&state=PzUeGD
+https://suse02:8383/federation-server/sessions/current
+
+
+http://localhost:8011/federation-server/sessions/current
+
+重定向直接到logout
+
+server直接发sessionID到client？
+client
+
+cas
+oauth
+session
+sessionID
+cookie
+bearer token
+httpsession
+servlet
+saml
+sso
+slo
+spring security
+spring session
+pac4j
+shiro
+tgt
+st
+包装器模式
+rest api
+
+https://172.16.1.114:8380/api/v1/logoutCAS
+http://172.16.1.114:50070/logout
+
+sendMessageToEndPoint-> performBackChannelLogout->handle（determineLogoutUrl， resolveService）-> performLogoutForTicket->performLogout(delete ticket)
+Perform a back channel logout for a given ticket granting ticket and returns all the logout requests.
+->LogoutManager
+final URL logoutUrl = this.singleLogoutServiceLogoutUrlBuilder.determineLogoutUrl(registeredService, selectedService);
+
+// 在数据库存一份 logouturl 如果没有存 会自己拼一份logout url
+
+server端
+// 每次登陆的时候在spring session中设置service属性
+// logout的时候调用logoutManager
+// logoutManager进行ticket中携带的service的处理以及之后ticket的销毁 -> federation中session的invalid和service的解析
+// handle拿到解析出来的service，从数据库中找register service 然后决定发送报文的url
+// 先从对应的registered service中拿logout url（存在txsql？）如果为空 解析得到的service中的logout url （remoteaddress+/logout？）
+// 封装msg 用httpclient发送异步post请求到logout url
+
+session过期时的处理？ -> 什么时候调用manager->session被清理的时候
+怎么解析url ->域名后+/logout
+
+
+
+
+client端
+//这一个传进来的server session 对应的token 对应的通过这个cookie创建的其他session
+// server转发的post请求和浏览器用户主动触发的logout请求一样么 不一样 认证过程
+// server端的session要和client端session对应
+// 处理通过Oauth指令使用token去认证产生的session
+
+// logout filter拦截到报文中有固定logout字段的请求
+// handler处理：收到的请求是否是认证token，如果是认证token，需要把这个session记录下来（federation需要做？），如果是logout 销毁session
+// listener处理：监听session的生命周期，失效后做后续工作
+
+//在不同框架中处理不同filter 拦截报文中有固定字段的logout标识符
+// 什么时候创建token，找到该session创建的token 并销毁该token下的session
+重定向时把federation的sessionid填到client的请求中 require token/delete token
+Map<sessionID, user>
+Map<user, session>
+a. 如何解析发送的url
+一，
+1.tgt的概念相当于共享cookie，内部维护映射的service，可以向区域中所有人认证自己的身份
+2. oauth2是证书式，认证发放token，信用关系集中存储在as，才用授权码加密 每次建立一对一的信任关系
+
+server需要维护用户和client关系（记录这个gf-session对应登陆的client）
+二，
+1. 确认是否要slo
+2. 记录client的logoutURL 去后端寻找对应-》自己解析
+
+url+报文标记
+b. 构造post请求发送给client
+c. 各个框架拿到报文的filter处理时机
+维护携带过来的sessionID->user->token->sessions 失效
+session本身失效的时候
+
+
